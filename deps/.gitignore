@@ -1,0 +1,5 @@
+CAENUSBdrvB-1.4/*.o
+CAENUSBdrvB-1.4/*.ko
+CAENUSBdrvB-1.4/*.cmd
+CAENUSBdrvB-1.4/*.mod*
+CAENUSBdrvB-1.4/*.order
