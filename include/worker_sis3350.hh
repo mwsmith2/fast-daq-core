@@ -5,7 +5,7 @@
 
   author: Matthias W. Smith
   email:  mwsmith2@uw.edu
-  file:   daq_worker_sis3302.hh
+  file:   worker_sis3302.hh
   
   about:  Implements the core functionality of the SIS 3350 device needed
           to operate in this daq.  It loads a config file for several
@@ -19,8 +19,8 @@
 #include <iostream>
 
 //--- project includes ------------------------------------------------------//
-#include "daq_worker_vme.hh"
-#include "daq_common.hh"
+#include "worker_vme.hh"
+#include "common.hh"
 
 namespace daq {
 

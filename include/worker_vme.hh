@@ -5,7 +5,7 @@
 
   author: Matthias W. Smith
   email:  mwsmith2@uw.edu
-  file:   daq_worker_vme.hh
+  file:   worker_vme.hh
   
   about:  Implements the some basic vme functionality to form a base
           class that vme devices can inherit.  It really just defines
@@ -23,8 +23,8 @@
 #include "vme/sis3100_vme_calls.h"
 
 //--- project includes ------------------------------------------------------//
-#include "daq_worker_base.hh"
-#include "daq_common.hh"
+#include "worker_base.hh"
+#include "common.hh"
 
 namespace daq {
 

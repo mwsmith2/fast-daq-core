@@ -1,4 +1,4 @@
-#include "daq_worker_sis3350.hh"
+#include "worker_sis3350.hh"
 
 namespace daq {
 

@@ -5,7 +5,7 @@
 
   author: Matthias W. Smith
   email:  mwsmith2@uw.edu
-  file:   daq_worker_list.hh
+  file:   worker_list.hh
   
   about:  Creates a vector class that can hold all data workers. This
           class makes event building and run flow much simpler to handle.
@@ -21,9 +21,9 @@
 #include <boost/variant.hpp>
 
 //--- project includes ------------------------------------------------------//
-#include "daq_common.hh"
-#include "daq_worker_sis3350.hh"
-#include "daq_worker_sis3302.hh"
+#include "common.hh"
+#include "worker_sis3350.hh"
+#include "worker_sis3302.hh"
 
 namespace daq {
 
@@ -38,7 +38,7 @@ class DaqWorkerList {
     // its worker vector.  They can be freed externally, but we need to
     // be sure.
     ~DaqWorkerList() {
-      if (daq_workers_.size() != 0) {
+      if (workers_.size() != 0) {
         FreeList();
       }
     };
@@ -77,8 +77,8 @@ class DaqWorkerList {
     void FlushEventData();
 
     // Add a newly allocated worker to the current list.
-    void PushBack(worker_ptr_types daq_worker) {
-      daq_workers_.push_back(daq_worker);
+    void PushBack(worker_ptr_types worker) {
+      workers_.push_back(worker);
     }
 
     // Deallocates each worker.
@@ -91,7 +91,7 @@ class DaqWorkerList {
   private:
 
     // This is the actual worker list.
-    std::vector<worker_ptr_types> daq_workers_;
+    std::vector<worker_ptr_types> workers_;
 };
 
 } // ::daq

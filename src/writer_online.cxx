@@ -1,4 +1,4 @@
-#include "daq_writer_online.hh"
+#include "writer_online.hh"
 
 namespace daq {
 

@@ -1,4 +1,4 @@
-#include "daq_worker_fake.hh"
+#include "worker_fake.hh"
 
 #include <iostream>
 using std::cout;

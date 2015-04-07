@@ -9,8 +9,8 @@
 #include "vme/sis3100_vme_calls.h"
 
 //--- project includes ------------------------------------------------------//
-#include "daq_worker_vme.hh"
-#include "daq_common.hh"
+#include "worker_vme.hh"
+#include "common.hh"
 
 // This class pulls data from a sis_3350 device.
 namespace daq {

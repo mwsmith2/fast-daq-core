@@ -9,8 +9,8 @@
 #include "CAENDigitizer.h"
 
 //--- project includes ------------------------------------------------------//
-#include "daq_worker_vme.hh"
-#include "daq_common.hh"
+#include "worker_vme.hh"
+#include "common.hh"
 
 // This class pulls data from a caen_6742 device.
 namespace daq {

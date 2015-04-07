@@ -5,7 +5,7 @@
 
   author: Matthias W. Smith
   email:  mwsmith2@uw.edu
-  file:   daq_worker_base.hh
+  file:   worker_base.hh
   
   about:  Creates a virtual base class from which new hardware can inherit
           the necessary member functions.  The functions declared here are

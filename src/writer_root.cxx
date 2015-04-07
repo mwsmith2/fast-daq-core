@@ -1,4 +1,4 @@
-#include "daq_writer_root.hh"
+#include "writer_root.hh"
 
 namespace daq {
 

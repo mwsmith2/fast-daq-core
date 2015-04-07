@@ -25,8 +25,8 @@
 //--- other includes -------------------------------------------------------//
 
 //--- project includes -----------------------------------------------------//
-#include "daq_worker_list.hh"
-#include "daq_common.hh"
+#include "worker_list.hh"
+#include "common.hh"
 
 namespace daq {
 
@@ -70,7 +70,7 @@ protected:
   std::string conf_file_;
 
   std::queue<event_data> data_queue_;
-  DaqWorkerList daq_workers_;
+  DaqWorkerList workers_;
 
   std::atomic<bool> go_time_;
   std::atomic<bool> thread_live_;

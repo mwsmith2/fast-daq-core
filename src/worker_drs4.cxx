@@ -1,4 +1,4 @@
-#include "daq_worker_drs4.hh"
+#include "worker_drs4.hh"
 
 namespace daq {
 

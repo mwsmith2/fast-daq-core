@@ -21,7 +21,7 @@ about:  This class interacts with the Altera Cyclone II FPGA via IP-BUS (VME).
 
 //--- other includes --------------------------------------------------------//
 #include "sis3100_vme_dev.hh"
-#include "daq_common.hh"
+#include "common.hh"
 
 //--- project includes ------------------------------------------------------//
 

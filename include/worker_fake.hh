@@ -10,8 +10,8 @@
 //--- other includes --------------------------------------------------------//
 
 //--- project includes ------------------------------------------------------//
-#include "daq_worker_base.hh"
-#include "daq_common.hh"
+#include "worker_base.hh"
+#include "common.hh"
 
 
 // This class produces fake data to test functionality

@@ -1,5 +1,5 @@
-#include "daq_worker_list.hh"
-#include "daq_common_extdef.hh"
+#include "worker_list.hh"
+#include "common_extdef.hh"
 
 namespace daq {
 
@@ -20,7 +20,7 @@ void DaqWorkerList::StartWorkers()
   // Starts gathering data.
   WriteLog("DaqWorkerList: starting workers.");
 
-  for (auto it = daq_workers_.begin(); it != daq_workers_.end(); ++it) {
+  for (auto it = workers_.begin(); it != workers_.end(); ++it) {
 
     // Needs a case switch to work with boost::variant vector.
     if ((*it).which() == 0) {
@@ -51,7 +51,7 @@ void DaqWorkerList::StartThreads()
   // Launches the data worker threads.
   WriteLog("DaqWorkerList: launching worker threads.");
 
-  for (auto it = daq_workers_.begin(); it != daq_workers_.end(); ++it) {
+  for (auto it = workers_.begin(); it != workers_.end(); ++it) {
 
     if ((*it).which() == 0) {
 
@@ -81,7 +81,7 @@ void DaqWorkerList::StopWorkers()
   // Stop collecting data.
   WriteLog("DaqWorkerList: stopping workers.");
 
-  for (auto it = daq_workers_.begin(); it != daq_workers_.end(); ++it) {
+  for (auto it = workers_.begin(); it != workers_.end(); ++it) {
 
     if ((*it).which() == 0) {
 
@@ -111,7 +111,7 @@ void DaqWorkerList::StopThreads()
   // Stop and rejoin worker threads.
   WriteLog("DaqWorkerList: stopping worker threads.");
 
-  for (auto it = daq_workers_.begin(); it != daq_workers_.end(); ++it) {
+  for (auto it = workers_.begin(); it != workers_.end(); ++it) {
 
     if ((*it).which() == 0) {
 
@@ -141,7 +141,7 @@ bool DaqWorkerList::AllWorkersHaveEvent()
   // Check each worker for an event.
   bool has_event = true;
 
-  for (auto it = daq_workers_.begin(); it != daq_workers_.end(); ++it) {
+  for (auto it = workers_.begin(); it != workers_.end(); ++it) {
 
     // If any worker doesn't have an event, has_event will become false.
     if ((*it).which() == 0) {
@@ -174,7 +174,7 @@ bool DaqWorkerList::AnyWorkersHaveEvent()
   // Check each worker for an event.
   bool any_events = false;
 
-  for (auto it = daq_workers_.begin(); it != daq_workers_.end(); ++it) {
+  for (auto it = workers_.begin(); it != workers_.end(); ++it) {
 
     // A bitwise or here works, so that any event will return positive.
     if ((*it).which() == 0) {
@@ -206,7 +206,7 @@ bool DaqWorkerList::AnyWorkersHaveMultiEvent()
 {
   // Check each worker for more than one event.
   int num_events = 0;
-  for (auto it = daq_workers_.begin(); it != daq_workers_.end(); ++it) {
+  for (auto it = workers_.begin(); it != workers_.end(); ++it) {
 
     if ((*it).which() == 0) {
 
@@ -238,7 +238,7 @@ bool DaqWorkerList::AnyWorkersHaveMultiEvent()
 void DaqWorkerList::GetEventData(event_data &bundle)
 {
   // Loops over each worker and collect the event data.
-  for (auto it = daq_workers_.begin(); it != daq_workers_.end(); ++it) {
+  for (auto it = workers_.begin(); it != workers_.end(); ++it) {
 
     if ((*it).which() == 0) {
 
@@ -272,7 +272,7 @@ void DaqWorkerList::GetEventData(event_data &bundle)
 void DaqWorkerList::FlushEventData()
 {
   // Drops any stale events when workers should have no events.
-  for (auto it = daq_workers_.begin(); it != daq_workers_.end(); ++it) {
+  for (auto it = workers_.begin(); it != workers_.end(); ++it) {
 
     if ((*it).which() == 0) {
 
@@ -300,7 +300,7 @@ void DaqWorkerList::FlushEventData()
 void DaqWorkerList::ClearList()
 {
   // Remove the pointer references
-  daq_workers_.resize(0);
+  workers_.resize(0);
 }
 
 void DaqWorkerList::FreeList()
@@ -308,7 +308,7 @@ void DaqWorkerList::FreeList()
   // Delete the allocated workers.
   WriteLog("WorkerList: freeing workers.");
 
-  for (auto it = daq_workers_.begin(); it != daq_workers_.end(); ++it) {       
+  for (auto it = workers_.begin(); it != workers_.end(); ++it) {       
 
     if ((*it).which() == 0) {
 
@@ -337,7 +337,7 @@ void DaqWorkerList::FreeList()
     vme_dev = -1;
   }
   
-  daq_workers_.resize(0);
+  workers_.resize(0);
 }
 
 } // ::daq

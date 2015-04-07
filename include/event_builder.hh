@@ -17,9 +17,9 @@
 #include <boost/property_tree/json_parser.hpp>
 
 //--- projects includes -----------------------------------------------------//
-#include "daq_common.hh"
-#include "daq_worker_list.hh"
-#include "daq_writer_root.hh"
+#include "common.hh"
+#include "worker_list.hh"
+#include "writer_root.hh"
 
 namespace daq {
 
@@ -29,8 +29,8 @@ class EventBuilder {
  public:
 
   // ctor
-  EventBuilder(const DaqWorkerList &daq_workers, 
-               const std::vector<DaqWriterBase *> daq_writers,
+  EventBuilder(const DaqWorkerList &workers, 
+               const std::vector<DaqWriterBase *> writers,
                std::string conf_file);
   
   // dtor
@@ -67,8 +67,8 @@ private:
   std::atomic<bool> finished_run_;
   
   // Data accumulation variables
-  DaqWorkerList daq_workers_;
-  std::vector<DaqWriterBase *> daq_writers_;
+  DaqWorkerList workers_;
+  std::vector<DaqWriterBase *> writers_;
   std::vector<event_data> push_data_vec_;
   std::queue<event_data> pull_data_que_;
   

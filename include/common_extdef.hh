@@ -5,14 +5,14 @@
 
 author: Matthias W. Smith
 email:  mwsmith2@uw.edu
-file:   daq_common.hh
+file:   common.hh
 
 about:  Exists to declare a device handle that all vme classes must share,
         and a mutex to guard it while being defined.
 
 \*===========================================================================*/
 
-#include "daq_common.hh"
+#include "common.hh"
 
 namespace daq {
 
@@ -21,7 +21,7 @@ std::string vme_path("/dev/sis1100_00remote");
 std::mutex vme_mutex;
 
 bool logging_on = true;
-std::string logfile("/home/cenpa/.nmr/daq_log");
+std::string logfile("/home/cenpa/.nmr/log");
 std::ofstream logstream(logfile);
 
 int WriteLog(const char *msg) {

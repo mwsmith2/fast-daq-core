@@ -12,8 +12,8 @@
 #include "TTree.h"
 
 //--- project includes ------------------------------------------------------//
-#include "daq_writer_base.hh"
-#include "daq_common.hh"
+#include "writer_base.hh"
+#include "common.hh"
 
 namespace daq {
 

@@ -5,7 +5,7 @@
 
 author: Matthias W. Smith
 email:  mwsmith2@uw.edu
-file:   daq_common.hh
+file:   common.hh
 
 about:  Contains the data structures for several hardware devices in a single
         location.  The header should be included in any program that aims
@@ -45,7 +45,7 @@ about:  Contains the data structures for several hardware devices in a single
 #include "TFile.h"
 
 //--- projects includes -----------------------------------------------------//
-#include "daq_worker_base.hh"
+#include "worker_base.hh"
 
 namespace daq {
 

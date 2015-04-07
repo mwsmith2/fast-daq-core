@@ -1,4 +1,4 @@
-#include "daq_writer_midas.hh"
+#include "writer_midas.hh"
 
 namespace daq {
 

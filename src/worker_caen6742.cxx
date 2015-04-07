@@ -1,4 +1,4 @@
-#include "daq_worker_caen6742.hh"
+#include "worker_caen6742.hh"
 
 namespace daq {
 

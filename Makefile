@@ -3,7 +3,7 @@ OBJECTS = $(patsubst src/%.cxx, build/%.o, $(wildcard src/*.cxx))
 OBJ_VME = $(patsubst include/vme/%.c, build/%.o, $(wildcard include/vme/*.c))
 OBJ_DRS = $(patsubst src/drs/%.cpp, build/%.o, $(wildcard src/drs/*.cpp))
 OBJ_DRS += $(patsubst src/drs/%.c, build/%.o, $(wildcard src/drs/*.c))
-DATADEF = include/daq_common.hh include/daq_common_extdef.hh
+DATADEF = include/common.hh include/common_extdef.hh
 
 # Library info.
 MAJOR=0

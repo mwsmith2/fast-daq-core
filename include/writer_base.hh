@@ -11,7 +11,7 @@
 //--- other includes --------------------------------------------------------//
 
 //--- project includes ------------------------------------------------------// 
-#include "daq_common.hh"
+#include "common.hh"
 
 namespace daq {
 

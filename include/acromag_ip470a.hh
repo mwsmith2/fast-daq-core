@@ -17,7 +17,7 @@ about:  The code in this file wraps the basic functionality of Acromag IP470A
 
 //--- other includes --------------------------------------------------------//
 #include "sis3100_vme_dev.hh"
-#include "daq_common.hh"
+#include "common.hh"
 
 //--- project includes ------------------------------------------------------//
 
