@@ -2,7 +2,7 @@
 
 namespace daq {
 
-DaqWriterOnline::DaqWriterOnline(std::string conf_file) : DaqWriterBase(conf_file), online_ctx_(1), online_sck_(online_ctx_, ZMQ_PUSH)
+WriterOnline::WriterOnline(std::string conf_file) : WriterBase(conf_file), online_ctx_(1), online_sck_(online_ctx_, ZMQ_PUSH)
 {
   thread_live_ = true;
   go_time_ = false;
@@ -10,10 +10,10 @@ DaqWriterOnline::DaqWriterOnline(std::string conf_file) : DaqWriterBase(conf_fil
   queue_has_data_ = false;
   LoadConfig();
 
-  writer_thread_ = std::thread(&DaqWriterOnline::SendMessageLoop, this);
+  writer_thread_ = std::thread(&WriterOnline::SendMessageLoop, this);
 }
 
-void DaqWriterOnline::LoadConfig()
+void WriterOnline::LoadConfig()
 {
   boost::property_tree::ptree conf;
   boost::property_tree::read_json(conf_file_, conf);
@@ -27,7 +27,7 @@ void DaqWriterOnline::LoadConfig()
   max_trace_length_ = conf.get<int>("writers.online.max_trace_length", -1);
 }
 
-void DaqWriterOnline::PushData(const std::vector<event_data> &data_buffer)
+void WriterOnline::PushData(const std::vector<event_data> &data_buffer)
 {
   WriteLog("WriterOnline: received some data.");
 
@@ -46,7 +46,7 @@ void DaqWriterOnline::PushData(const std::vector<event_data> &data_buffer)
   writer_mutex_.unlock();
 }
 
-void DaqWriterOnline::EndOfBatch(bool bad_data)
+void WriterOnline::EndOfBatch(bool bad_data)
 {
   FlushData();
 
@@ -63,7 +63,7 @@ void DaqWriterOnline::EndOfBatch(bool bad_data)
   }
 }
 
-void DaqWriterOnline::SendMessageLoop()
+void WriterOnline::SendMessageLoop()
 {
   boost::property_tree::ptree conf;
   boost::property_tree::read_json(conf_file_, conf);
@@ -106,7 +106,7 @@ void DaqWriterOnline::SendMessageLoop()
   }
 }
 
-void DaqWriterOnline::PackMessage()
+void WriterOnline::PackMessage()
 {
   using boost::uint64_t;
 

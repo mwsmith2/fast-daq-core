@@ -2,7 +2,7 @@
 
 namespace daq {
 
-DaqWorkerCaen1785::DaqWorkerCaen1785(std::string name, std::string conf) : DaqWorkerVme<caen_1785>(name, conf)
+WorkerCaen1785::WorkerCaen1785(std::string name, std::string conf) : WorkerVme<caen_1785>(name, conf)
 {
   LoadConfig();
 
@@ -10,7 +10,7 @@ DaqWorkerCaen1785::DaqWorkerCaen1785(std::string name, std::string conf) : DaqWo
   read_trace_len_ = 1;
 }
 
-void DaqWorkerCaen1785::LoadConfig()
+void WorkerCaen1785::LoadConfig()
 { 
   // Open the configuration file.
   boost::property_tree::ptree conf;
@@ -44,7 +44,7 @@ void DaqWorkerCaen1785::LoadConfig()
 
 } // LoadConfig
 
-void DaqWorkerCaen1785::WorkLoop()
+void WorkerCaen1785::WorkLoop()
 {
   t0_ = std::chrono::high_resolution_clock::now();
 
@@ -74,7 +74,7 @@ void DaqWorkerCaen1785::WorkLoop()
   }
 }
 
-caen_1785 DaqWorkerCaen1785::PopEvent()
+caen_1785 WorkerCaen1785::PopEvent()
 {
   static caen_1785 data;
   queue_mutex_.lock();
@@ -100,7 +100,7 @@ caen_1785 DaqWorkerCaen1785::PopEvent()
 }
 
 
-bool DaqWorkerCaen1785::EventAvailable()
+bool WorkerCaen1785::EventAvailable()
 {
   // Check acq reg.
   static ushort msg_ushort= 0;
@@ -118,7 +118,7 @@ bool DaqWorkerCaen1785::EventAvailable()
   return is_event;
 }
 
-void DaqWorkerCaen1785::GetEvent(caen_1785 &bundle)
+void WorkerCaen1785::GetEvent(caen_1785 &bundle)
 {
   using namespace std::chrono;
   int offset = 0x0;

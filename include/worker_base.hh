@@ -1,5 +1,5 @@
-#ifndef DAQ_FAST_CORE_INCLUDE_DAQ_WORKER_BASE_HH_
-#define DAQ_FAST_CORE_INCLUDE_DAQ_WORKER_BASE_HH_
+#ifndef DAQ_FAST_CORE_INCLUDE_WORKER_BASE_HH_
+#define DAQ_FAST_CORE_INCLUDE_WORKER_BASE_HH_
 
 /*===========================================================================*\
 
@@ -9,7 +9,7 @@
   
   about:  Creates a virtual base class from which new hardware can inherit
           the necessary member functions.  The functions declared here are
-	  used in the DaqWorkerList class to control many data workers with
+	  used in the WorkerList class to control many data workers with
 	  ease.
           
 \*===========================================================================*/
@@ -30,14 +30,14 @@
 namespace daq {
 
 template <typename T>
-class DaqWorkerBase {
+class WorkerBase {
 
  public:
 
   // Ctor params:
   //   name - used in naming the output data and monitor specific worker
   //   conf_file - used to load important configurable device parameters
-  DaqWorkerBase(std::string name, std::string conf_file) : 
+  WorkerBase(std::string name, std::string conf_file) : 
     name_(name),
     conf_file_(conf_file),
     thread_live_(true),
@@ -45,7 +45,7 @@ class DaqWorkerBase {
     has_event_(false) {};
   
   // Dtor rejoins the data pulling thread before destroying the object.
-  virtual ~DaqWorkerBase() {
+  virtual ~WorkerBase() {
     thread_live_ = false;
     if (work_thread_.joinable()) {
       work_thread_.join();
@@ -56,7 +56,7 @@ class DaqWorkerBase {
   virtual void StartThread() {
     thread_live_ = true;
     if (work_thread_.joinable()) work_thread_.join();
-    work_thread_ = std::thread(&DaqWorkerBase<T>::WorkLoop, this); 
+    work_thread_ = std::thread(&WorkerBase<T>::WorkLoop, this); 
   };
   
   // Rejoins the data pulling thread.

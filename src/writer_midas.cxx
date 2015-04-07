@@ -2,8 +2,8 @@
 
 namespace daq {
 
-DaqWriterMidas::DaqWriterMidas(std::string conf_file) : 
-    DaqWriterBase(conf_file), midas_ctx_(1), midas_rep_sck_(midas_ctx_, ZMQ_REP), midas_data_sck_(midas_ctx_, ZMQ_PUSH)
+WriterMidas::WriterMidas(std::string conf_file) : 
+    WriterBase(conf_file), midas_ctx_(1), midas_rep_sck_(midas_ctx_, ZMQ_REP), midas_data_sck_(midas_ctx_, ZMQ_PUSH)
 {
   thread_live_ = true;
   go_time_ = false;
@@ -12,10 +12,10 @@ DaqWriterMidas::DaqWriterMidas(std::string conf_file) :
   get_next_event_ = false;
   LoadConfig();
 
-  writer_thread_ = std::thread(&DaqWriterMidas::SendMessageLoop, this);
+  writer_thread_ = std::thread(&WriterMidas::SendMessageLoop, this);
 }
 
-void DaqWriterMidas::LoadConfig()
+void WriterMidas::LoadConfig()
 {
   ptree conf;
   read_json(conf_file_, conf);
@@ -30,7 +30,7 @@ void DaqWriterMidas::LoadConfig()
   midas_data_sck_.bind(conf.get<std::string>("writers.midas.data_port").c_str());
 }
 
-void DaqWriterMidas::PushData(const std::vector<event_data> &data_buffer)
+void WriterMidas::PushData(const std::vector<event_data> &data_buffer)
 {
   // Grab only the most recent event
 
@@ -48,7 +48,7 @@ void DaqWriterMidas::PushData(const std::vector<event_data> &data_buffer)
   WriteLog("WriterMidas: recieved some data.");
 }
 
-void DaqWriterMidas::EndOfBatch(bool bad_data)
+void WriterMidas::EndOfBatch(bool bad_data)
 {
   // while (!data_queue_.empty()) {
   //   SendDataMessage();
@@ -67,7 +67,7 @@ void DaqWriterMidas::EndOfBatch(bool bad_data)
   // }
 }
 
-void DaqWriterMidas::SendMessageLoop()
+void WriterMidas::SendMessageLoop()
 {
   ptree conf;
   read_json(conf_file_, conf);
@@ -102,7 +102,7 @@ void DaqWriterMidas::SendMessageLoop()
   }
 }
 
-void DaqWriterMidas::SendDataMessage()
+void WriterMidas::SendDataMessage()
 {
   using boost::uint64_t;
 

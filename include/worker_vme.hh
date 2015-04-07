@@ -1,5 +1,5 @@
-#ifndef DAQ_FAST_CORE_INCLUDE_DAQ_WORKER_VME_HH_
-#define DAQ_FAST_CORE_INCLUDE_DAQ_WORKER_VME_HH_
+#ifndef DAQ_FAST_CORE_INCLUDE_WORKER_VME_HH_
+#define DAQ_FAST_CORE_INCLUDE_WORKER_VME_HH_
 
 /*===========================================================================*\
 
@@ -31,7 +31,7 @@ namespace daq {
 // This class pulls data from a vme device.
 // The template is the data structure for the device.
 template<typename T>
-class DaqWorkerVme : public DaqWorkerBase<T> {
+class WorkerVme : public WorkerBase<T> {
 
 public:
   
@@ -40,8 +40,8 @@ public:
   // conf - load parameters from a json configuration file
   // num_ch_ - number of channels in the digitizer
   // read_trace_len_ - length of each trace in units of sizeof(uint)
-  DaqWorkerVme(std::string name, std::string conf) : 
-    DaqWorkerBase<T>(name, conf), 
+  WorkerVme(std::string name, std::string conf) : 
+    WorkerBase<T>(name, conf), 
     num_ch_(SIS_3302_CH), read_trace_len_(SIS_3302_LN) {};
 
 protected:
@@ -71,7 +71,7 @@ protected:
 // return:
 //   error code from vme read
 template<typename T>
-int DaqWorkerVme<T>::Read(int addr, uint &msg)
+int WorkerVme<T>::Read(int addr, uint &msg)
 {
   std::lock_guard<std::mutex> lock(daq::vme_mutex);
   static int retval, status;
@@ -100,7 +100,7 @@ int DaqWorkerVme<T>::Read(int addr, uint &msg)
 // return:
 //   error code from vme write
 template<typename T>
-int DaqWorkerVme<T>::Write(int addr, uint msg)
+int WorkerVme<T>::Write(int addr, uint msg)
 {
   std::lock_guard<std::mutex> lock(daq::vme_mutex);
   static int retval, status;
@@ -129,7 +129,7 @@ int DaqWorkerVme<T>::Write(int addr, uint msg)
 // return:
 //   error code from vme read
 template<typename T>
-int DaqWorkerVme<T>::Read16(int addr, ushort &msg)
+int WorkerVme<T>::Read16(int addr, ushort &msg)
 {
   std::lock_guard<std::mutex> lock(daq::vme_mutex);
   static int retval, status;
@@ -158,7 +158,7 @@ int DaqWorkerVme<T>::Read16(int addr, ushort &msg)
 // return:
 //   error code from vme read
 template<typename T>
-int DaqWorkerVme<T>::Write16(int addr, ushort msg)
+int WorkerVme<T>::Write16(int addr, ushort msg)
 {
   std::lock_guard<std::mutex> lock(daq::vme_mutex);
   static int retval, status;
@@ -188,7 +188,7 @@ int DaqWorkerVme<T>::Write16(int addr, ushort msg)
 // return:
 //   error code from vme read
 template<typename T>
-int DaqWorkerVme<T>::ReadTrace(int addr, uint *trace)
+int WorkerVme<T>::ReadTrace(int addr, uint *trace)
 {
   std::lock_guard<std::mutex> lock(daq::vme_mutex);
   static int retval, status;

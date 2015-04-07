@@ -1,5 +1,5 @@
-#ifndef DAQ_FAST_CORE_INCLUDE_DAQ_WRITER_MIDAS_HH_
-#define DAQ_FAST_CORE_INCLUDE_DAQ_WRITER_MIDAS_HH_
+#ifndef DAQ_FAST_CORE_INCLUDE_WRITER_MIDAS_HH_
+#define DAQ_FAST_CORE_INCLUDE_WRITER_MIDAS_HH_
 
 //--- std includes ----------------------------------------------------------//
 #include <iostream>
@@ -22,12 +22,12 @@ namespace daq {
 
 // A class that interfaces with the an EventBuilder and writes a root file.
 
-class DaqWriterMidas : public DaqWriterBase {
+class WriterMidas : public WriterBase {
 
  public:
 
   //ctor
-  DaqWriterMidas(std::string conf_file);
+  WriterMidas(std::string conf_file);
   
   // Member Functions
   void LoadConfig();

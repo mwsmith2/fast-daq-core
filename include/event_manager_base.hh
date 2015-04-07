@@ -70,7 +70,7 @@ protected:
   std::string conf_file_;
 
   std::queue<event_data> data_queue_;
-  DaqWorkerList workers_;
+  WorkerList workers_;
 
   std::atomic<bool> go_time_;
   std::atomic<bool> thread_live_;

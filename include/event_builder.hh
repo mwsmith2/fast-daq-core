@@ -29,8 +29,8 @@ class EventBuilder {
  public:
 
   // ctor
-  EventBuilder(const DaqWorkerList &workers, 
-               const std::vector<DaqWriterBase *> writers,
+  EventBuilder(const WorkerList &workers, 
+               const std::vector<WriterBase *> writers,
                std::string conf_file);
   
   // dtor
@@ -67,8 +67,8 @@ private:
   std::atomic<bool> finished_run_;
   
   // Data accumulation variables
-  DaqWorkerList workers_;
-  std::vector<DaqWriterBase *> writers_;
+  WorkerList workers_;
+  std::vector<WriterBase *> writers_;
   std::vector<event_data> push_data_vec_;
   std::queue<event_data> pull_data_que_;
   

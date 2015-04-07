@@ -1,5 +1,5 @@
-#ifndef DAQ_FAST_CORE_INCLUDE_DAQ_WORKER_FAKE_HH_
-#define DAQ_FAST_CORE_INCLUDE_DAQ_WORKER_FAKE_HH_
+#ifndef DAQ_FAST_CORE_INCLUDE_WORKER_FAKE_HH_
+#define DAQ_FAST_CORE_INCLUDE_WORKER_FAKE_HH_
 
 //--- std includes ----------------------------------------------------------//
 #include <cmath>
@@ -19,14 +19,14 @@ namespace daq {
 
 typedef sis_3350 event_struct;
 
-class DaqWorkerFake : public DaqWorkerBase<event_struct> {
+class WorkerFake : public WorkerBase<event_struct> {
   
  public:
   
   // ctor
-  DaqWorkerFake(std::string name, std::string conf);
+  WorkerFake(std::string name, std::string conf);
   
-  ~DaqWorkerFake() {
+  ~WorkerFake() {
     thread_live_ = false;
     if (event_thread_.joinable()) event_thread_.join();
   };
@@ -35,8 +35,8 @@ class DaqWorkerFake : public DaqWorkerBase<event_struct> {
     thread_live_ = true;
     if (work_thread_.joinable()) work_thread_.join();
     if (event_thread_.joinable()) event_thread_.join();
-    work_thread_ = std::thread(&DaqWorkerFake::WorkLoop, this);
-    event_thread_ = std::thread(&DaqWorkerFake::GenerateEvent, this);
+    work_thread_ = std::thread(&WorkerFake::WorkLoop, this);
+    event_thread_ = std::thread(&WorkerFake::GenerateEvent, this);
   };
   
   void StopThread() {

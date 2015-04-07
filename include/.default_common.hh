@@ -1,11 +1,11 @@
-#ifndef NMR_DAQ_INCLUDE_DAQ_COMMON_HH_
-#define NMR_DAQ_INCLUDE_DAQ_COMMON_HH_
+#ifndef DAQ_FAST_CORE_INCLUDE_COMMON_HH_
+#define DAQ_FAST_CORE_INCLUDE_COMMON_HH_
 
 /*===========================================================================*\
 
 author: Matthias W. Smith
 email:  mwsmith2@uw.edu
-file:   daq_common.hh
+file:   common.hh
 
 about:  Contains the data structures for several hardware devices in a single
         location.  The header should be included in any program that aims
@@ -45,7 +45,7 @@ about:  Contains the data structures for several hardware devices in a single
 #include "TFile.h"
 
 //--- projects includes -----------------------------------------------------//
-#include "daq_worker_base.hh"
+#include "worker_base.hh"
 
 namespace daq {
 
@@ -190,12 +190,12 @@ struct nmr_data {
   }
 };
   
-// Typedef for all workers - needed by in DaqWorkerList
-typedef boost::variant<DaqWorkerBase<sis_3350> *, 
-                       DaqWorkerBase<sis_3302> *, 
-                       DaqWorkerBase<caen_1785> *, 
-                       DaqWorkerBase<caen_6742> *,
-                       DaqWorkerBase<drs4> *> 
+// Typedef for all workers - needed by in WorkerList
+typedef boost::variant<WorkerBase<sis_3350> *, 
+                       WorkerBase<sis_3302> *, 
+                       WorkerBase<caen_1785> *, 
+                       WorkerBase<caen_6742> *,
+                       WorkerBase<drs4> *> 
 worker_ptr_types;
 
 // A useful define guard for I/O with the vme bus.

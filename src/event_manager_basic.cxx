@@ -24,7 +24,7 @@ int EventManagerBasic::BeginOfRun()
     std::string name(v.first);
     std::string dev_conf_file(v.second.data());
 
-    workers_.PushBack(new DaqWorkerSis3302(name, dev_conf_file));
+    workers_.PushBack(new WorkerSis3302(name, dev_conf_file));
   }
 
   for (auto &v : conf.get_child("devices.sis_3350")) {
@@ -32,7 +32,7 @@ int EventManagerBasic::BeginOfRun()
     std::string name(v.first);
     std::string dev_conf_file(v.second.data());
 
-    workers_.PushBack(new DaqWorkerSis3350(name, dev_conf_file));
+    workers_.PushBack(new WorkerSis3350(name, dev_conf_file));
   }
 
   max_event_time_ = conf.get<int>("max_event_time", 1000);

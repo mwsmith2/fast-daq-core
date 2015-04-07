@@ -2,13 +2,13 @@
 
 namespace daq {
 
-DaqWriterRoot::DaqWriterRoot(std::string conf_file) : DaqWriterBase(conf_file)
+WriterRoot::WriterRoot(std::string conf_file) : WriterBase(conf_file)
 {
   end_of_batch_ = false;
   LoadConfig();
 }
 
-void DaqWriterRoot::LoadConfig()
+void WriterRoot::LoadConfig()
 {
   boost::property_tree::ptree conf;
   boost::property_tree::read_json(conf_file_, conf);
@@ -18,7 +18,7 @@ void DaqWriterRoot::LoadConfig()
   need_sync_ = conf.get<bool>("writers.root.sync", false);
 }
 
-void DaqWriterRoot::StartWriter()
+void WriterRoot::StartWriter()
 {
   using namespace boost::property_tree;
 
@@ -165,7 +165,7 @@ void DaqWriterRoot::StartWriter()
   }
 }
 
-void DaqWriterRoot::StopWriter()
+void WriterRoot::StopWriter()
 {
   pf_->Write();
   pf_->Close();
@@ -175,7 +175,7 @@ void DaqWriterRoot::StopWriter()
   system((const char*)cmd.c_str());
 }
 
-void DaqWriterRoot::PushData(const std::vector<event_data> &data_buffer)
+void WriterRoot::PushData(const std::vector<event_data> &data_buffer)
 {
   for (auto it = data_buffer.begin(); it != data_buffer.end(); ++it) {
 
@@ -209,7 +209,7 @@ void DaqWriterRoot::PushData(const std::vector<event_data> &data_buffer)
 
 }
 
-void DaqWriterRoot::EndOfBatch(bool bad_data)
+void WriterRoot::EndOfBatch(bool bad_data)
 {
   char str[128];
   sprintf(str, "WriterRoot: got EOB with bad_data flag = %i",  bad_data);

@@ -1,5 +1,5 @@
-#ifndef DAQ_FAST_CORE_INCLUDE_DAQ_WORKER_SIS3350_HH_
-#define DAQ_FAST_CORE_INCLUDE_DAQ_WORKER_SIS3350_HH_
+#ifndef DAQ_FAST_CORE_INCLUDE_WORKER_SIS3350_HH_
+#define DAQ_FAST_CORE_INCLUDE_WORKER_SIS3350_HH_
 
 /*===========================================================================*\
 
@@ -25,7 +25,7 @@
 namespace daq {
 
 // This class pulls data from a sis_3350 device.
-class DaqWorkerSis3350 : public DaqWorkerVme<sis_3350> {
+class WorkerSis3350 : public WorkerVme<sis_3350> {
 
 public:
   
@@ -33,7 +33,7 @@ public:
   // name - used for naming the data branch in ROOT output
   // conf - config file containing parameters like event length 
   //        and sampling rate
-  DaqWorkerSis3350(std::string name, std::string conf);
+  WorkerSis3350(std::string name, std::string conf);
 
   // Reads the json config file and load the desired parameters.
   // An example:

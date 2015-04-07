@@ -7,8 +7,8 @@ using std::endl;
 namespace daq {
 
 // ctor
-DaqWorkerFake::DaqWorkerFake(std::string name, std::string conf) : 
-  DaqWorkerBase<event_struct>(name, conf)
+WorkerFake::WorkerFake(std::string name, std::string conf) : 
+  WorkerBase<event_struct>(name, conf)
 { 
   LoadConfig();
 
@@ -17,7 +17,7 @@ DaqWorkerFake::DaqWorkerFake(std::string name, std::string conf) :
   has_fake_event_ = false;
 }
 
-void DaqWorkerFake::LoadConfig() 
+void WorkerFake::LoadConfig() 
 {
   // Load the config file
   boost::property_tree::ptree conf;
@@ -28,7 +28,7 @@ void DaqWorkerFake::LoadConfig()
   drop_rate_ = conf.get<double>("drop_rate");
 }
 
-void DaqWorkerFake::GenerateEvent()
+void WorkerFake::GenerateEvent()
 {
   using namespace std::chrono;
 
@@ -68,7 +68,7 @@ void DaqWorkerFake::GenerateEvent()
   }
 }
 
-void DaqWorkerFake::GetEvent(event_struct &bundle)
+void WorkerFake::GetEvent(event_struct &bundle)
 {
   event_mutex_.lock();
 
@@ -79,7 +79,7 @@ void DaqWorkerFake::GetEvent(event_struct &bundle)
   event_mutex_.unlock();
 }
 
-void DaqWorkerFake::WorkLoop() 
+void WorkerFake::WorkLoop() 
 {
   while (thread_live_) {
 
@@ -112,7 +112,7 @@ void DaqWorkerFake::WorkLoop()
   }
 }
 
-event_struct DaqWorkerFake::PopEvent()
+event_struct WorkerFake::PopEvent()
 {
   queue_mutex_.lock();
 

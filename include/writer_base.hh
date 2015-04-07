@@ -1,5 +1,5 @@
-#ifndef DAQ_FAST_CORE_INCLUDE_DAQ_WRITER_BASE_HH_
-#define DAQ_FAST_CORE_INCLUDE_DAQ_WRITER_BASE_HH_
+#ifndef DAQ_FAST_CORE_INCLUDE_WRITER_BASE_HH_
+#define DAQ_FAST_CORE_INCLUDE_WRITER_BASE_HH_
 
 //--- std includes ----------------------------------------------------------//
 #include <thread>
@@ -17,14 +17,14 @@ namespace daq {
 
 // This class defines an abstract base class for data writers to inherit form.
 
-class DaqWriterBase {
+class WriterBase {
 
  public:
 
-  DaqWriterBase(std::string conf_file) : 
+  WriterBase(std::string conf_file) : 
     conf_file_(conf_file), thread_live_(true) {};
   
-  virtual ~DaqWriterBase() {
+  virtual ~WriterBase() {
     thread_live_ = false;
     if (writer_thread_.joinable()) {
       writer_thread_.join();

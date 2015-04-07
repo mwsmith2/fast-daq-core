@@ -1,5 +1,5 @@
-#ifndef DAQ_FAST_CORE_INCLUDE_DAQ_WORKER_CAEN6742_HH_
-#define DAQ_FAST_CORE_INCLUDE_DAQ_WORKER_CAEN6742_HH_
+#ifndef DAQ_FAST_CORE_INCLUDE_WORKER_CAEN6742_HH_
+#define DAQ_FAST_CORE_INCLUDE_WORKER_CAEN6742_HH_
 
 //--- std includes ----------------------------------------------------------//
 #include <chrono>
@@ -15,15 +15,15 @@
 // This class pulls data from a caen_6742 device.
 namespace daq {
 
-class DaqWorkerCaen6742 : public DaqWorkerBase<caen_6742> {
+class WorkerCaen6742 : public WorkerBase<caen_6742> {
 
 public:
   
   // ctor
-  DaqWorkerCaen6742(std::string name, std::string conf);
+  WorkerCaen6742(std::string name, std::string conf);
 
   // dtor
-  ~DaqWorkerCaen6742();
+  ~WorkerCaen6742();
 
   int dev_sn() { return board_info_.SerialNumber; };
   void LoadConfig();

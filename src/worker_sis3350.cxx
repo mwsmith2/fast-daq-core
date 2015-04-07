@@ -2,8 +2,8 @@
 
 namespace daq {
 
-DaqWorkerSis3350::DaqWorkerSis3350(std::string name, std::string conf) : 
-  DaqWorkerVme<sis_3350>(name, conf)
+WorkerSis3350::WorkerSis3350(std::string name, std::string conf) : 
+  WorkerVme<sis_3350>(name, conf)
 {
   num_ch_ = SIS_3350_CH;
   read_trace_len_ = SIS_3350_LN / 2 + 4;
@@ -11,7 +11,7 @@ DaqWorkerSis3350::DaqWorkerSis3350(std::string name, std::string conf) :
   LoadConfig();
 }
 
-void DaqWorkerSis3350::LoadConfig()
+void WorkerSis3350::LoadConfig()
 { 
   using std::cout;
   using std::endl;
@@ -30,7 +30,7 @@ void DaqWorkerSis3350::LoadConfig()
   string dev_path = conf.get<string>("device");
 
   if (logging_on) {
-    logstream << name_ << " (DaqWorkerSis3350, *" << this << "): ";
+    logstream << name_ << " (WorkerSis3350, *" << this << "): ";
     logstream << "is initializing." << device_ << endl;
   }
 
@@ -257,7 +257,7 @@ void DaqWorkerSis3350::LoadConfig()
   Write(0x410, armit);
 } // LoadConfig
 
-void DaqWorkerSis3350::WorkLoop()
+void WorkerSis3350::WorkLoop()
 {
   t0_ = std::chrono::high_resolution_clock::now();
 
@@ -288,7 +288,7 @@ void DaqWorkerSis3350::WorkLoop()
   }
 }
 
-sis_3350 DaqWorkerSis3350::PopEvent()
+sis_3350 WorkerSis3350::PopEvent()
 {
   static sis_3350 data;
 
@@ -311,7 +311,7 @@ sis_3350 DaqWorkerSis3350::PopEvent()
 }
 
 
-bool DaqWorkerSis3350::EventAvailable()
+bool WorkerSis3350::EventAvailable()
 {
   // Check acq reg.
   static uint msg = 0;
@@ -330,7 +330,7 @@ bool DaqWorkerSis3350::EventAvailable()
 }
 
 // Pull the event.
-void DaqWorkerSis3350::GetEvent(sis_3350 &bundle)
+void WorkerSis3350::GetEvent(sis_3350 &bundle)
 {
   using namespace std::chrono;
 

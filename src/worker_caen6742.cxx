@@ -2,8 +2,8 @@
 
 namespace daq {
 
-DaqWorkerCaen6742::DaqWorkerCaen6742(std::string name, std::string conf) : 
-  DaqWorkerBase<caen_6742>(name, conf)
+WorkerCaen6742::WorkerCaen6742(std::string name, std::string conf) : 
+  WorkerBase<caen_6742>(name, conf)
 {
   buffer_ = nullptr;
   event_ = nullptr;
@@ -11,7 +11,7 @@ DaqWorkerCaen6742::DaqWorkerCaen6742(std::string name, std::string conf) :
   LoadConfig();
 }
 
-DaqWorkerCaen6742::~DaqWorkerCaen6742()
+WorkerCaen6742::~WorkerCaen6742()
 {
   thread_live_ = false;
   if (work_thread_.joinable()) {
@@ -23,7 +23,7 @@ DaqWorkerCaen6742::~DaqWorkerCaen6742()
   CAEN_DGTZ_CloseDigitizer(device_);
 }
 
-void DaqWorkerCaen6742::LoadConfig()
+void WorkerCaen6742::LoadConfig()
 { 
   // Open the configuration file.
   boost::property_tree::ptree conf;
@@ -127,7 +127,7 @@ void DaqWorkerCaen6742::LoadConfig()
   
 } // LoadConfig
 
-void DaqWorkerCaen6742::WorkLoop()
+void WorkerCaen6742::WorkLoop()
 {
   int ret = CAEN_DGTZ_AllocateEvent(device_, (void **)&event_);
   ret = CAEN_DGTZ_SWStartAcquisition(device_);
@@ -162,7 +162,7 @@ void DaqWorkerCaen6742::WorkLoop()
   ret = CAEN_DGTZ_FreeEvent(device_, (void **)&event_);
 }
 
-caen_6742 DaqWorkerCaen6742::PopEvent()
+caen_6742 WorkerCaen6742::PopEvent()
 {
   static caen_6742 data;
   queue_mutex_.lock();
@@ -188,7 +188,7 @@ caen_6742 DaqWorkerCaen6742::PopEvent()
 }
 
 
-bool DaqWorkerCaen6742::EventAvailable()
+bool WorkerCaen6742::EventAvailable()
 {
   // Check acq reg.
   uint num_events = 0;
@@ -206,7 +206,7 @@ bool DaqWorkerCaen6742::EventAvailable()
   }
 }
 
-void DaqWorkerCaen6742::GetEvent(caen_6742 &bundle)
+void WorkerCaen6742::GetEvent(caen_6742 &bundle)
 {
   using namespace std::chrono;
   int ch, offset, ret = 0;

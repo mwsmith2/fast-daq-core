@@ -1,5 +1,5 @@
-#ifndef DAQ_FAST_CORE_INCLUDE_DAQ_WRITER_ROOT_HH_
-#define DAQ_FAST_CORE_INCLUDE_DAQ_WRITER_ROOT_HH_
+#ifndef DAQ_FAST_CORE_INCLUDE_WRITER_ROOT_HH_
+#define DAQ_FAST_CORE_INCLUDE_WRITER_ROOT_HH_
 
 //--- std includes ----------------------------------------------------------//
 #include <iostream>
@@ -19,12 +19,12 @@ namespace daq {
 
 // A class that interfaces with the an EventBuilder and writes a root file.
 
-class DaqWriterRoot : public DaqWriterBase {
+class WriterRoot : public WriterBase {
 
  public:
 
   //ctor
-  DaqWriterRoot(std::string conf_file);
+  WriterRoot(std::string conf_file);
   
   // Member Functions
   void LoadConfig();

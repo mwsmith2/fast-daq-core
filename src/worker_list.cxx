@@ -3,140 +3,140 @@
 
 namespace daq {
 
-void DaqWorkerList::StartRun()
+void WorkerList::StartRun()
 {
   StartThreads();
   StartWorkers();
 }
 
-void DaqWorkerList::StopRun()
+void WorkerList::StopRun()
 {
   StopWorkers();
   StopThreads();
 }
 
-void DaqWorkerList::StartWorkers()
+void WorkerList::StartWorkers()
 {
   // Starts gathering data.
-  WriteLog("DaqWorkerList: starting workers.");
+  WriteLog("WorkerList: starting workers.");
 
   for (auto it = workers_.begin(); it != workers_.end(); ++it) {
 
     // Needs a case switch to work with boost::variant vector.
     if ((*it).which() == 0) {
 
-      boost::get<DaqWorkerBase<sis_3350> *>(*it)->StartWorker();
+      boost::get<WorkerBase<sis_3350> *>(*it)->StartWorker();
 
     } else if ((*it).which() == 1) {
 
-      boost::get<DaqWorkerBase<sis_3302> *>(*it)->StartWorker();
+      boost::get<WorkerBase<sis_3302> *>(*it)->StartWorker();
 
     } else if ((*it).which() == 2) {
 
-      boost::get<DaqWorkerBase<caen_1785> *>(*it)->StartWorker();
+      boost::get<WorkerBase<caen_1785> *>(*it)->StartWorker();
 
     } else if ((*it).which() == 3) {
 
-      boost::get<DaqWorkerBase<caen_6742> *>(*it)->StartWorker();
+      boost::get<WorkerBase<caen_6742> *>(*it)->StartWorker();
 
     } else if ((*it).which() == 4) {
 
-      boost::get<DaqWorkerBase<drs4> *>(*it)->StartWorker();
+      boost::get<WorkerBase<drs4> *>(*it)->StartWorker();
     }
   }
 }
 
-void DaqWorkerList::StartThreads()
+void WorkerList::StartThreads()
 {
   // Launches the data worker threads.
-  WriteLog("DaqWorkerList: launching worker threads.");
+  WriteLog("WorkerList: launching worker threads.");
 
   for (auto it = workers_.begin(); it != workers_.end(); ++it) {
 
     if ((*it).which() == 0) {
 
-      boost::get<DaqWorkerBase<sis_3350> *>(*it)->StartThread();
+      boost::get<WorkerBase<sis_3350> *>(*it)->StartThread();
 
     } else if ((*it).which() == 1) {
 
-      boost::get<DaqWorkerBase<sis_3302> *>(*it)->StartThread();
+      boost::get<WorkerBase<sis_3302> *>(*it)->StartThread();
 
     } else if ((*it).which() == 2) {
 
-      boost::get<DaqWorkerBase<caen_1785> *>(*it)->StartThread();
+      boost::get<WorkerBase<caen_1785> *>(*it)->StartThread();
 
     } else if ((*it).which() == 3) {
 
-      boost::get<DaqWorkerBase<caen_6742> *>(*it)->StartThread();
+      boost::get<WorkerBase<caen_6742> *>(*it)->StartThread();
 
     } else if ((*it).which() == 4) {
 
-      boost::get<DaqWorkerBase<drs4> *>(*it)->StartThread();
+      boost::get<WorkerBase<drs4> *>(*it)->StartThread();
     }
   }
 }
 
-void DaqWorkerList::StopWorkers()
+void WorkerList::StopWorkers()
 {
   // Stop collecting data.
-  WriteLog("DaqWorkerList: stopping workers.");
+  WriteLog("WorkerList: stopping workers.");
 
   for (auto it = workers_.begin(); it != workers_.end(); ++it) {
 
     if ((*it).which() == 0) {
 
-      boost::get<DaqWorkerBase<sis_3350> *>(*it)->StopWorker();
+      boost::get<WorkerBase<sis_3350> *>(*it)->StopWorker();
 
     } else if ((*it).which() == 1) {
 
-      boost::get<DaqWorkerBase<sis_3302> *>(*it)->StopWorker();
+      boost::get<WorkerBase<sis_3302> *>(*it)->StopWorker();
 
     } else if ((*it).which() == 2) {
 
-      boost::get<DaqWorkerBase<caen_1785> *>(*it)->StopWorker();
+      boost::get<WorkerBase<caen_1785> *>(*it)->StopWorker();
 
     } else if ((*it).which() == 3) {
 
-      boost::get<DaqWorkerBase<caen_6742> *>(*it)->StopWorker();
+      boost::get<WorkerBase<caen_6742> *>(*it)->StopWorker();
 
     } else if ((*it).which() == 4) {
 
-      boost::get<DaqWorkerBase<drs4> *>(*it)->StopWorker();
+      boost::get<WorkerBase<drs4> *>(*it)->StopWorker();
     }
   }
 }
 
-void DaqWorkerList::StopThreads()
+void WorkerList::StopThreads()
 {
   // Stop and rejoin worker threads.
-  WriteLog("DaqWorkerList: stopping worker threads.");
+  WriteLog("WorkerList: stopping worker threads.");
 
   for (auto it = workers_.begin(); it != workers_.end(); ++it) {
 
     if ((*it).which() == 0) {
 
-      boost::get<DaqWorkerBase<sis_3350> *>(*it)->StopThread();
+      boost::get<WorkerBase<sis_3350> *>(*it)->StopThread();
 
     } else if ((*it).which() == 1) {
 
-      boost::get<DaqWorkerBase<sis_3302> *>(*it)->StopThread();
+      boost::get<WorkerBase<sis_3302> *>(*it)->StopThread();
 
     } else if ((*it).which() == 2) {
 
-      boost::get<DaqWorkerBase<caen_1785> *>(*it)->StopThread();
+      boost::get<WorkerBase<caen_1785> *>(*it)->StopThread();
 
     } else if ((*it).which() == 3) {
 
-      boost::get<DaqWorkerBase<caen_6742> *>(*it)->StopThread();
+      boost::get<WorkerBase<caen_6742> *>(*it)->StopThread();
 
     } else if ((*it).which() == 4) {
 
-      boost::get<DaqWorkerBase<drs4> *>(*it)->StopThread();
+      boost::get<WorkerBase<drs4> *>(*it)->StopThread();
     }
   }
 }
 
-bool DaqWorkerList::AllWorkersHaveEvent()
+bool WorkerList::AllWorkersHaveEvent()
 {
   // Check each worker for an event.
   bool has_event = true;
@@ -146,30 +146,30 @@ bool DaqWorkerList::AllWorkersHaveEvent()
     // If any worker doesn't have an event, has_event will become false.
     if ((*it).which() == 0) {
 
-      has_event &= boost::get<DaqWorkerBase<sis_3350> *>(*it)->HasEvent();
+      has_event &= boost::get<WorkerBase<sis_3350> *>(*it)->HasEvent();
 
     } else if ((*it).which() == 1) {
 
-      has_event &= boost::get<DaqWorkerBase<sis_3302> *>(*it)->HasEvent();
+      has_event &= boost::get<WorkerBase<sis_3302> *>(*it)->HasEvent();
 
     } else if ((*it).which() == 2) {
 
-      has_event &= boost::get<DaqWorkerBase<caen_1785> *>(*it)->HasEvent();
+      has_event &= boost::get<WorkerBase<caen_1785> *>(*it)->HasEvent();
 
     } else if ((*it).which() == 3) {
 
-      has_event &= boost::get<DaqWorkerBase<caen_6742> *>(*it)->HasEvent();
+      has_event &= boost::get<WorkerBase<caen_6742> *>(*it)->HasEvent();
 
     } else if ((*it).which() == 4) {
 
-      has_event &= boost::get<DaqWorkerBase<drs4> *>(*it)->HasEvent();
+      has_event &= boost::get<WorkerBase<drs4> *>(*it)->HasEvent();
     }
   }
 
   return has_event;
 }
 
-bool DaqWorkerList::AnyWorkersHaveEvent()
+bool WorkerList::AnyWorkersHaveEvent()
 {
   // Check each worker for an event.
   bool any_events = false;
@@ -179,30 +179,30 @@ bool DaqWorkerList::AnyWorkersHaveEvent()
     // A bitwise or here works, so that any event will return positive.
     if ((*it).which() == 0) {
 
-      any_events |= boost::get<DaqWorkerBase<sis_3350> *>(*it)->HasEvent();
+      any_events |= boost::get<WorkerBase<sis_3350> *>(*it)->HasEvent();
 
     } else if ((*it).which() == 1) {
 
-      any_events |= boost::get<DaqWorkerBase<sis_3302> *>(*it)->HasEvent();
+      any_events |= boost::get<WorkerBase<sis_3302> *>(*it)->HasEvent();
 
     } else if ((*it).which() == 2) {
 
-      any_events |= boost::get<DaqWorkerBase<caen_1785> *>(*it)->HasEvent();
+      any_events |= boost::get<WorkerBase<caen_1785> *>(*it)->HasEvent();
 
     } else if ((*it).which() == 3) {
 
-      any_events |= boost::get<DaqWorkerBase<caen_6742> *>(*it)->HasEvent();
+      any_events |= boost::get<WorkerBase<caen_6742> *>(*it)->HasEvent();
 
     } else if ((*it).which() == 4) {
 
-      any_events |= boost::get<DaqWorkerBase<drs4> *>(*it)->HasEvent();
+      any_events |= boost::get<WorkerBase<drs4> *>(*it)->HasEvent();
     }
   }
 
   return any_events;
 }
 
-bool DaqWorkerList::AnyWorkersHaveMultiEvent()
+bool WorkerList::AnyWorkersHaveMultiEvent()
 {
   // Check each worker for more than one event.
   int num_events = 0;
@@ -210,23 +210,23 @@ bool DaqWorkerList::AnyWorkersHaveMultiEvent()
 
     if ((*it).which() == 0) {
 
-      num_events = boost::get<DaqWorkerBase<sis_3350> *>(*it)->num_events();
+      num_events = boost::get<WorkerBase<sis_3350> *>(*it)->num_events();
 
     } else if ((*it).which() == 1) {
 
-      num_events = boost::get<DaqWorkerBase<sis_3302> *>(*it)->num_events();
+      num_events = boost::get<WorkerBase<sis_3302> *>(*it)->num_events();
 
     } else if ((*it).which() == 2) {
 
-      num_events = boost::get<DaqWorkerBase<caen_1785> *>(*it)->num_events();
+      num_events = boost::get<WorkerBase<caen_1785> *>(*it)->num_events();
 
     } else if ((*it).which() == 3) {
 
-      num_events = boost::get<DaqWorkerBase<caen_6742> *>(*it)->num_events();
+      num_events = boost::get<WorkerBase<caen_6742> *>(*it)->num_events();
 
     } else if ((*it).which() == 4) {
 
-      num_events = boost::get<DaqWorkerBase<drs4> *>(*it)->num_events();
+      num_events = boost::get<WorkerBase<drs4> *>(*it)->num_events();
     }
 
     if (num_events > 1) return true;
@@ -235,75 +235,75 @@ bool DaqWorkerList::AnyWorkersHaveMultiEvent()
   return false;
 }
 
-void DaqWorkerList::GetEventData(event_data &bundle)
+void WorkerList::GetEventData(event_data &bundle)
 {
   // Loops over each worker and collect the event data.
   for (auto it = workers_.begin(); it != workers_.end(); ++it) {
 
     if ((*it).which() == 0) {
 
-      auto ptr = boost::get<DaqWorkerBase<sis_3350> *>(*it);
+      auto ptr = boost::get<WorkerBase<sis_3350> *>(*it);
       bundle.sis_fast.push_back(ptr->PopEvent());
 
     } else if ((*it).which() == 1) {
 
-      auto ptr = boost::get<DaqWorkerBase<sis_3302> *>(*it);
+      auto ptr = boost::get<WorkerBase<sis_3302> *>(*it);
       bundle.sis_slow.push_back(ptr->PopEvent());
 
     } else if ((*it).which() == 2) {
 
-      auto ptr = boost::get<DaqWorkerBase<caen_1785> *>(*it);
+      auto ptr = boost::get<WorkerBase<caen_1785> *>(*it);
       bundle.caen_adc.push_back(ptr->PopEvent());
 
     } else if ((*it).which() == 3) {
 
-      auto ptr = boost::get<DaqWorkerBase<caen_6742> *>(*it);
+      auto ptr = boost::get<WorkerBase<caen_6742> *>(*it);
       bundle.caen_drs.push_back(ptr->PopEvent());
 
     } else if ((*it).which() == 4) {
 
-      auto ptr = boost::get<DaqWorkerBase<drs4> *>(*it);
+      auto ptr = boost::get<WorkerBase<drs4> *>(*it);
       bundle.drs.push_back(ptr->PopEvent());
 
     }
   }
 }
 
-void DaqWorkerList::FlushEventData()
+void WorkerList::FlushEventData()
 {
   // Drops any stale events when workers should have no events.
   for (auto it = workers_.begin(); it != workers_.end(); ++it) {
 
     if ((*it).which() == 0) {
 
-      boost::get<DaqWorkerBase<sis_3350> *>(*it)->FlushEvents();
+      boost::get<WorkerBase<sis_3350> *>(*it)->FlushEvents();
 
     } else if ((*it).which() == 1) {
 
-      boost::get<DaqWorkerBase<sis_3302> *>(*it)->FlushEvents();
+      boost::get<WorkerBase<sis_3302> *>(*it)->FlushEvents();
 
     } else if ((*it).which() == 2) {
 
-      boost::get<DaqWorkerBase<caen_1785> *>(*it)->FlushEvents();
+      boost::get<WorkerBase<caen_1785> *>(*it)->FlushEvents();
 
     } else if ((*it).which() == 3) {
 
-      boost::get<DaqWorkerBase<caen_6742> *>(*it)->FlushEvents();
+      boost::get<WorkerBase<caen_6742> *>(*it)->FlushEvents();
 
     } else if ((*it).which() == 4) {
 
-      boost::get<DaqWorkerBase<drs4> *>(*it)->FlushEvents();
+      boost::get<WorkerBase<drs4> *>(*it)->FlushEvents();
     }
   } 
 }
 
-void DaqWorkerList::ClearList()
+void WorkerList::ClearList()
 {
   // Remove the pointer references
   workers_.resize(0);
 }
 
-void DaqWorkerList::FreeList()
+void WorkerList::FreeList()
 {
   // Delete the allocated workers.
   WriteLog("WorkerList: freeing workers.");
@@ -312,23 +312,23 @@ void DaqWorkerList::FreeList()
 
     if ((*it).which() == 0) {
 
-      delete boost::get<DaqWorkerBase<sis_3350> *>(*it);
+      delete boost::get<WorkerBase<sis_3350> *>(*it);
 
     } else if ((*it).which() == 1) {
 
-      delete boost::get<DaqWorkerBase<sis_3302> *>(*it);
+      delete boost::get<WorkerBase<sis_3302> *>(*it);
 
     } else if ((*it).which() == 2) {
 
-      delete boost::get<DaqWorkerBase<caen_1785> *>(*it);
+      delete boost::get<WorkerBase<caen_1785> *>(*it);
 
     } else if ((*it).which() == 3) {
 
-      delete boost::get<DaqWorkerBase<caen_6742> *>(*it);
+      delete boost::get<WorkerBase<caen_6742> *>(*it);
 
     } else if ((*it).which() == 4) {
 
-      delete boost::get<DaqWorkerBase<drs4> *>(*it);
+      delete boost::get<WorkerBase<drs4> *>(*it);
     }
   }
 

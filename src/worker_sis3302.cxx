@@ -2,8 +2,8 @@
 
 namespace daq {
 
-DaqWorkerSis3302::DaqWorkerSis3302(std::string name, std::string conf) : 
-  DaqWorkerVme<sis_3302>(name, conf)
+WorkerSis3302::WorkerSis3302(std::string name, std::string conf) : 
+  WorkerVme<sis_3302>(name, conf)
 {
   LoadConfig();
 
@@ -11,7 +11,7 @@ DaqWorkerSis3302::DaqWorkerSis3302(std::string name, std::string conf) :
   read_trace_len_ = SIS_3302_LN / 2; // only for vme ReadTrace
 }
 
-void DaqWorkerSis3302::LoadConfig()
+void WorkerSis3302::LoadConfig()
 { 
   using std::string;
 
@@ -131,7 +131,7 @@ void DaqWorkerSis3302::LoadConfig()
   Write(0x34, msg);
 } // LoadConfig
 
-void DaqWorkerSis3302::WorkLoop()
+void WorkerSis3302::WorkLoop()
 {
   t0_ = std::chrono::high_resolution_clock::now();
 
@@ -161,7 +161,7 @@ void DaqWorkerSis3302::WorkLoop()
   }
 }
 
-sis_3302 DaqWorkerSis3302::PopEvent()
+sis_3302 WorkerSis3302::PopEvent()
 {
   static sis_3302 data;
 
@@ -184,7 +184,7 @@ sis_3302 DaqWorkerSis3302::PopEvent()
 }
 
 
-bool DaqWorkerSis3302::EventAvailable()
+bool WorkerSis3302::EventAvailable()
 {
   // Check acq reg.
   static uint msg = 0;
@@ -214,7 +214,7 @@ bool DaqWorkerSis3302::EventAvailable()
   return is_event;
 }
 
-void DaqWorkerSis3302::GetEvent(sis_3302 &bundle)
+void WorkerSis3302::GetEvent(sis_3302 &bundle)
 {
   using namespace std::chrono;
   int ch, offset, ret, count = 0;

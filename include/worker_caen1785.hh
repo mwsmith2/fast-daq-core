@@ -1,5 +1,5 @@
-#ifndef DAQ_FAST_CORE_INCLUDE_DAQ_WORKER_CAEN1785_HH_
-#define DAQ_FAST_CORE_INCLUDE_DAQ_WORKER_CAEN1785_HH_
+#ifndef DAQ_FAST_CORE_INCLUDE_WORKER_CAEN1785_HH_
+#define DAQ_FAST_CORE_INCLUDE_WORKER_CAEN1785_HH_
 
 //--- std includes ----------------------------------------------------------//
 #include <chrono>
@@ -15,12 +15,12 @@
 // This class pulls data from a sis_3350 device.
 namespace daq {
 
-class DaqWorkerCaen1785 : public DaqWorkerVme<caen_1785> {
+class WorkerCaen1785 : public WorkerVme<caen_1785> {
 
 public:
   
   // ctor
-  DaqWorkerCaen1785(std::string name, std::string conf);
+  WorkerCaen1785(std::string name, std::string conf);
   
   void LoadConfig();
   void WorkLoop();

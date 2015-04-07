@@ -2,8 +2,8 @@
 
 namespace daq {
 
-EventBuilder::EventBuilder(const DaqWorkerList &workers, 
-                           const std::vector<DaqWriterBase *> writers,
+EventBuilder::EventBuilder(const WorkerList &workers, 
+                           const std::vector<WriterBase *> writers,
                            std::string conf_file)
 {
   workers_ = workers;

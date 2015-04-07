@@ -51,7 +51,7 @@ int EventManagerTrgSeq::BeginOfRun()
     std::string dev_conf_file(v.second.data());
     sis_idx_map_[name] = sis_idx++;
 
-    workers_.PushBack(new DaqWorkerSis3302(name, dev_conf_file));
+    workers_.PushBack(new WorkerSis3302(name, dev_conf_file));
   }
 
   // Set up the NMR pulser trigger.

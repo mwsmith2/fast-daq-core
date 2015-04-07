@@ -1,5 +1,5 @@
-#ifndef DAQ_FAST_CORE_INCLUDE_DAQ_WORKER_LIST_HH_
-#define DAQ_FAST_CORE_INCLUDE_DAQ_WORKER_LIST_HH_
+#ifndef DAQ_FAST_CORE_INCLUDE_WORKER_LIST_HH_
+#define DAQ_FAST_CORE_INCLUDE_WORKER_LIST_HH_
 
 /*===========================================================================*\
 
@@ -27,17 +27,17 @@
 
 namespace daq {
 
-class DaqWorkerList {
+class WorkerList {
 
   public:
 
     // ctor
-    DaqWorkerList() {};
+    WorkerList() {};
 
     // Dtor - the WorkerList takes ownership of workers appended to
     // its worker vector.  They can be freed externally, but we need to
     // be sure.
-    ~DaqWorkerList() {
+    ~WorkerList() {
       if (workers_.size() != 0) {
         FreeList();
       }

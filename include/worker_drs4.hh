@@ -1,5 +1,5 @@
-#ifndef DAQ_FAST_CORE_INCLUDE_DAQ_WORKER_DRS4_HH_
-#define DAQ_FAST_CORE_INCLUDE_DAQ_WORKER_DRS4_HH_
+#ifndef DAQ_FAST_CORE_INCLUDE_WORKER_DRS4_HH_
+#define DAQ_FAST_CORE_INCLUDE_WORKER_DRS4_HH_
 
 //--- std includes ----------------------------------------------------------//
 #include <stdio.h>
@@ -19,15 +19,15 @@
 // This class pulls data from a drs4 evaluation board.
 namespace daq {
 
-class DaqWorkerDrs4 : public DaqWorkerBase<drs4> {
+class WorkerDrs4 : public WorkerBase<drs4> {
 
 public:
   
   // ctor
-  DaqWorkerDrs4(std::string name, std::string conf);
+  WorkerDrs4(std::string name, std::string conf);
 
   // dtor
-  ~DaqWorkerDrs4() {
+  ~WorkerDrs4() {
     // Clear the data.
     go_time_ = false;
     FlushEvents();

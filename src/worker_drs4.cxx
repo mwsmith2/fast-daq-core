@@ -2,8 +2,8 @@
 
 namespace daq {
 
-DaqWorkerDrs4::DaqWorkerDrs4(std::string name, std::string conf) : 
-  DaqWorkerBase<drs4>(name, conf)
+WorkerDrs4::WorkerDrs4(std::string name, std::string conf) : 
+  WorkerBase<drs4>(name, conf)
 {
   // Load the drs board.
   drs_ = new DRS();
@@ -18,7 +18,7 @@ DaqWorkerDrs4::DaqWorkerDrs4(std::string name, std::string conf) :
   board_->StartDomino();
 }
 
-void DaqWorkerDrs4::LoadConfig()
+void WorkerDrs4::LoadConfig()
 { 
   // Open the configuration file.
   boost::property_tree::ptree conf;
@@ -72,7 +72,7 @@ void DaqWorkerDrs4::LoadConfig()
 
 } // LoadConfig
 
-void DaqWorkerDrs4::WorkLoop()
+void WorkerDrs4::WorkLoop()
 {
   t0_ = std::chrono::high_resolution_clock::now();
 
@@ -103,7 +103,7 @@ void DaqWorkerDrs4::WorkLoop()
   }
 }
 
-drs4 DaqWorkerDrs4::PopEvent()
+drs4 WorkerDrs4::PopEvent()
 {
   static drs4 data;
 
@@ -126,13 +126,13 @@ drs4 DaqWorkerDrs4::PopEvent()
 }
 
 
-bool DaqWorkerDrs4::EventAvailable()
+bool WorkerDrs4::EventAvailable()
 {
   return !board_->IsBusy();
 }
 
 // Pull the event.
-void DaqWorkerDrs4::GetEvent(drs4 &bundle)
+void WorkerDrs4::GetEvent(drs4 &bundle)
 {
   using namespace std::chrono;
   int ch, offset, ret = 0;

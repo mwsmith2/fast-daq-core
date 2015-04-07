@@ -1,5 +1,5 @@
-#ifndef DAQ_FAST_CORE_INCLUDE_DAQ_WRITER_ONLINE_HH_
-#define DAQ_FAST_CORE_INCLUDE_DAQ_WRITER_ONLINE_HH_
+#ifndef DAQ_FAST_CORE_INCLUDE_WRITER_ONLINE_HH_
+#define DAQ_FAST_CORE_INCLUDE_WRITER_ONLINE_HH_
 
 //--- std includes ----------------------------------------------------------//
 #include <iostream>
@@ -22,15 +22,15 @@ namespace daq {
 
 // A class that interfaces with the an EventBuilder and writes a root file.
 
-class DaqWriterOnline : public DaqWriterBase {
+class WriterOnline : public WriterBase {
 
  public:
 
   //ctor
-  DaqWriterOnline(std::string conf_file);
+  WriterOnline(std::string conf_file);
   
   //dtor
-  ~DaqWriterOnline() {
+  ~WriterOnline() {
     // Dump data.
     go_time_ = false;
     FlushData();
