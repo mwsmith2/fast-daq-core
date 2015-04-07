@@ -160,8 +160,7 @@ struct run_fixed_st {
   UShort_t  trace[RUN_FIXED_CH][SHORT_FID_LN];
 };
 
-// flexible struct built from basic structs.
-// Built from basic structs 
+// Flexible struct built from basic structs.
 struct event_data {
   std::vector<sis_3350> sis_fast;
   std::vector<sis_3302> sis_slow;

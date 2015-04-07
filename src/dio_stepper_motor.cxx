@@ -3,7 +3,7 @@
 namespace daq {
 
 DioStepperMotor::DioStepperMotor(std::string devpath, int board_addr, 
-				 board_id bid, std::string conf_file) :
+                                 board_id bid, std::string conf_file) :
   io_board_(devpath, board_addr, bid), conf_file_(conf_file)
 {
   boost::property_tree::ptree conf;
