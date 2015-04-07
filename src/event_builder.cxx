@@ -3,8 +3,8 @@
 namespace daq {
 
 EventBuilder::EventBuilder(const DaqWorkerList &daq_workers, 
-                           const vector<DaqWriterBase *> daq_writers,
-                           string conf_file)
+                           const std::vector<DaqWriterBase *> daq_writers,
+                           std::string conf_file)
 {
   daq_workers_ = daq_workers;
   daq_writers_ = daq_writers;
@@ -55,9 +55,9 @@ void EventBuilder::BuilderLoop()
 	  pull_data_que_.push(bundle);
 	}
 	queue_mutex_.unlock();
-
-	cout << "Data queue is now size: ";
-	cout << pull_data_que_.size() << endl;
+    
+    WriteLog("EventBuilder: data queue is now size = " 
+             + std::to_string(pull_data_que_.size())); 
 
 	daq_workers_.FlushEventData();
       }
@@ -81,9 +81,9 @@ void EventBuilder::ControlLoop()
 
       if (pull_data_que_.size() >= batch_size_) {
 	
-	cout << "Pushing data." << endl;
-	CopyBatch();
-	SendBatch();
+        WriteLog("EventBuilder: pushing data.");
+        CopyBatch();
+        SendBatch();
       }
 
       if (quitting_time_) {
@@ -113,7 +113,7 @@ bool EventBuilder::WorkersGotSyncEvent()
 {
   // Check if anybody has an event.
   if (!daq_workers_.AnyWorkersHaveEvent()) return false;
-  cout << "Detected a trigger." << endl;
+  WriteLog("EventBuilder: detected a trigger.");
 
   // Wait for all devices to get a chance to read the event.
   usleep(max_event_time_); 
@@ -122,7 +122,7 @@ bool EventBuilder::WorkersGotSyncEvent()
   if (!daq_workers_.AllWorkersHaveEvent()) {
  
     daq_workers_.FlushEventData();
-    cout << "Event was not synched." << endl;
+    WriteLog("EventBuilder: event was not synched.");
     return false;
   }
     
@@ -130,7 +130,7 @@ bool EventBuilder::WorkersGotSyncEvent()
   if (daq_workers_.AnyWorkersHaveMultiEvent()) {
 
     daq_workers_.FlushEventData();
-    cout << "Was actually double." << endl;
+    WriteLog("EventBuilder: was actually double.");
     return false;
   }
 
@@ -151,8 +151,8 @@ void EventBuilder::CopyBatch()
       push_data_vec_.push_back(pull_data_que_.front());
       pull_data_que_.pop();
 
-      cout << "EventBuilder: pull queue size = ";
-      cout << pull_data_que_.size() << endl;
+      WriteLog("EventBuilder: pull queue size = " 
+               + std::to_string(pull_data_que_.size()));
     }
 
     queue_mutex_.unlock();
@@ -174,7 +174,7 @@ void EventBuilder::SendBatch()
 
 void EventBuilder::SendLastBatch()
 {
-  cout << "EventBuilder: Sending last batch" << endl;
+  WriteLog("EventBuilder: sending last batch.");
 
   // Zero the pull data vec
   queue_mutex_.lock();
@@ -182,7 +182,7 @@ void EventBuilder::SendLastBatch()
   queue_mutex_.unlock();
 
   push_data_mutex_.lock();
-  cout << "Sending end of batch/run to the writers." << endl;
+  WriteLog("EventBuilder: sending end of batch/run to the writers.");
   for (auto &writer : daq_writers_) {
     
     writer->PushData(push_data_vec_);
@@ -194,13 +194,13 @@ void EventBuilder::SendLastBatch()
 
 // Start the workers taking data.
 void EventBuilder::StartWorkers() {
-    cout << "Event Builder is starting workers." << endl;
+  WriteLog("EventBuilder: starting workers.");
   daq_workers_.StartWorkers();
 }
 
 // Write the data file and reset workers.
 void EventBuilder::StopWorkers() {
-  cout << "Event Builder is stopping workers." << endl;
+  WriteLog("EventBuilder: stopping workers.");
   daq_workers_.StopWorkers();
 }
 

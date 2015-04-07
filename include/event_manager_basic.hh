@@ -42,7 +42,7 @@ class EventManagerBasic: public EventManagerBase {
   int EndOfRun();
 
   // Reserves enough memory for the event type used by this manager.
-  int ResizeEventData(vme_data &data);
+  int ResizeEventData(event_data &data);
 
  private:
   

@@ -65,7 +65,7 @@ int EventManagerBasic::EndOfRun()
   return 0;
 }
 
-int EventManagerBasic::ResizeEventData(vme_data &data) 
+int EventManagerBasic::ResizeEventData(event_data &data) 
 {
   boost::property_tree::ptree conf;
   boost::property_tree::read_json(conf_file_, conf);
@@ -109,7 +109,7 @@ void EventManagerBasic::RunLoop()
 	  continue;
 	}
 
-	vme_data bundle;
+	event_data bundle;
 	daq_workers_.GetEventData(bundle);
 	
 	queue_mutex_.lock();

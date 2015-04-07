@@ -181,7 +181,7 @@ int EventManagerTrgSeq::EndOfRun()
   return 0;
 }
 
-int EventManagerTrgSeq::ResizeEventData(vme_data &data) 
+int EventManagerTrgSeq::ResizeEventData(event_data &data) 
 {
   return 0;
 }
@@ -212,7 +212,7 @@ void EventManagerTrgSeq::RunLoop()
           continue;
         }
         
-        vme_data bundle;
+        event_data bundle;
         daq_workers_.GetEventData(bundle);
         
         queue_mutex_.lock();
@@ -313,7 +313,7 @@ void EventManagerTrgSeq::BuilderLoop()
       static nmr_data bundle;
       if (bundle.clock_sec.size() < num_probes_) bundle.Resize(num_probes_);
 
-      static vme_data data;
+      static event_data data;
       int seq_index = 0;
 
       while (sequence_in_progress_ && go_time_) {

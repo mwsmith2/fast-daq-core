@@ -71,7 +71,7 @@ class DaqWorkerList {
     bool AnyWorkersHaveMultiEvent();
 
     // Copies event data into bundle.
-    void GetEventData(vme_data &bundle);
+    void GetEventData(event_data &bundle);
 
     // Flush all stale events.  Each worker has no events after this.
     void FlushEventData();

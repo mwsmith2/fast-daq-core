@@ -17,7 +17,7 @@
 #include <boost/property_tree/json_parser.hpp>
 
 //--- projects includes -----------------------------------------------------//
-#include "daq_structs.hh"
+#include "daq_common.hh"
 #include "daq_worker_list.hh"
 #include "daq_writer_root.hh"
 

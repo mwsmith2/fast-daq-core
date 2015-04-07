@@ -7,7 +7,8 @@ using std::endl;
 namespace daq {
 
 // ctor
-DaqWorkerFake::DaqWorkerFake(string name, string conf) : DaqWorkerBase<event_struct>(name, conf)
+DaqWorkerFake::DaqWorkerFake(std::string name, std::string conf) : 
+  DaqWorkerBase<event_struct>(name, conf)
 { 
   LoadConfig();
 
@@ -29,6 +30,8 @@ void DaqWorkerFake::LoadConfig()
 
 void DaqWorkerFake::GenerateEvent()
 {
+  using namespace std::chrono;
+
   // Make fake events.
   while (thread_live_) {
 
@@ -80,7 +83,7 @@ void DaqWorkerFake::WorkLoop()
 {
   while (thread_live_) {
 
-    t0_ = high_resolution_clock::now();
+    t0_ = std::chrono::high_resolution_clock::now();
 
     while(go_time_) {
 

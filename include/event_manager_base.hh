@@ -45,10 +45,10 @@ public:
   inline  int PauseRun() { go_time_ = false; };
   inline  int ResumeRun() {go_time_ = true; };
 
-  virtual int ResizeEventData(vme_data &data) = 0;
+  virtual int ResizeEventData(event_data &data) = 0;
 
   // Returns the oldest stored event.
-  inline const vme_data &GetCurrentEvent() { return data_queue_.front(); };
+  inline const event_data &GetCurrentEvent() { return data_queue_.front(); };
 
   // Removes the oldest event from the front of the queue.
   inline void PopCurrentEvent() {
@@ -69,7 +69,7 @@ protected:
   const int kMaxQueueSize = 10;
   std::string conf_file_;
 
-  std::queue<vme_data> data_queue_;
+  std::queue<event_data> data_queue_;
   DaqWorkerList daq_workers_;
 
   std::atomic<bool> go_time_;

@@ -2,7 +2,7 @@
 
 namespace daq {
 
-DaqWriterOnline::DaqWriterOnline(string conf_file) : DaqWriterBase(conf_file), online_ctx_(1), online_sck_(online_ctx_, ZMQ_PUSH)
+DaqWriterOnline::DaqWriterOnline(std::string conf_file) : DaqWriterBase(conf_file), online_ctx_(1), online_sck_(online_ctx_, ZMQ_PUSH)
 {
   thread_live_ = true;
   go_time_ = false;
@@ -15,21 +15,21 @@ DaqWriterOnline::DaqWriterOnline(string conf_file) : DaqWriterBase(conf_file), o
 
 void DaqWriterOnline::LoadConfig()
 {
-  ptree conf;
-  read_json(conf_file_, conf);
+  boost::property_tree::ptree conf;
+  boost::property_tree::read_json(conf_file_, conf);
 
   int hwm = conf.get<int>("writers.online.high_water_mark", 10);
   online_sck_.setsockopt(ZMQ_SNDHWM, &hwm, sizeof(hwm));
   int linger = 0;
   online_sck_.setsockopt(ZMQ_LINGER, &linger, sizeof(linger)); 
-  online_sck_.connect(conf.get<string>("writers.online.port").c_str());
+  online_sck_.connect(conf.get<std::string>("writers.online.port").c_str());
 
   max_trace_length_ = conf.get<int>("writers.online.max_trace_length", -1);
 }
 
-void DaqWriterOnline::PushData(const vector<event_data> &data_buffer)
+void DaqWriterOnline::PushData(const std::vector<event_data> &data_buffer)
 {
-  cout << "Online writer was pushed some data." << endl;
+  WriteLog("WriterOnline: received some data.");
 
   writer_mutex_.lock();
 
@@ -51,7 +51,7 @@ void DaqWriterOnline::EndOfBatch(bool bad_data)
   FlushData();
 
   zmq::message_t msg(10);
-  memcpy(msg.data(), string("__EOB__").c_str(), 10);
+  memcpy(msg.data(), std::string("__EOB__").c_str(), 10);
 
   int count = 0;
   while (count < 50) {
@@ -65,8 +65,8 @@ void DaqWriterOnline::EndOfBatch(bool bad_data)
 
 void DaqWriterOnline::SendMessageLoop()
 {
-  ptree conf;
-  read_json(conf_file_, conf);
+  boost::property_tree::ptree conf;
+  boost::property_tree::read_json(conf_file_, conf);
 
   while (thread_live_) {
 
@@ -87,7 +87,7 @@ void DaqWriterOnline::SendMessageLoop()
 
         if (rc == true) {
 
-          cout << "Online writer sent message successfully." << endl;
+          WriteLog("WriterOnline: sent message successfully.");
           message_ready_ = false;
 
         }
@@ -110,7 +110,7 @@ void DaqWriterOnline::PackMessage()
 {
   using boost::uint64_t;
 
-  cout << "Packing message." << endl;
+  WriteLog("WriterOnline: packing message.");
 
   int count = 0;
   char str[50];
@@ -405,13 +405,13 @@ void DaqWriterOnline::PackMessage()
     }
   }
 
-  string buffer = json_spirit::write(json_map);
+  std::string buffer = json_spirit::write(json_map);
   buffer.append("__EOM__");
 
   message_ = zmq::message_t(buffer.size());
   memcpy(message_.data(), buffer.c_str(), buffer.size());
 
-  cout << "Online writer message ready." << endl;
+  WriteLog("WriterOnline: message ready.");
   message_ready_ = true;
 }
 

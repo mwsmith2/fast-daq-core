@@ -27,7 +27,7 @@ class DaqWriterOnline : public DaqWriterBase {
  public:
 
   //ctor
-  DaqWriterOnline(string conf_file);
+  DaqWriterOnline(std::string conf_file);
   
   //dtor
   ~DaqWriterOnline() {
@@ -49,7 +49,7 @@ class DaqWriterOnline : public DaqWriterBase {
     number_of_events_ = 0; };
   void StopWriter() { go_time_ = false; };
   
-  void PushData(const vector<event_data> &data_buffer);
+  void PushData(const std::vector<event_data> &data_buffer);
   void EndOfBatch(bool bad_data);
    
  private:

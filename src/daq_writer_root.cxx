@@ -2,7 +2,7 @@
 
 namespace daq {
 
-DaqWriterRoot::DaqWriterRoot(string conf_file) : DaqWriterBase(conf_file)
+DaqWriterRoot::DaqWriterRoot(std::string conf_file) : DaqWriterBase(conf_file)
 {
   end_of_batch_ = false;
   LoadConfig();
@@ -10,16 +10,18 @@ DaqWriterRoot::DaqWriterRoot(string conf_file) : DaqWriterBase(conf_file)
 
 void DaqWriterRoot::LoadConfig()
 {
-  ptree conf;
-  read_json(conf_file_, conf);
+  boost::property_tree::ptree conf;
+  boost::property_tree::read_json(conf_file_, conf);
 
-  outfile_ = conf.get<string>("writers.root.file", "default.root");
-  tree_name_ = conf.get<string>("writers.root.tree", "t");
+  outfile_ = conf.get<std::string>("writers.root.file", "default.root");
+  tree_name_ = conf.get<std::string>("writers.root.tree", "t");
   need_sync_ = conf.get<bool>("writers.root.sync", false);
 }
 
 void DaqWriterRoot::StartWriter()
 {
+  using namespace boost::property_tree;
+
   // Allocate ROOT files
   pf_ = new TFile(outfile_.c_str(), "RECREATE");
   pt_ = new TTree(tree_name_.c_str(), tree_name_.c_str());
@@ -32,7 +34,7 @@ void DaqWriterRoot::StartWriter()
   read_json(conf_file_, conf);
 
   // For each different device we need to loop and assign branches.
-  string br_name;
+  std::string br_name;
   char br_vars[100];
 
   // Count the devices, reserve memory for them, then assign an address.
@@ -53,7 +55,7 @@ void DaqWriterRoot::StartWriter()
 
     root_data_.sis_fast.resize(count + 1);
 
-    br_name = string(v.first);
+    br_name = std::string(v.first);
     sprintf(br_vars, "system_clock/l:device_clock[%i]/l:trace[%i][%i]/s", 
       SIS_3350_CH, SIS_3350_CH, SIS_3350_LN);
 
@@ -66,7 +68,7 @@ void DaqWriterRoot::StartWriter()
 
     root_data_.sis_fast.resize(count);
 
-    br_name = string(v.first);
+    br_name = std::string(v.first);
     sprintf(br_vars, "system_clock/l:device_clock[%i]/l:trace[%i][%i]/s", 
       SIS_3350_CH, SIS_3350_CH, SIS_3350_LN);
 
@@ -88,7 +90,7 @@ void DaqWriterRoot::StartWriter()
 
     root_data_.sis_slow.resize(count + 1);
 
-    br_name = string(v.first);
+    br_name = std::string(v.first);
     sprintf(br_vars, "system_clock/l:device_clock[%i]/l:trace[%i][%i]/s", 
       SIS_3302_CH, SIS_3302_CH, SIS_3302_LN);
 
@@ -110,7 +112,7 @@ void DaqWriterRoot::StartWriter()
 
     root_data_.caen_adc.resize(count + 1);
 
-    br_name = string(v.first);
+    br_name = std::string(v.first);
     sprintf(br_vars, "system_clock/l:device_clock[%i]/l:value[%i]/s", 
       CAEN_1785_CH, CAEN_1785_CH);
 
@@ -132,7 +134,7 @@ void DaqWriterRoot::StartWriter()
 
     root_data_.caen_drs.resize(count + 1);
 
-    br_name = string(v.first);
+    br_name = std::string(v.first);
     sprintf(br_vars, "system_clock/l:device_clock[%i]/l:trace[%i][%i]/s", 
 	    CAEN_6742_CH, CAEN_6742_CH, CAEN_6742_LN);
 
@@ -154,7 +156,7 @@ void DaqWriterRoot::StartWriter()
 
     root_data_.drs.resize(count + 1);
 
-    br_name = string(v.first);
+    br_name = std::string(v.first);
     sprintf(br_vars, "system_clock/l:device_clock[%i]/l:trace[%i][%i]/s", 
 	    DRS4_CH, DRS4_CH, DRS4_LN);
 
@@ -168,13 +170,12 @@ void DaqWriterRoot::StopWriter()
   pf_->Write();
   pf_->Close();
   delete pf_;
-  string cmd("chown newg2:newg2 ");
+  std::string cmd("chown newg2:newg2 ");
   cmd += outfile_.c_str();
-  cout << cmd << endl;
   system((const char*)cmd.c_str());
 }
 
-void DaqWriterRoot::PushData(const vector<event_data> &data_buffer)
+void DaqWriterRoot::PushData(const std::vector<event_data> &data_buffer)
 {
   for (auto it = data_buffer.begin(); it != data_buffer.end(); ++it) {
 
@@ -210,7 +211,9 @@ void DaqWriterRoot::PushData(const vector<event_data> &data_buffer)
 
 void DaqWriterRoot::EndOfBatch(bool bad_data)
 {
-  cout << "Root writer got EOB with bad_data flag = " << bad_data << endl;
+  char str[128];
+  sprintf(str, "WriterRoot: got EOB with bad_data flag = %i",  bad_data);
+  WriteLog(str);
   if (need_sync_ && bad_data) {
     pt_->DropBaskets();
   } else {

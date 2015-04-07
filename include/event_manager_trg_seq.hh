@@ -50,7 +50,7 @@ public:
   // Rejoins threads and stops data collection.
   int EndOfRun();
 
-  int ResizeEventData(vme_data &data);
+  int ResizeEventData(event_data &data);
 
   // Issue a software trigger to take another sequence.
   inline int IssueTrigger() {

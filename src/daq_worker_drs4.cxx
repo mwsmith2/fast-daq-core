@@ -74,7 +74,7 @@ void DaqWorkerDrs4::LoadConfig()
 
 void DaqWorkerDrs4::WorkLoop()
 {
-  t0_ = high_resolution_clock::now();
+  t0_ = std::chrono::high_resolution_clock::now();
 
   while (thread_live_) {
 
@@ -134,6 +134,7 @@ bool DaqWorkerDrs4::EventAvailable()
 // Pull the event.
 void DaqWorkerDrs4::GetEvent(drs4 &bundle)
 {
+  using namespace std::chrono;
   int ch, offset, ret = 0;
   bool is_event = true;
 

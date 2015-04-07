@@ -24,7 +24,7 @@ class DaqWorkerFake : public DaqWorkerBase<event_struct> {
  public:
   
   // ctor
-  DaqWorkerFake(string name, string conf);
+  DaqWorkerFake(std::string name, std::string conf);
   
   ~DaqWorkerFake() {
     thread_live_ = false;

@@ -31,7 +31,7 @@ class DaqWriterRoot : public DaqWriterBase {
   void StartWriter();
   void StopWriter();
   
-  void PushData(const vector<event_data> &data_buffer);
+  void PushData(const std::vector<event_data> &data_buffer);
   void EndOfBatch(bool bad_data);
   
  private:

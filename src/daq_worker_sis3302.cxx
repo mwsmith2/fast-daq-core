@@ -31,26 +31,22 @@ void DaqWorkerSis3302::LoadConfig()
   // Read the base register.
   Read(0x0, msg);
 
-  if (logging_on) {
-    sprintf(str, " found at 0x%08x", base_address_);
-    logstream << name_ << str << endl;
-  }
+  sprintf(str, "%s: found at 0x%08x", name_.c_str(), base_address_);
+  WriteLog(str);
 
   // Reset the device.
   msg = 1;
   if ((ret = Write(0x400, msg)) != 0) {
-    std::cerr << name_ << ": error writing sis3302 reset register" << endl;
+    std::cerr << name_ << ": error writing sis3302 reset register\n.";
   }
 
   // Get device ID.
   msg = 0;
   Read(0x4, msg);
 
-  if (logging_on) {
-    sprintf(str, " ID: %04x, maj rev: %02x, min rev: %02x",
-	    msg >> 16, (msg >> 8) & 0xff, msg & 0xff);
-    logstream << name_ << str << endl;
-  }
+  sprintf(str, "%s ID: %04x, maj rev: %02x, min rev: %02x",
+          name_.c_str(), msg >> 16, (msg >> 8) & 0xff, msg & 0xff);
+  WriteLog(str);
 
   // Read control/status register.
 
@@ -80,10 +76,8 @@ void DaqWorkerSis3302::LoadConfig()
   msg = 0;
   Read(0x0, msg);
 
-  if (logging_on) {
-    sprintf(str, " user LED: %s", (msg & 0x1) ? "ON" : "OFF");
-    logstream << name_ << str << endl;
-  }
+  sprintf(str, "%s user LED: %s", name_.c_str(), (msg & 0x1) ? "ON" : "OFF");
+  WriteLog(str);
 
   // Set Acquisition register.
   msg = 0;
@@ -102,10 +96,8 @@ void DaqWorkerSis3302::LoadConfig()
   msg = 0;
   Read(0x10, msg);
 
-  if (logging_on) {
-    sprintf(str, " ACQ register set to: 0x%08x", msg);
-    logstream << name_ << str << endl;
-  }
+  sprintf(str, "%s ACQ register set to: 0x%08x", name_.c_str(), msg);
+  WriteLog(str);
 
   // Set the start delay.
   msg = conf.get<int>("start_delay", 0);
@@ -141,7 +133,7 @@ void DaqWorkerSis3302::LoadConfig()
 
 void DaqWorkerSis3302::WorkLoop()
 {
-  t0_ = high_resolution_clock::now();
+  t0_ = std::chrono::high_resolution_clock::now();
 
   while (thread_live_) {
 
@@ -224,6 +216,7 @@ bool DaqWorkerSis3302::EventAvailable()
 
 void DaqWorkerSis3302::GetEvent(sis_3302 &bundle)
 {
+  using namespace std::chrono;
   int ch, offset, ret, count = 0;
 
   // Check how long the event is.
