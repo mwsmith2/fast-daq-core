@@ -24,6 +24,10 @@
 #include "common.hh"
 #include "worker_sis3350.hh"
 #include "worker_sis3302.hh"
+#include "worker_caen1785.hh"
+#include "worker_caen6742.hh"
+#include "worker_drs4.hh"
+#include "worker_fake.hh"
 
 namespace daq {
 
