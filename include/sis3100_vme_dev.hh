@@ -38,7 +38,9 @@ protected:
   }
 
   inline void OpenVme() {
-    dev_ = open(devpath_.c_str(), O_RDWR);
+    while (dev_ <= 0) {
+      dev_ = open(devpath_.c_str(), O_RDWR);
+    }
   }
 
   inline void CloseVme() {
