@@ -2,7 +2,8 @@
 
 namespace daq {
 
-DaqWorkerDrs4::DaqWorkerDrs4(string name, string conf) : DaqWorkerBase<drs4>(name, conf)
+DaqWorkerDrs4::DaqWorkerDrs4(std::string name, std::string conf) : 
+  DaqWorkerBase<drs4>(name, conf)
 {
   // Load the drs board.
   drs_ = new DRS();
@@ -92,13 +93,13 @@ void DaqWorkerDrs4::WorkLoop()
       } else {
 	
         std::this_thread::yield();
-    	  usleep(daq::kShortSleep);
+    	  usleep(daq::short_sleep);
 
       }
     }
 
     std::this_thread::yield();
-    usleep(daq::kLongSleep);
+    usleep(daq::long_sleep);
   }
 }
 

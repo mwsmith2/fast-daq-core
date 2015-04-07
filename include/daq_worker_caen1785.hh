@@ -1,20 +1,16 @@
-#ifndef SLAC_DAQ_INCLUDE_DAQ_WORKER_CAEN1785_HH_
-#define SLAC_DAQ_INCLUDE_DAQ_WORKER_CAEN1785_HH_
+#ifndef DAQ_FAST_CORE_INCLUDE_DAQ_WORKER_CAEN1785_HH_
+#define DAQ_FAST_CORE_INCLUDE_DAQ_WORKER_CAEN1785_HH_
 
 //--- std includes ----------------------------------------------------------//
 #include <chrono>
 #include <iostream>
-using namespace std::chrono;
-using std::cout;
-using std::cerr;
-using std::endl;
 
 //--- other includes --------------------------------------------------------//
 #include "vme/sis3100_vme_calls.h"
 
 //--- project includes ------------------------------------------------------//
 #include "daq_worker_vme.hh"
-#include "daq_structs.hh"
+#include "daq_common.hh"
 
 // This class pulls data from a sis_3350 device.
 namespace daq {
@@ -24,7 +20,7 @@ class DaqWorkerCaen1785 : public DaqWorkerVme<caen_1785> {
 public:
   
   // ctor
-  DaqWorkerCaen1785(string name, string conf);
+  DaqWorkerCaen1785(std::string name, std::string conf);
   
   void LoadConfig();
   void WorkLoop();
@@ -32,7 +28,7 @@ public:
   
 private:
   
-  high_resolution_clock::time_point t0_;
+  std::chrono::high_resolution_clock::time_point t0_;
   bool read_low_adc_;
   
   bool EventAvailable();

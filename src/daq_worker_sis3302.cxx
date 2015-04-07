@@ -2,7 +2,8 @@
 
 namespace daq {
 
-DaqWorkerSis3302::DaqWorkerSis3302(string name, string conf) : DaqWorkerVme<sis_3302>(name, conf)
+DaqWorkerSis3302::DaqWorkerSis3302(std::string name, std::string conf) : 
+  DaqWorkerVme<sis_3302>(name, conf)
 {
   LoadConfig();
 
@@ -12,34 +13,46 @@ DaqWorkerSis3302::DaqWorkerSis3302(string name, string conf) : DaqWorkerVme<sis_
 
 void DaqWorkerSis3302::LoadConfig()
 { 
+  using std::string;
+
+  int ret;
+  uint msg = 0;
+  char str[256];
+
   // Open the configuration file.
   boost::property_tree::ptree conf;
   boost::property_tree::read_json(conf_file_, conf);
+  
+  string dev_path = conf.get<string>("device");
 
   // Get the base address for the device.  Convert from hex.
   base_address_ = std::stoi(conf.get<string>("base_address"), nullptr, 0);
 
-  int ret;
-  uint msg = 0;
-
   // Read the base register.
   Read(0x0, msg);
-  printf("sis3302 found at 0x%08x\n", base_address_);
+
+  if (logging_on) {
+    sprintf(str, " found at 0x%08x", base_address_);
+    logstream << name_ << str << endl;
+  }
 
   // Reset the device.
   msg = 1;
   if ((ret = Write(0x400, msg)) != 0) {
-    printf("error writing sis3302 reset register\n");
+    std::cerr << name_ << ": error writing sis3302 reset register" << endl;
   }
 
   // Get device ID.
   msg = 0;
   Read(0x4, msg);
-  printf("sis3302 ID: %04x, maj rev: %02x, min rev: %02x\n",
-   msg >> 16, (msg >> 8) & 0xff, msg & 0xff);
+
+  if (logging_on) {
+    sprintf(str, " ID: %04x, maj rev: %02x, min rev: %02x",
+	    msg >> 16, (msg >> 8) & 0xff, msg & 0xff);
+    logstream << name_ << str << endl;
+  }
 
   // Read control/status register.
-  msg = 0;
 
   if (conf.get<bool>("user_led_on", true))
     msg |= 0x1; // LED on
@@ -51,13 +64,13 @@ void DaqWorkerSis3302::LoadConfig()
   // Set and check the control/status register.
   msg = 0;
 
-/*
+  
   if (conf.get<bool>("invert_ext_lemo")) {
     msg |= 0x10; // invert EXT TRIG
   }
-*/
 
- if (conf.get<bool>("user_led_on")) {
+  
+  if (conf.get<bool>("user_led_on")) {
     msg |= 0x1; // LED on
   }
   msg = ((~msg & 0xffff) << 16) | msg; // j/k
@@ -66,7 +79,11 @@ void DaqWorkerSis3302::LoadConfig()
   
   msg = 0;
   Read(0x0, msg);
-  printf("user LED turned %s\n", (msg & 0x1) ? "ON" : "OFF");
+
+  if (logging_on) {
+    sprintf(str, " user LED: %s", (msg & 0x1) ? "ON" : "OFF");
+    logstream << name_ << str << endl;
+  }
 
   // Set Acquisition register.
   msg = 0;
@@ -81,8 +98,14 @@ void DaqWorkerSis3302::LoadConfig()
   msg = ((~msg & 0xffff) << 16) | msg; // j/k
   msg &= 0x7df07df0; // zero reserved bits / disable bits
 
-  printf("sis 3302 setting acq reg to 0x%08x\n", msg);
   Write(0x10, msg);
+  msg = 0;
+  Read(0x10, msg);
+
+  if (logging_on) {
+    sprintf(str, " ACQ register set to: 0x%08x", msg);
+    logstream << name_ << str << endl;
+  }
 
   // Set the start delay.
   msg = conf.get<int>("start_delay", 0);
@@ -99,27 +122,21 @@ void DaqWorkerSis3302::LoadConfig()
   // Set event configure register with changes
 
   if (conf.get<bool>("enable_event_length_stop", true))
-    msg |= 0x1 << 5; // enable event length stop trigger
-
-  if (conf.get<bool>("enable_page_wrap_around", true))
-    msg |= 0x1 << 4; // enable page wrap around mode
+    msg = 0x1 << 5; // enable event length stop trigger
 
   Write(0x01000000, msg);
   
   // Event length register - odd setting method (see manual).
-  msg = (SIS_3302_LN - 4) & 0xfffffc;
+  msg = (SIS_3302_LN - 4 + 512) & 0xfffffc; // @hack - sets number of samples
   Write(0x01000004, msg);
 
   // Set the pre-trigger buffer length.
-  msg = std::stoi(conf.get<string>("pre_trigger_delay"), nullptr, 0);
+  msg = std::stoi(conf.get<string>("pretrigger_samples", "0x0"), nullptr, 0);
   Write(0x01000060, msg);
 
   // Memory page
   msg = 0; //first 8MB chunk
   Write(0x34, msg);
-
-  // Set
-
 } // LoadConfig
 
 void DaqWorkerSis3302::WorkLoop()
@@ -139,40 +156,39 @@ void DaqWorkerSis3302::WorkLoop()
         data_queue_.push(bundle);
         has_event_ = true;
         queue_mutex_.unlock();
+
       } else {
 
 	std::this_thread::yield();
-	usleep(daq::kShortSleep);
+	usleep(daq::short_sleep);
       }
     }
 
     std::this_thread::yield();
-    usleep(daq::kLongSleep);
+    usleep(daq::long_sleep);
   }
 }
 
 sis_3302 DaqWorkerSis3302::PopEvent()
 {
   static sis_3302 data;
-  queue_mutex_.lock();
 
   if (data_queue_.empty()) {
     sis_3302 str;
-    queue_mutex_.unlock();
     return str;
-
-  } else if (!data_queue_.empty()) {
-
-    // Copy the data.
-    data = data_queue_.front();
-    data_queue_.pop();
-    
-    // Check if this is that last event.
-    if (data_queue_.size() == 0) has_event_ = false;
-    
-    queue_mutex_.unlock();
-    return data;
   }
+
+  queue_mutex_.lock();
+
+  // Copy the data.
+  data = data_queue_.front();
+  data_queue_.pop();
+
+  // Check if this is that last event.
+  if (data_queue_.size() == 0) has_event_ = false;
+
+  queue_mutex_.unlock();
+  return data;
 }
 
 
@@ -181,14 +197,26 @@ bool DaqWorkerSis3302::EventAvailable()
   // Check acq reg.
   static uint msg = 0;
   static bool is_event;
-
-  Read(0x10, msg);
+  
+  int count = 0;
+  int rc = 0;
+  do {
+    rc = Read(0x10, msg);
+    ++count;
+  } while ((rc < 0) && (count < 100));
+ 
   is_event = !(msg & 0x10000);
 
   if (is_event) {
     // rearm the logic
     uint armit = 1;
-    Write(0x410, armit);
+
+    count = 0;
+    rc = 0;
+    do {
+      rc = Write(0x410, armit);
+      ++count;
+    } while ((rc < 0) && (count < 100));
   }
 
   return is_event;
@@ -196,12 +224,14 @@ bool DaqWorkerSis3302::EventAvailable()
 
 void DaqWorkerSis3302::GetEvent(sis_3302 &bundle)
 {
-  int ch, offset, ret = 0;
+  int ch, offset, ret, count = 0;
 
   // Check how long the event is.
   //expected SIS_3302_LN + 8
   
   uint next_sample_address[SIS_3302_CH];
+  static uint trace[SIS_3302_CH][SIS_3302_LN / 2];
+  static uint timestamp[2];
 
   for (ch = 0; ch < SIS_3302_CH; ch++) {
 
@@ -211,7 +241,12 @@ void DaqWorkerSis3302::GetEvent(sis_3302 &bundle)
     offset |= (ch >> 1) << 24;
     offset |= (ch & 0x1) << 2;
 
-    Read(offset, next_sample_address[ch]);
+    count = 0;
+    ret = 0;
+    do {
+      ret = Read(offset, next_sample_address[ch]);
+      ++count;
+    } while ((ret < 0) && (count < 100));
   }
 
   // Get the system time
@@ -219,15 +254,18 @@ void DaqWorkerSis3302::GetEvent(sis_3302 &bundle)
   auto dtn = t1.time_since_epoch() - t0_.time_since_epoch();
   bundle.system_clock = duration_cast<milliseconds>(dtn).count();  
 
-  //todo: check it has the expected length
-  uint trace[SIS_3302_CH][SIS_3302_LN / 2];
-  uint timestamp[2];
-
+  
   Read(0x10000, timestamp[0]);
   Read(0x10001, timestamp[1]);
   for (ch = 0; ch < SIS_3302_CH; ch++) {
     offset = (0x8 + ch) << 23;
-    ReadTrace(offset, trace[ch]);
+
+    count = 0;
+    ret = 0;
+    do {
+      ret = ReadTrace(offset, trace[ch]);
+      ++count;
+    } while ((ret < 0) && (count < 100));
   }
 
   //decode the event (little endian arch)
@@ -240,8 +278,8 @@ void DaqWorkerSis3302::GetEvent(sis_3302 &bundle)
     bundle.device_clock[ch] |= (timestamp[0] & 0xfff0000ULL) << 20;
 
     std::copy((ushort *)trace[ch],
-	      (ushort *)trace[ch] + SIS_3302_LN,
-	      bundle.trace[ch]);
+    	      (ushort *)trace[ch] + SIS_3302_LN,
+    	      bundle.trace[ch]);
   }
 }
 

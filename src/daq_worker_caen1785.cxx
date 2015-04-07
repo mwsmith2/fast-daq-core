@@ -2,7 +2,7 @@
 
 namespace daq {
 
-DaqWorkerCaen1785::DaqWorkerCaen1785(string name, string conf) : DaqWorkerVme<caen_1785>(name, conf)
+DaqWorkerCaen1785::DaqWorkerCaen1785(std::string name, std::string conf) : DaqWorkerVme<caen_1785>(name, conf)
 {
   LoadConfig();
 
@@ -19,7 +19,7 @@ void DaqWorkerCaen1785::LoadConfig()
   read_low_adc_ = conf.get<bool>("read_low_adc", false);
 
   // Get the base address for the device.  Convert from hex.
-  base_address_ = std::stoi(conf.get<string>("base_address"), nullptr, 0);
+  base_address_ = std::stoi(conf.get<std::string>("base_address"), nullptr, 0);
   
   int ret;
   uint msg = 0;
@@ -46,7 +46,7 @@ void DaqWorkerCaen1785::LoadConfig()
 
 void DaqWorkerCaen1785::WorkLoop()
 {
-  t0_ = high_resolution_clock::now();
+  t0_ = std::chrono::high_resolution_clock::now();
 
   while (thread_live_) {
 
@@ -65,12 +65,12 @@ void DaqWorkerCaen1785::WorkLoop()
       } else {
 
 	std::this_thread::yield();
-	usleep(daq::kShortSleep);
+	usleep(daq::short_sleep);
       }
     }
 
     std::this_thread::yield();
-    usleep(daq::kLongSleep);
+    usleep(daq::long_sleep);
   }
 }
 
@@ -120,6 +120,7 @@ bool DaqWorkerCaen1785::EventAvailable()
 
 void DaqWorkerCaen1785::GetEvent(caen_1785 &bundle)
 {
+  using namespace std::chrono;
   int offset = 0x0;
   uint ch = 0;
   uint data = 0;

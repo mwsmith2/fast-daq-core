@@ -92,16 +92,16 @@ void DaqWriterOnline::SendMessageLoop()
 
         }
 
-        usleep(daq::kShortSleep);
+        usleep(daq::short_sleep);
         std::this_thread::yield();
       }
       
-      usleep(daq::kShortSleep);
+      usleep(daq::short_sleep);
       std::this_thread::yield();
       
     }
     
-    usleep(daq::kLongSleep);
+    usleep(daq::long_sleep);
     std::this_thread::yield();
   }
 }

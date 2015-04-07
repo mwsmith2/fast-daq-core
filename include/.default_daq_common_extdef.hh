@@ -1,18 +1,18 @@
-#ifndef SLAC_DAQ_INCLUDE_DAQ_STRUCTS_EXTDEF_HH_
-#define SLAC_DAQ_INCLUDE_DAQ_STRUCTS_EXTDEF_HH_
+#ifndef NMR_DAQ_INCLUDE_DAQ_STRUCTS_EXTDEF_HH_
+#define NMR_DAQ_INCLUDE_DAQ_STRUCTS_EXTDEF_HH_
 
 /*===========================================================================*\
 
 author: Matthias W. Smith
 email:  mwsmith2@uw.edu
-file:   daq_struct_extdef.hh
+file:   daq_common.hh
 
 about:  Exists to declare a device handle that all vme classes must share,
         and a mutex to guard it while being defined.
 
 \*===========================================================================*/
 
-#include "daq_structs.hh"
+#include "daq_common.hh"
 
 namespace daq {
 

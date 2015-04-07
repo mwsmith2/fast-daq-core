@@ -2,7 +2,8 @@
 
 namespace daq {
 
-DaqWorkerCaen6742::DaqWorkerCaen6742(string name, string conf) : DaqWorkerBase<caen_6742>(name, conf)
+DaqWorkerCaen6742::DaqWorkerCaen6742(std::string name, std::string conf) : 
+  DaqWorkerBase<caen_6742>(name, conf)
 {
   buffer_ = nullptr;
   event_ = nullptr;
@@ -130,7 +131,7 @@ void DaqWorkerCaen6742::WorkLoop()
 {
   int ret = CAEN_DGTZ_AllocateEvent(device_, (void **)&event_);
   ret = CAEN_DGTZ_SWStartAcquisition(device_);
-  t0_ = high_resolution_clock::now();
+  t0_ = std::chrono::high_resolution_clock::now();
 
   while (thread_live_) {
 
@@ -149,12 +150,12 @@ void DaqWorkerCaen6742::WorkLoop()
       } else {
 	
 	std::this_thread::yield();
-	usleep(daq::kShortSleep);
+	usleep(daq::short_sleep);
       }
     }
 
     std::this_thread::yield();
-    usleep(daq::kLongSleep);
+    usleep(daq::long_sleep);
   }
 
   ret = CAEN_DGTZ_SWStopAcquisition(device_);
@@ -207,6 +208,7 @@ bool DaqWorkerCaen6742::EventAvailable()
 
 void DaqWorkerCaen6742::GetEvent(caen_6742 &bundle)
 {
+  using namespace std::chrono;
   int ch, offset, ret = 0;
   char *evtptr = nullptr;
 
@@ -232,7 +234,7 @@ void DaqWorkerCaen6742::GetEvent(caen_6742 &bundle)
 
       int len = event_->DataGroup[gr].ChSize[ch];
       bundle.device_clock[ch_idx] = event_->DataGroup[gr].TriggerTimeTag;
-      cout << "Copying event." << endl;
+      std::cout << "Copying event." << std::endl;
       std::copy(event_->DataGroup[gr].DataChannel[ch],
 		event_->DataGroup[gr].DataChannel[ch] + len,
 		bundle.trace[ch_idx]);

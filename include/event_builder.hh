@@ -1,5 +1,5 @@
-#ifndef SLAC_DAQ_INCLUDE_EVENT_BUILDER_HH_
-#define SLAC_DAQ_INCLUDE_EVENT_BUILDER_HH_
+#ifndef DAQ_FAST_CORE_INCLUDE_EVENT_BUILDER_HH_
+#define DAQ_FAST_CORE_INCLUDE_EVENT_BUILDER_HH_
 
 //--- std includes ----------------------------------------------------------//
 #include <ctime>
@@ -10,10 +10,6 @@
 #include <atomic>
 #include <mutex>
 #include <queue>
-using std::string;
-using std::vector;
-using std::cout;
-using std::endl;
 
 //--- other includes --------------------------------------------------------//
 #include <boost/variant.hpp>
@@ -34,8 +30,8 @@ class EventBuilder {
 
   // ctor
   EventBuilder(const DaqWorkerList &daq_workers, 
-	       const vector<DaqWriterBase *> daq_writers,
-	       string conf_file);
+               const std::vector<DaqWriterBase *> daq_writers,
+               std::string conf_file);
   
   // dtor
   ~EventBuilder() {
@@ -53,7 +49,7 @@ class EventBuilder {
 private:
   
   // Simple variable declarations
-  string conf_file_;
+  std::string conf_file_;
   int live_time_;
   int dead_time_;
   long long live_ticks_;
@@ -72,8 +68,8 @@ private:
   
   // Data accumulation variables
   DaqWorkerList daq_workers_;
-  vector<DaqWriterBase *> daq_writers_;
-  vector<event_data> push_data_vec_;
+  std::vector<DaqWriterBase *> daq_writers_;
+  std::vector<event_data> push_data_vec_;
   std::queue<event_data> pull_data_que_;
   
   // Concurrency variables

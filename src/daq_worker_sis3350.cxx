@@ -2,7 +2,8 @@
 
 namespace daq {
 
-DaqWorkerSis3350::DaqWorkerSis3350(string name, string conf) : DaqWorkerVme<sis_3350>(name, conf)
+DaqWorkerSis3350::DaqWorkerSis3350(std::string name, std::string conf) : 
+  DaqWorkerVme<sis_3350>(name, conf)
 {
   num_ch_ = SIS_3350_CH;
   read_trace_len_ = SIS_3350_LN / 2 + 4;
@@ -12,19 +13,36 @@ DaqWorkerSis3350::DaqWorkerSis3350(string name, string conf) : DaqWorkerVme<sis_
 
 void DaqWorkerSis3350::LoadConfig()
 { 
+  using std::cout;
+  using std::endl;
+  using std::cerr;
+  using std::string;
+
+  int ret;
+  uint msg = 0;
+  char str[256];
+
   // Open the configuration file.
   boost::property_tree::ptree conf;
   boost::property_tree::read_json(conf_file_, conf);
 
+  // Get the device filestream.  If it isn't open, open it.
+  string dev_path = conf.get<string>("device");
+
+  if (logging_on) {
+    logstream << name_ << " (DaqWorkerSis3350, *" << this << "): ";
+    logstream << "is initializing." << device_ << endl;
+  }
+
   // Get the base address.  Needs to be converted from hex.
   base_address_ = std::stoi(conf.get<string>("base_address"), nullptr, 0);
 
-  int ret;
-  uint msg = 0;
-
   // Check for device.
   Read(0x0, msg);
-  printf("sis3350 found at 0x%08x\n.", base_address_);
+  if (logging_on) {
+    sprintf(str, " found at vme address: 0x%08x", base_address_);
+    logstream << name_ << str << endl;
+  }
 
   // Reset device.
   msg = 1;
@@ -34,8 +52,11 @@ void DaqWorkerSis3350::LoadConfig()
   msg = 0;
   Read(0x4, msg);
   
-  printf("sis3350 ID: %04x, maj rev: %02x, min rev: %02x\n",
-	       msg >> 16, (msg >> 8) & 0xff, msg & 0xff);
+  if (logging_on) {
+    sprintf(str, " ID: %04x, maj rev: %02x, min rev: %02x",
+	    msg >> 16, (msg >> 8) & 0xff, msg & 0xff);
+    logstream << name_ << str << endl;
+  }
 
   // Set and check the control/status register.
   msg = 0;
@@ -55,24 +76,17 @@ void DaqWorkerSis3350::LoadConfig()
   msg = 0;
   Read(0x0, msg);
 
-  printf("EXT LEMO set to %s\n", ((msg & 0x10) == 0x10) ? "NIM" : "TTL");
-  printf("user LED turned %s\n", (msg & 0x1) ? "ON" : "OFF");
+  if (logging_on) {
+    sprintf(str, " EXT LEMO: %s", ((msg & 0x10) == 0x10) ? "NIM" : "TTL");
+    logstream << name_ << str << endl;
+
+    sprintf(str, " user LED: %s", (msg & 0x1) ? "ON" : "OFF");
+    logstream << name_ << str << endl;
+  }
 
   // Set to the acquisition register.
   msg = 0;
-  if (conf.get<bool>("ringbuffer_mode")) {
-
-    msg |= 0x1; //sync ring buffer mode
-
-  } else if (conf.get<bool>("direct_memory_mode")) {
-
-    msg |= 0x5; // direct memory trigger start mode
-
-  } else {
-
-    msg |= 0x1; // default to sync ring buffer mode
-  }
-    
+  msg |= 0x1; //sync ring buffer mode
   //msg |= 0x1 << 5; //enable multi mode
   //msg |= 0x1 << 6; //enable internal (channel) triggers
 
@@ -86,17 +100,14 @@ void DaqWorkerSis3350::LoadConfig()
   msg = ((~msg & 0xffff) << 16) | msg; // j/k
   msg &= ~0xcc98cc98; //reserved bits
 
-  printf("sis 3350 setting acq reg to 0x%08x\n", msg);
   Write(0x10, msg);
 
   msg = 0;
   Read(0x10, msg);
-  printf("sis 3350 acq reg reads 0x%08x\n", msg);
-
-  // direct memory sample length register
-  msg = SIS_3350_LN;
-  Write(0x18, msg);
-
+  if (logging_on) {
+    sprintf(str, " ACQ register set to: 0x%08x", msg);
+    logstream << name_ << str << endl;
+  }
 
   // Set the synthesizer register.
   msg = 0x14; //500 MHz
@@ -113,8 +124,7 @@ void DaqWorkerSis3350::LoadConfig()
 
   // Set ext trigger threshold.
   //first load data, then clock in, then ramp
-  //msg = 35000; // +1.45V TTL
-  msg = 31500; // NIM
+  msg = 35000; // +1.45V TTL
   Write(0x54, msg);
 
   msg = 0;
@@ -133,7 +143,7 @@ void DaqWorkerSis3350::LoadConfig()
   } while (((msg & 0x8000) == 0x8000) && (timeout_cnt < timeout_max));
 
   if (timeout_cnt == timeout_max) {
-    printf("error loading ext trg shift reg\n");
+    cerr << name_ << ": error loading ext trg shift reg" << endl;
   }
 
   msg = 0;
@@ -151,15 +161,18 @@ void DaqWorkerSis3350::LoadConfig()
   } while (((msg & 0x8000) == 0x8000) && (timeout_cnt < timeout_max));
 
   if (timeout_cnt == timeout_max) {
-    printf("error loading ext trg dac\n");
+    cerr << name_ << ": error loading ext trg dac" << endl;
   }
 
   //board temperature
   msg = 0;
 
   Read(0x70, msg);
-  printf("sis3350 board temperature: %.2f degC\n", (float)msg / 4.0);
-
+  if (logging_on) {
+    sprintf(str, " board temperature: %.2f degC", (float)msg / 4.0);
+    logstream << name_ << str << endl;
+  }
+  
   //ring buffer sample length
   msg = SIS_3350_LN;
   Write(0x01000020, msg);
@@ -195,7 +208,7 @@ void DaqWorkerSis3350::LoadConfig()
     } while (((msg & 0x8000) == 0x8000) && (timeout_cnt < timeout_max));
 
     if (timeout_cnt == timeout_max) {
-      printf("error loading ext trg shift reg\n");
+      cerr << name_ << ": error loading ext trg shift reg" << endl;
     }
 
     msg = 0;
@@ -229,7 +242,11 @@ void DaqWorkerSis3350::LoadConfig()
     offset |= (ch >> 1) << 24;
     offset |= (ch % 2) << 2;
     Write(offset, msg);
-    printf("adc %d gain %d\n", ch, msg);
+    
+    if (logging_on) {
+      sprintf(str, " adc %d gain %d\n", ch, msg);
+      logstream << name_ << str << endl;
+    }
 
     ++ch;
     usleep(20000);
@@ -242,7 +259,7 @@ void DaqWorkerSis3350::LoadConfig()
 
 void DaqWorkerSis3350::WorkLoop()
 {
-  t0_ = high_resolution_clock::now();
+  t0_ = std::chrono::high_resolution_clock::now();
 
   while (thread_live_) {
 
@@ -261,39 +278,36 @@ void DaqWorkerSis3350::WorkLoop()
       } else {
 	
 	std::this_thread::yield();
-	usleep(daq::kShortSleep);
+	usleep(daq::short_sleep);
 
       }
     }
 
     std::this_thread::yield();
-    usleep(daq::kLongSleep);
+    usleep(daq::long_sleep);
   }
 }
 
 sis_3350 DaqWorkerSis3350::PopEvent()
 {
   static sis_3350 data;
-  queue_mutex_.lock();
 
   if (data_queue_.empty()) {
-
     sis_3350 str;
-    queue_mutex_.unlock();
     return str;
-
-  } else if (!data_queue_.empty()) {
-
-    // Copy the data.
-    data = data_queue_.front();
-    data_queue_.pop();
-    
-    // Check if this is that last event.
-    if (data_queue_.size() == 0) has_event_ = false;
-    
-    queue_mutex_.unlock();
-    return data;
   }
+
+  queue_mutex_.lock();
+
+  // Copy the data.
+  data = data_queue_.front();
+  data_queue_.pop();
+
+  // Check if this is that last event.
+  if (data_queue_.size() == 0) has_event_ = false;
+
+  queue_mutex_.unlock();
+  return data;
 }
 
 
@@ -318,6 +332,8 @@ bool DaqWorkerSis3350::EventAvailable()
 // Pull the event.
 void DaqWorkerSis3350::GetEvent(sis_3350 &bundle)
 {
+  using namespace std::chrono;
+
   int ch, offset, ret = 0;
   bool is_event = true;
 

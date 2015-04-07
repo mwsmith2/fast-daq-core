@@ -63,12 +63,12 @@ void EventBuilder::BuilderLoop()
       }
       
       std::this_thread::yield();
-      usleep(daq::kShortSleep);
+      usleep(daq::short_sleep);
 
     } // go_time_
 
     std::this_thread::yield();
-    usleep(daq::kLongSleep);
+    usleep(daq::long_sleep);
 
   } // thread_live_
 }
@@ -101,11 +101,11 @@ void EventBuilder::ControlLoop()
       }
 
       std::this_thread::yield();
-      usleep(daq::kShortSleep);
+      usleep(daq::short_sleep);
     }
 
     std::this_thread::yield();
-    usleep(daq::kLongSleep);
+    usleep(daq::long_sleep);
   }
 }
 

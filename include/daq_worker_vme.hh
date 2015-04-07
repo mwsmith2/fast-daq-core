@@ -1,5 +1,5 @@
-#ifndef SLAC_DAQ_INCLUDE_DAQ_WORKER_VME_HH_
-#define SLAC_DAQ_INCLUDE_DAQ_WORKER_VME_HH_
+#ifndef DAQ_FAST_CORE_INCLUDE_DAQ_WORKER_VME_HH_
+#define DAQ_FAST_CORE_INCLUDE_DAQ_WORKER_VME_HH_
 
 /*===========================================================================*\
 
@@ -24,7 +24,7 @@
 
 //--- project includes ------------------------------------------------------//
 #include "daq_worker_base.hh"
-#include "daq_structs.hh"
+#include "daq_common.hh"
 
 namespace daq {
 
@@ -73,14 +73,14 @@ protected:
 template<typename T>
 int DaqWorkerVme<T>::Read(int addr, uint &msg)
 {
-  static int retval;
-  static int status;
+  std::lock_guard<std::mutex> lock(daq::vme_mutex);
+  static int retval, status;
 
-  daq::vme_mutex.lock();
   device_ = open(daq::vme_path.c_str(), O_RDWR);
+  if (device_ < 0) return device_;
+
   status = (retval = vme_A32D32_read(device_, base_address_ + addr, &msg));
   close(device_);
-  daq::vme_mutex.unlock();
 
   if (status != 0) {
     char str[100];
@@ -102,14 +102,14 @@ int DaqWorkerVme<T>::Read(int addr, uint &msg)
 template<typename T>
 int DaqWorkerVme<T>::Write(int addr, uint msg)
 {
-  static int retval;
-  static int status;
+  std::lock_guard<std::mutex> lock(daq::vme_mutex);
+  static int retval, status;
 
-  daq::vme_mutex.lock();
   device_ = open(daq::vme_path.c_str(), O_RDWR);
+  if (device_ < 0) return device_;
+
   status = (retval = vme_A32D32_write(device_, base_address_ + addr, msg));
   close(device_);
-  daq::vme_mutex.unlock();
 
   if (status != 0) {
     char str[100];
@@ -131,14 +131,14 @@ int DaqWorkerVme<T>::Write(int addr, uint msg)
 template<typename T>
 int DaqWorkerVme<T>::Read16(int addr, ushort &msg)
 {
-  static int retval;
-  static int status;
+  std::lock_guard<std::mutex> lock(daq::vme_mutex);
+  static int retval, status;
 
-  daq::vme_mutex.lock();
   device_ = open(daq::vme_path.c_str(), O_RDWR);
+  if (device_ < 0) return device_;
+
   status = (retval = vme_A32D16_read(device_, base_address_ + addr, &msg));
   close(device_);
-  daq::vme_mutex.unlock();
 
   if (status != 0) {
     char str[100];
@@ -160,14 +160,14 @@ int DaqWorkerVme<T>::Read16(int addr, ushort &msg)
 template<typename T>
 int DaqWorkerVme<T>::Write16(int addr, ushort msg)
 {
-  static int retval;
-  static int status;
+  std::lock_guard<std::mutex> lock(daq::vme_mutex);
+  static int retval, status;
 
-  daq::vme_mutex.lock();
   device_ = open(daq::vme_path.c_str(), O_RDWR);
+  if (device_ < 0) return device_;
+
   status = (retval = vme_A32D16_write(device_, base_address_ + addr, msg));
   close(device_);
-  daq::vme_mutex.unlock();
 
   if (status != 0) {
     char str[100];
@@ -190,25 +190,24 @@ int DaqWorkerVme<T>::Write16(int addr, ushort msg)
 template<typename T>
 int DaqWorkerVme<T>::ReadTrace(int addr, uint *trace)
 {
-  static int retval;
-  static int status;
+  std::lock_guard<std::mutex> lock(daq::vme_mutex);
+  static int retval, status;
   static uint num_got;
 
-  daq::vme_mutex.lock();
   device_ = open(daq::vme_path.c_str(), O_RDWR);
+  if (device_ < 0) return device_;
+
   status = (retval = vme_A32_2EVME_read(device_,
                                         base_address_ + addr,
                                         trace,
                                         read_trace_len_,
                                         &num_got));
   close(device_);
-  daq::vme_mutex.unlock();
 
   if (status != 0) {
     char str[100];
     sprintf(str, "Error reading trace at 0x%08x.\n", base_address_ + addr);
     perror(str);
-    printf("Asked for: %i, got : %i", read_trace_len_,  num_got);
   }
 
   return retval;
