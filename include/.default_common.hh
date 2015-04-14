@@ -80,85 +80,27 @@ struct drs4 {
   UShort_t trace[DRS4_CH][DRS4_LN];
 };
 
-struct shim_platform {
-  ULong64_t clock_sec[SHIM_PLATFORM_CH];
-  ULong64_t clock_usec[SHIM_PLATFORM_CH];
-  Double_t fid_time[SHIM_PLATFORM_CH];
-  Double_t snr[SHIM_PLATFORM_CH];
-  Double_t freq[SHIM_PLATFORM_CH];
-  Double_t freq_err[SHIM_PLATFORM_CH];
-  UShort_t  trace[SHIM_PLATFORM_CH][NMR_FID_LN];
-};
+// A macro to define nmr structs since they are very similar.
+#define MAKE_NMR_STRUCT(name, num_ch, len_tr)\
+struct name {\
+  ULong64_t clock_sec[num_ch];\
+  ULong64_t clock_usec[num_ch];\
+  Double_t fid_time[num_ch];\
+  Double_t snr[num_ch];\
+  Double_t freq[num_ch];\
+  Double_t freq_err[num_ch];\
+  UShort_t  trace[num_ch][len_tr];\
+};\
 
-struct shim_platform_st {
-  ULong64_t clock_sec[SHIM_PLATFORM_CH];
-  ULong64_t clock_usec[SHIM_PLATFORM_CH];
-  Double_t fid_time[SHIM_PLATFORM_CH];
-  Double_t snr[SHIM_PLATFORM_CH];
-  Double_t freq[SHIM_PLATFORM_CH];
-  Double_t freq_err[SHIM_PLATFORM_CH];
-  UShort_t trace[SHIM_PLATFORM_CH][SHORT_FID_LN];
-};
+MAKE_NMR_STRUCT(shim_platform, SHIM_PLATFORM_CH, NMR_FID_LN);
+MAKE_NMR_STRUCT(shim_platform_st, SHIM_PLATFORM_CH, SHORT_FID_LN);
+MAKE_NMR_STRUCT(shim_fixed, SHIM_FIXED_CH, NMR_FID_LN);
+MAKE_NMR_STRUCT(shim_fixed_st, SHIM_FIXED_CH, SHORT_FID_LN);
 
-struct shim_fixed {
-  ULong64_t clock_sec[SHIM_FIXED_CH];
-  ULong64_t clock_usec[SHIM_FIXED_CH];
-  Double_t fid_time[SHIM_FIXED_CH];
-  Double_t snr[SHIM_FIXED_CH];
-  Double_t freq[SHIM_FIXED_CH];
-  Double_t freq_err[SHIM_FIXED_CH];
-  UShort_t  trace[SHIM_FIXED_CH][NMR_FID_LN];
-};
-
-struct shim_fixed_st {
-  ULong64_t clock_sec[SHIM_FIXED_CH];
-  ULong64_t clock_usec[SHIM_FIXED_CH];
-  Double_t fid_time[SHIM_FIXED_CH];
-  Double_t snr[SHIM_FIXED_CH];
-  Double_t freq[SHIM_FIXED_CH];
-  Double_t freq_err[SHIM_FIXED_CH];
-  UShort_t  trace[SHIM_FIXED_CH][SHORT_FID_LN];
-};
-
-struct run_trolley {
-  ULong64_t clock_sec[RUN_TROLLEY_CH];
-  ULong64_t clock_usec[RUN_TROLLEY_CH];
-  Double_t fid_time[RUN_TROLLEY_CH];
-  Double_t snr[RUN_TROLLEY_CH];
-  Double_t freq[RUN_TROLLEY_CH];
-  Double_t freq_err[RUN_TROLLEY_CH];
-  UShort_t  trace[RUN_TROLLEY_CH][NMR_FID_LN];
-};
-
-struct run_trolley_st {
-  ULong64_t clock_sec[RUN_TROLLEY_CH];
-  ULong64_t clock_usec[RUN_TROLLEY_CH];
-  Double_t fid_time[RUN_TROLLEY_CH];
-  Double_t snr[RUN_TROLLEY_CH];
-  Double_t freq[RUN_TROLLEY_CH];
-  Double_t freq_err[RUN_TROLLEY_CH];
-  UShort_t  trace[RUN_TROLLEY_CH][SHORT_FID_LN];
-};
-
-struct run_fixed {
-  ULong64_t clock_sec[RUN_FIXED_CH];
-  ULong64_t clock_usec[RUN_FIXED_CH];
-  Double_t fid_time[RUN_FIXED_CH];
-  Double_t snr[RUN_FIXED_CH];
-  Double_t freq[RUN_FIXED_CH];
-  Double_t freq_err[RUN_FIXED_CH];
-  UShort_t  trace[RUN_FIXED_CH][NMR_FID_LN];
-};
-
-struct run_fixed_st {
-  ULong64_t clock_sec[RUN_FIXED_CH];
-  ULong64_t clock_usec[RUN_FIXED_CH];
-  Double_t fid_time[RUN_FIXED_CH];
-  Double_t snr[RUN_FIXED_CH];
-  Double_t freq[RUN_FIXED_CH];
-  Double_t freq_err[RUN_FIXED_CH];
-  UShort_t  trace[RUN_FIXED_CH][SHORT_FID_LN];
-};
+MAKE_NMR_STRUCT(run_trolley, RUN_TROLLEY_CH, NMR_FID_LN);
+MAKE_NMR_STRUCT(run_trolley_st, RUN_TROLLEY_CH, SHORT_FID_LN);
+MAKE_NMR_STRUCT(run_fixed, RUN_FIXED_CH, NMR_FID_LN);
+MAKE_NMR_STRUCT(run_fixed_st, RUN_FIXED_CH, SHORT_FID_LN);
 
 // flexible struct built from basic structs.
 // Built from basic structs 
