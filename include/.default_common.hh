@@ -102,17 +102,17 @@ struct name {\
   Double_t ferr[num_ch];\
   Double_t freq_zc[num_ch];\
   Double_t ferr_zc[num_ch];\
-  UShort_t health[num_ch];
-  UShort_t method[num_ch];
+  UShort_t health[num_ch];\
+  UShort_t method[num_ch];\
   UShort_t trace[num_ch][len_tr];\
 };\
 
 // Might as well define a root branch string for the struct.
-#define MAKE_NMR_STRING(name, num_ch, len_tr)\
-"sys_clock[num_ch]/D:gps_clock[num_ch]/D:dev_clock[num_ch]/D:\
-snr[num_ch]/D:len[num_ch]/D:freq[num_ch]/D:ferr[num_ch]\D:\
-freq_zc[num_ch]/D:ferr_zc[num_ch]/D:health[num_ch]\s:\
-method[num_ch]/s:trace[num_ch][len_tr]"
+#define MAKE_NMR_STRING(name, num_ch, len_tr) \
+"sys_clock[num_ch]/D:gps_clock[num_ch]/D:dev_clock[num_ch]/D:"\
+"snr[num_ch]/D:len[num_ch]/D:freq[num_ch]/D:ferr[num_ch]\D:"\
+"freq_zc[num_ch]/D:ferr_zc[num_ch]/D:health[num_ch]\s:"\
+"method[num_ch]/s:trace[num_ch][len_tr]"
 
 MAKE_NMR_STRUCT(shim_platform, SHIM_PLATFORM_CH, NMR_FID_LN);
 MAKE_NMR_STRUCT(shim_platform_st, SHIM_PLATFORM_CH, SHORT_FID_LN);

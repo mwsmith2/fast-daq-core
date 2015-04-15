@@ -311,7 +311,7 @@ void EventManagerTrgSeq::BuilderLoop()
     while (go_time_) {
 
       static nmr_data bundle;
-      if (bundle.clock_sec.size() < num_probes_) bundle.Resize(num_probes_);
+      if (bundle.sys_clock.size() < num_probes_) bundle.Resize(num_probes_);
 
       static event_data data;
       int seq_index = 0;
@@ -340,6 +340,7 @@ void EventManagerTrgSeq::BuilderLoop()
                        std::to_string(trace_idx));
 
               auto trace = data.sis_slow[sis_idx].trace[trace_idx];
+              auto clock = data.sis_slow[sis_idx].device_clock[trace_idx];
 
               // Store index
               int idx = data_out_[pair].second;
@@ -352,28 +353,36 @@ void EventManagerTrgSeq::BuilderLoop()
               // Get the timestamp
               struct timeval tv;
               gettimeofday(&tv, nullptr);
-              bundle.clock_sec[idx] = tv.tv_sec;
-              bundle.clock_usec[idx] = tv.tv_usec;
-	      
+              bundle.sys_clock[idx] = tv.tv_sec + tv.tv_usec / 1.0e6;
+              bundle.gps_clock[idx] = 0.0; // todo:
+              bundle.dev_clock[idx] = clock;
+              
               // Extract the FID frequency and some diagnostic params.
               fid::FID myfid(tm, wf);
 
               // Make sure we got an FID signal
               if (myfid.isgood()) {
 
-                bundle.freq[idx] = myfid.CalcPhaseFreq();
-                bundle.freq_err[idx] = myfid.freq_err();
                 bundle.snr[idx] = myfid.snr();
-                bundle.fid_time[idx] = myfid.fid_time();
+                bundle.len[idx] = myfid.fid_time();
+                bundle.freq[idx] = myfid.CalcPhaseFreq();
+                bundle.ferr[idx] = myfid.freq_err();
+                bundle.method[idx] = (ushort)fid::Method::ZC;
+                bundle.health[idx] = myfid.isgood();
+                bundle.freq_zc[idx] = myfid.CalcZeroCountFreq();
+                bundle.ferr_zc[idx] = myfid.freq_err();
 
               } else {
 
                 myfid.PrintDiagnosticInfo();
-                bundle.freq[idx] = -1.0;
-                bundle.freq_err[idx] = -1.0;
-                bundle.snr[idx] = -1.0;
-                bundle.fid_time[idx] = -1.0;
-		
+                bundle.snr[idx] = 0.0;
+                bundle.len[idx] = 0.0;
+                bundle.freq[idx] = 0.0;
+                bundle.ferr[idx] = 0.0;
+                bundle.method[idx] = (ushort)fid::Method::ZC;
+                bundle.health[idx] = myfid.isgood();
+                bundle.freq_zc[idx] = 0.0;
+                bundle.ferr_zc[idx] = 0.0;
               }
             } // next pair
 	    
