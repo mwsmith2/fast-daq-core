@@ -25,6 +25,7 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
+
 //--- project includes ------------------------------------------------------//
 
 namespace daq {
@@ -39,10 +40,13 @@ class WorkerBase {
   //   conf_file - used to load important configurable device parameters
   WorkerBase(std::string name, std::string conf_file) : 
     name_(name),
-    conf_file_(conf_file),
     thread_live_(true),
+    conf_file_(conf_file),
     go_time_(false), 
-    has_event_(false) {};
+    has_event_(false) {
+
+    std::cout << conf_file << std::endl;
+};
   
   // Dtor rejoins the data pulling thread before destroying the object.
   virtual ~WorkerBase() {

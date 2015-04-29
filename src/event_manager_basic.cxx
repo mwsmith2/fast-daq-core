@@ -18,11 +18,14 @@ int EventManagerBasic::BeginOfRun()
 {
   boost::property_tree::ptree conf;
   boost::property_tree::read_json(conf_file_, conf);
+  
+  // First set the config-dir if there is one.
+  conf_dir = conf.get<std::string>("config_dir", conf_dir);
 
   for (auto &v : conf.get_child("devices.sis_3302")) {
 
     std::string name(v.first);
-    std::string dev_conf_file(v.second.data());
+    std::string dev_conf_file = conf_dir + std::string(v.second.data());
 
     workers_.PushBack(new WorkerSis3302(name, dev_conf_file));
   }
@@ -30,7 +33,7 @@ int EventManagerBasic::BeginOfRun()
   for (auto &v : conf.get_child("devices.sis_3350")) {
 
     std::string name(v.first);
-    std::string dev_conf_file(v.second.data());
+    std::string dev_conf_file = conf_dir + std::string(v.second.data());
 
     workers_.PushBack(new WorkerSis3350(name, dev_conf_file));
   }

@@ -105,13 +105,13 @@ struct name {\
   UShort_t health[num_ch];\
   UShort_t method[num_ch];\
   UShort_t trace[num_ch][len_tr];\
-};\
+};
 
 // Might as well define a root branch string for the struct.
 #define MAKE_NMR_STRING(name, num_ch, len_tr) \
-"sys_clock[num_ch]/D:gps_clock[num_ch]/D:dev_clock[num_ch]/D:"\
-"snr[num_ch]/D:len[num_ch]/D:freq[num_ch]/D:ferr[num_ch]\D:"\
-"freq_zc[num_ch]/D:ferr_zc[num_ch]/D:health[num_ch]\s:"\
+const char * const name = "sys_clock[num_ch]/D:gps_clock[num_ch]/D:"\
+"dev_clock[num_ch]/D:snr[num_ch]/D:len[num_ch]/D:freq[num_ch]/D:"\
+"ferr[num_ch]/D:freq_zc[num_ch]/D:ferr_zc[num_ch]/D:health[num_ch]/s:"\
 "method[num_ch]/s:trace[num_ch][len_tr]"
 
 MAKE_NMR_STRUCT(shim_platform, SHIM_PLATFORM_CH, NMR_FID_LN);
@@ -124,15 +124,15 @@ MAKE_NMR_STRUCT(run_trolley_st, RUN_TROLLEY_CH, SHORT_FID_LN);
 MAKE_NMR_STRUCT(run_fixed, RUN_FIXED_CH, NMR_FID_LN);
 MAKE_NMR_STRUCT(run_fixed_st, RUN_FIXED_CH, SHORT_FID_LN);
 
-MAKE_NMR_STRING(shim_platform, SHIM_PLATFORM_CH, NMR_FID_LN);
-MAKE_NMR_STRING(shim_platform_st, SHIM_PLATFORM_CH, SHORT_FID_LN);
-MAKE_NMR_STRING(shim_fixed, SHIM_FIXED_CH, NMR_FID_LN);
-MAKE_NMR_STRING(shim_fixed_st, SHIM_FIXED_CH, SHORT_FID_LN);
+MAKE_NMR_STRING(shim_platform_string, SHIM_PLATFORM_CH, NMR_FID_LN);
+MAKE_NMR_STRING(shim_platform_st_string, SHIM_PLATFORM_CH, SHORT_FID_LN);
+MAKE_NMR_STRING(shim_fixed_string, SHIM_FIXED_CH, NMR_FID_LN);
+MAKE_NMR_STRING(shim_fixed_st_string, SHIM_FIXED_CH, SHORT_FID_LN);
 
-MAKE_NMR_STRING(run_trolley, RUN_TROLLEY_CH, NMR_FID_LN);
-MAKE_NMR_STRING(run_trolley_st, RUN_TROLLEY_CH, SHORT_FID_LN);
-MAKE_NMR_STRING(run_fixed, RUN_FIXED_CH, NMR_FID_LN);
-MAKE_NMR_STRING(run_fixed_st, RUN_FIXED_CH, SHORT_FID_LN);
+MAKE_NMR_STRING(run_trolley_string, RUN_TROLLEY_CH, NMR_FID_LN);
+MAKE_NMR_STRING(run_trolley_st_string, RUN_TROLLEY_CH, SHORT_FID_LN);
+MAKE_NMR_STRING(run_fixed_string, RUN_FIXED_CH, NMR_FID_LN);
+MAKE_NMR_STRING(run_fixed_st_string, RUN_FIXED_CH, SHORT_FID_LN);
 
 // flexible struct built from the basic nmr attributes.
 struct nmr_data {
@@ -185,6 +185,9 @@ extern std::ofstream logstream;
 
 int WriteLog(const char *msg);
 int WriteLog(const std::string& msg);
+
+// Create a variable for a config directory.
+extern std::string conf_dir;
 
 // Set sleep times for data polling threads.
 const int short_sleep = 10;

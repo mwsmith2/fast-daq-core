@@ -20,9 +20,13 @@ int vme_dev = -1;
 std::string vme_path("/dev/sis1100_00remote");
 std::mutex vme_mutex;
 
+// Set the default logging behavior
 bool logging_on = true;
-std::string logfile("/home/cenpa/.nmr/daq_log");
+std::string logfile("/usr/local/var/log/fast-daq.log");
 std::ofstream logstream(logfile);
+
+// Set the default config directory.
+std::string conf_dir("/usr/local/opt/daq/config/");
 
 int WriteLog(const char *msg) {
   if (logging_on) {

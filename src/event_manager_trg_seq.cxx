@@ -44,11 +44,14 @@ int EventManagerTrgSeq::BeginOfRun()
   boost::property_tree::ptree conf;
   boost::property_tree::read_json(conf_file_, conf);
 
+  // First set the config-dir if there is one.
+  conf_dir = conf.get<std::string>("config_dir", conf_dir);
+
   int sis_idx = 0;
   for (auto &v : conf.get_child("devices.sis_3302")) {
 
     std::string name(v.first);
-    std::string dev_conf_file(v.second.data());
+    std::string dev_conf_file = conf_dir + std::string(v.second.data());
     sis_idx_map_[name] = sis_idx++;
 
     workers_.PushBack(new WorkerSis3302(name, dev_conf_file));
@@ -78,8 +81,8 @@ int EventManagerTrgSeq::BeginOfRun()
   }
 
   max_event_time_ = conf.get<int>("max_event_time", 1000);
-  trg_seq_file_ = conf.get<std::string>("trg_seq_file");
-  mux_conf_file_ = conf.get<std::string>("mux_conf_file");
+  trg_seq_file_ = conf_dir + conf.get<std::string>("trg_seq_file");
+  mux_conf_file_ = conf_dir + conf.get<std::string>("mux_conf_file");
 
   // Load trigger sequence
   boost::property_tree::read_json(trg_seq_file_, conf);

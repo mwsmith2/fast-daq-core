@@ -13,7 +13,7 @@
 #include "DRS.h"
 
 //--- project includes ------------------------------------------------------//
-#include "worker_vme.hh"
+#include "worker_base.hh"
 #include "common.hh"
 
 // This class pulls data from a drs4 evaluation board.
