@@ -48,7 +48,6 @@ class WriterMidas : public WriterBase {
   std::queue<event_data> data_queue_;
   
   // zmq stuff
-  zmq::context_t midas_ctx_;
   zmq::socket_t midas_rep_sck_;
   zmq::socket_t midas_data_sck_;
   zmq::message_t message_;

@@ -16,6 +16,7 @@ author: Matthias W. Smith
 #include "zmq.hpp"
 
 //---project includes-------------------------------------------------------//
+#include "common.hh"
 
 namespace daq {
 

@@ -3,7 +3,9 @@
 namespace daq {
 
 WriterMidas::WriterMidas(std::string conf_file) : 
-    WriterBase(conf_file), midas_ctx_(1), midas_rep_sck_(midas_ctx_, ZMQ_REP), midas_data_sck_(midas_ctx_, ZMQ_PUSH)
+  WriterBase(conf_file), 
+  midas_rep_sck_(msg_context, ZMQ_REP), 
+  midas_data_sck_(msg_context, ZMQ_PUSH)
 {
   thread_live_ = true;
   go_time_ = false;

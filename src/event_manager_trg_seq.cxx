@@ -428,8 +428,7 @@ void EventManagerTrgSeq::BuilderLoop()
 void EventManagerTrgSeq::StarterLoop()
 {
   // Set up the zmq socket.
-  zmq::context_t ctx(1);
-  zmq::socket_t trigger_sck(ctx, ZMQ_SUB);
+  zmq::socket_t trigger_sck(msg_context, ZMQ_SUB);
   zmq::message_t msg(64);
   bool rc = false;
 

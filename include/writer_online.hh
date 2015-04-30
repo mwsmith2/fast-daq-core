@@ -63,7 +63,6 @@ class WriterOnline : public WriterBase {
   std::queue<event_data> data_queue_;
   
   // zmq stuff
-  zmq::context_t online_ctx_;
   zmq::socket_t online_sck_;
   zmq::message_t message_;
   

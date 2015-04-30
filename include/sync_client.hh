@@ -45,6 +45,10 @@ class SyncClient : TriggerBase {
     if (restart_thread_.joinable()) {
       restart_thread_.join();
     }
+
+    if (heartbeat_thread_.joinable()) {
+      heartbeat_thread_.join();
+    }
   }
 
   // Getters
@@ -69,7 +73,6 @@ class SyncClient : TriggerBase {
   std::thread restart_thread_;
   std::thread heartbeat_thread_;
 
-  zmq::context_t ctx_;
   zmq::socket_t register_sck_;
   zmq::socket_t trigger_sck_;
   zmq::socket_t status_sck_;
@@ -77,12 +80,12 @@ class SyncClient : TriggerBase {
 
   void DefaultInit();
   void InitSockets();
-  void LaunchThread();
+  void LaunchThreads();
   void StatusLoop();
   void RestartLoop();
   void HeartbeatLoop();
 };
 
-} // ::sp
+} // ::daq
 
 #endif

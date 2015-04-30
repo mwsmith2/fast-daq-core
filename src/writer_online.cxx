@@ -2,7 +2,9 @@
 
 namespace daq {
 
-WriterOnline::WriterOnline(std::string conf_file) : WriterBase(conf_file), online_ctx_(1), online_sck_(online_ctx_, ZMQ_PUSH)
+WriterOnline::WriterOnline(std::string conf_file) : 
+  WriterBase(conf_file), 
+  online_sck_(msg_context, ZMQ_PUSH)
 {
   thread_live_ = true;
   go_time_ = false;

@@ -61,7 +61,6 @@ class SyncTrigger : TriggerBase {
   
  private:
 
-  zmq::context_t ctx_;
   zmq::socket_t trigger_sck_;
   zmq::socket_t register_sck_;
   zmq::socket_t status_sck_;

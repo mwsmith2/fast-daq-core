@@ -3,11 +3,10 @@
 namespace daq {
 
 SyncTrigger::SyncTrigger() :
-  ctx_(1),
-  trigger_sck_(ctx_, ZMQ_PUB),
-  register_sck_(ctx_, ZMQ_REP), 
-  status_sck_(ctx_, ZMQ_REP),
-  heartbeat_sck_(ctx_, ZMQ_SUB)
+  trigger_sck_(msg_context, ZMQ_PUB),
+  register_sck_(msg_context, ZMQ_REP), 
+  status_sck_(msg_context, ZMQ_REP),
+  heartbeat_sck_(msg_context, ZMQ_SUB)
 {
   DefaultInit();
   InitSockets();
@@ -15,11 +14,10 @@ SyncTrigger::SyncTrigger() :
 }
 
 SyncTrigger::SyncTrigger(std::string address) : 
-  ctx_(1),
-  trigger_sck_(ctx_, ZMQ_PUB),
-  register_sck_(ctx_, ZMQ_REP), 
-  status_sck_(ctx_, ZMQ_REP),
-  heartbeat_sck_(ctx_, ZMQ_SUB)
+  trigger_sck_(msg_context, ZMQ_PUB),
+  register_sck_(msg_context, ZMQ_REP), 
+  status_sck_(msg_context, ZMQ_REP),
+  heartbeat_sck_(msg_context, ZMQ_SUB)
 {
   DefaultInit();
 
@@ -31,11 +29,10 @@ SyncTrigger::SyncTrigger(std::string address) :
 }
 
 SyncTrigger::SyncTrigger(std::string address, int port) : 
-  ctx_(1),
-  trigger_sck_(ctx_, ZMQ_PUB),
-  register_sck_(ctx_, ZMQ_REP), 
-  status_sck_(ctx_, ZMQ_REP),
-  heartbeat_sck_(ctx_, ZMQ_SUB)
+  trigger_sck_(msg_context, ZMQ_PUB),
+  register_sck_(msg_context, ZMQ_REP), 
+  status_sck_(msg_context, ZMQ_REP),
+  heartbeat_sck_(msg_context, ZMQ_SUB)
 {
   DefaultInit();
 
@@ -47,11 +44,10 @@ SyncTrigger::SyncTrigger(std::string address, int port) :
 }
 
 SyncTrigger::SyncTrigger(boost::property_tree::ptree &conf) :
-  ctx_(1),
-  trigger_sck_(ctx_, ZMQ_PUB),
-  register_sck_(ctx_, ZMQ_REP), 
-  status_sck_(ctx_, ZMQ_REP),
-  heartbeat_sck_(ctx_, ZMQ_SUB)
+  trigger_sck_(msg_context, ZMQ_PUB),
+  register_sck_(msg_context, ZMQ_REP), 
+  status_sck_(msg_context, ZMQ_REP),
+  heartbeat_sck_(msg_context, ZMQ_SUB)
 {
   DefaultInit();
 
@@ -279,14 +275,16 @@ void SyncTrigger::ClientLoop()
     }
 
     // Monitor the heartbeat of the clients
-    rc = heartbeat_sck_.recv(&msg, ZMQ_DONTWAIT);
-    
-    if (rc == true) {
+    do {
+      rc = heartbeat_sck_.recv(&msg, ZMQ_DONTWAIT);
+      
+      if (rc == true) {
 
-      std::string heartbeat_msg((char *)msg.data());
-
-      client_time[heartbeat_msg] = systime_us();
-    }
+        std::string heartbeat_msg((char *)msg.data());
+                
+        client_time[heartbeat_msg] = systime_us();
+      } 
+    } while (rc == true);
 
     // Now check if any clients are too old
     for (auto it = client_time.cbegin(); it != client_time.cend();) {
