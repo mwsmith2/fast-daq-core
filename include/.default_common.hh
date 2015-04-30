@@ -28,8 +28,8 @@ about:  Contains the data structures for several hardware devices in a single
 #define DRS4_LN 1024
 
 // NMR specific stuff
-#define SHORT_FID_LN SIS_3302_LN / 10
 #define NMR_FID_LN SIS_3302_LN
+#define SHORT_FID_LN 10000
 #define SHIM_PLATFORM_CH 25
 #define SHIM_UW_TEST_CH 25
 #define SHIM_FIXED_CH 4
@@ -42,6 +42,7 @@ about:  Contains the data structures for several hardware devices in a single
 
 //--- other includes --------------------------------------------------------//
 #include <boost/variant.hpp>
+#include <zmq.hpp>
 #include "TFile.h"
 
 //--- projects includes -----------------------------------------------------//
@@ -108,11 +109,14 @@ struct name {\
 };
 
 // Might as well define a root branch string for the struct.
-#define MAKE_NMR_STRING(name, num_ch, len_tr) \
-const char * const name = "sys_clock[num_ch]/D:gps_clock[num_ch]/D:"\
-"dev_clock[num_ch]/D:snr[num_ch]/D:len[num_ch]/D:freq[num_ch]/D:"\
-"ferr[num_ch]/D:freq_zc[num_ch]/D:ferr_zc[num_ch]/D:health[num_ch]/s:"\
-"method[num_ch]/s:trace[num_ch][len_tr]"
+#define NMR_HELPER(name, num_ch, len_tr) \
+const char * const name = "sys_clock["#num_ch"]/D:gps_clock["#num_ch"]/D:"\
+"dev_clock["#num_ch"]/D:snr["#num_ch"]/D:len["#num_ch"]/D:freq["#num_ch"]/D:"\
+"ferr["#num_ch"]/D:freq_zc["#num_ch"]/D:ferr_zc["#num_ch"]/D:"\
+"health["#num_ch"]/s:method["#num_ch"]/s:trace["#num_ch"]["#len_tr"]/s"
+
+#define MAKE_NMR_STRING(name, num_ch, len_tr) NMR_HELPER(name, num_ch, len_tr)
+
 
 MAKE_NMR_STRUCT(shim_platform, SHIM_PLATFORM_CH, NMR_FID_LN);
 MAKE_NMR_STRUCT(shim_platform_st, SHIM_PLATFORM_CH, SHORT_FID_LN);
@@ -193,6 +197,9 @@ extern std::string conf_dir;
 const int short_sleep = 10;
 const int long_sleep = 100;
 const int sample_period = 0.1; // in microseconds
+
+// Set up a global zmq context
+extern zmq::context_t msg_context;
 
 } // ::daq
 
