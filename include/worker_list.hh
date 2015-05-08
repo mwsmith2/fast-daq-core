@@ -87,6 +87,10 @@ class WorkerList {
 
     // Deallocates each worker.
     void FreeList();
+    
+    // Return the size of the list.
+    int Size() { return workers_.size(); };
+    void Resize(int size) { workers_.resize(0); };
 
   private:
 

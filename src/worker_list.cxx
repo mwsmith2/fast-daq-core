@@ -326,7 +326,7 @@ void WorkerList::FreeList()
     }
   }
 
-  workers_.resize(0);
+  Resize(0);
 }
 
 } // ::daq
