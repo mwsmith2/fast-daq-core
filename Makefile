@@ -31,9 +31,9 @@ ifeq ($(UNAME_S), Linux)
 endif
 
 ifdef DEBUG
-	FLAGS += -g -fPIC -O3
+	FLAGS += -g -fPIC -O3 -pthread
 else
-	FLAGS += -fPIC -O3
+	FLAGS += -fPIC -O3 -pthread
 endif
 
 # DRS flags
@@ -48,7 +48,7 @@ WXLIBS        = $(shell wx-config --libs)
 WXFLAGS       = $(shell wx-config --cxxflags)
 
 FLAGS += -Iinclude -Iinclude/drs
-LIBS += -lm -lzmq -ljson_spirit -lCAENDigitizer -lusb-1.0 -lutil
+LIBS += -lm -lzmq -ljson_spirit -lCAENDigitizer -lusb-1.0 -lutil -lpthread
 
 all: $(OBJECTS) $(OBJ_VME) $(OBJ_DRS) $(TARGETS) lib/$(ARNAME)
 

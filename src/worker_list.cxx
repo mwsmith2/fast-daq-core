@@ -297,12 +297,6 @@ void WorkerList::FlushEventData()
   } 
 }
 
-void WorkerList::ClearList()
-{
-  // Remove the pointer references
-  workers_.resize(0);
-}
-
 void WorkerList::FreeList()
 {
   // Delete the allocated workers.
@@ -332,11 +326,6 @@ void WorkerList::FreeList()
     }
   }
 
-  if (vme_dev != -1) {
-    close(vme_dev);
-    vme_dev = -1;
-  }
-  
   workers_.resize(0);
 }
 

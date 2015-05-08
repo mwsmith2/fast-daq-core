@@ -34,9 +34,6 @@ public:
     
     // Stop the thread.
     thread_live_ = false;
-    if (work_thread_.joinable()) {
-      work_thread_.join();
-    }
 
     // free the drs4 object.
     delete drs_;

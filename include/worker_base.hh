@@ -25,7 +25,6 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
-
 //--- project includes ------------------------------------------------------//
 
 namespace daq {
@@ -44,29 +43,47 @@ class WorkerBase {
     conf_file_(conf_file),
     go_time_(false), 
     has_event_(false) {
-
-    std::cout << conf_file << std::endl;
 };
   
   // Dtor rejoins the data pulling thread before destroying the object.
   virtual ~WorkerBase() {
     thread_live_ = false;
     if (work_thread_.joinable()) {
-      work_thread_.join();
+      try {
+	work_thread_.join();
+      }
+      catch (...) {
+	std::cout << name_  << ": thread had race condition joining." << std::endl;;
+      }
     }
   };                                        
   
   // Spawns a new thread that pull in new data.
   virtual void StartThread() {
     thread_live_ = true;
-    if (work_thread_.joinable()) work_thread_.join();
+    if (work_thread_.joinable()) {
+      try {
+	work_thread_.join();
+      }
+      catch (...) {
+	std::cout << name_  << ": thread had race condition joining." << std::endl;;
+      }
+    }
+    std::cout << "Launching worker thread. " << std::endl;
     work_thread_ = std::thread(&WorkerBase<T>::WorkLoop, this); 
   };
   
   // Rejoins the data pulling thread.
   virtual void StopThread() {
     thread_live_ = false;
-    if (work_thread_.joinable()) work_thread_.join();
+    if (work_thread_.joinable()) {
+      try {
+	work_thread_.join();
+      }
+      catch (std::system_error e) {
+	std::cout << name_  << ": thread had race condition joining." << std::endl;;
+      }
+    }
   };
   
   // Exit work loop to idle loop.
@@ -77,7 +94,12 @@ class WorkerBase {
 
   // Accessors
   std::string name() { return name_; };
-  int num_events() { return data_queue_.size(); };
+  int num_events() {
+    queue_mutex_.lock();
+    int size = data_queue_.size();
+    queue_mutex_.unlock();
+    return size;
+  };
   bool HasEvent() { return has_event_; };
 
   // Pops all stale events on the device.
@@ -96,6 +118,7 @@ class WorkerBase {
   
  protected:
   
+  const int max_queue_size_ = 100;
   std::string name_;                   // given hardware name
   std::string conf_file_;              // configuration file
   std::atomic<bool> thread_live_; // keeps paused thread alive

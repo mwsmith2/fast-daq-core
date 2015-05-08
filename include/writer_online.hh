@@ -34,12 +34,6 @@ class WriterOnline : public WriterBase {
     // Dump data.
     go_time_ = false;
     FlushData();
-    
-    // Kill thread.
-    thread_live_ = false;
-    if (writer_thread_.joinable()) {
-      writer_thread_.join();
-    }
   };
   
   // Member Functions

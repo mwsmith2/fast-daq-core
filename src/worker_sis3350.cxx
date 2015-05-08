@@ -18,7 +18,7 @@ void WorkerSis3350::LoadConfig()
   using std::cerr;
   using std::string;
 
-  int ret;
+  int rc = 0;
   uint msg = 0;
   char str[256];
 
@@ -38,10 +38,14 @@ void WorkerSis3350::LoadConfig()
   base_address_ = std::stoi(conf.get<string>("base_address"), nullptr, 0);
 
   // Check for device.
-  Read(0x0, msg);
-  if (logging_on) {
+  rc = Read(0x0, msg);
+  if (rc >= 0) {
+
     sprintf(str, " found at vme address: 0x%08x", base_address_);
-    logstream << name_ << str << endl;
+    WriteLog(name_ + std::string(str));
+
+  } else {
+    WriteLog("Failed to communicate with VME device.");
   }
 
   // Reset device.
@@ -252,9 +256,8 @@ void WorkerSis3350::LoadConfig()
     usleep(20000);
   }
 
-  //arm the logic
   uint armit = 1;
-  Write(0x410, armit);
+  rc = Write(0x410, armit);
 } // LoadConfig
 
 void WorkerSis3350::WorkLoop()
@@ -263,25 +266,28 @@ void WorkerSis3350::WorkLoop()
 
   while (thread_live_) {
 
-    while (go_time_) {
+    // Grab the event if we have one.
+    if (EventAvailable()) {
+      
+      static sis_3350 bundle;
+      GetEvent(bundle);
+      
+      queue_mutex_.lock();
+      data_queue_.push(bundle);
+      has_event_ = true;
 
-      if (EventAvailable()) {
+      // Drop old events
+      if (data_queue_.size() > max_queue_size_)
+	data_queue_.pop();
 
-        static sis_3350 bundle;
-        GetEvent(bundle);
-
-        queue_mutex_.lock();
-        data_queue_.push(bundle);
-        has_event_ = true;
-        queue_mutex_.unlock();
-
-      } else {
-	
-	std::this_thread::yield();
-	usleep(daq::short_sleep);
-
-      }
+      queue_mutex_.unlock();
+      
+    } else {
+      
+      std::this_thread::yield();
+      usleep(daq::short_sleep);
     }
+
 
     std::this_thread::yield();
     usleep(daq::long_sleep);
@@ -292,12 +298,14 @@ sis_3350 WorkerSis3350::PopEvent()
 {
   static sis_3350 data;
 
+  queue_mutex_.lock();
+
   if (data_queue_.empty()) {
     sis_3350 str;
+    
+    queue_mutex_.unlock();
     return str;
   }
-
-  queue_mutex_.lock();
 
   // Copy the data.
   data = data_queue_.front();
@@ -316,25 +324,57 @@ bool WorkerSis3350::EventAvailable()
   // Check acq reg.
   static uint msg = 0;
   static bool is_event;
+  static int count, rc;
 
-  Read(0x10, msg);
+  count = 0;
+  rc = 0;
+  do {
+    rc = Read(0x10, msg);
+    ++count;
+  } while ((rc < 0) && (count < 100));
+ 
   is_event = !(msg & 0x10000);
-  
-  if (is_event) {
-    // Rearm the logic.
-    uint armit = 1;
-    Write(0x410, armit);
-  }
 
-  return is_event;
+  if (is_event) {
+    // rearm the logic
+    uint armit = 1;
+
+    count = 0;
+    rc = 0;
+    do {
+      rc = Write(0x410, armit);
+      ++count;
+    } while ((rc < 0) && (count < 100));
+
+    return is_event;
+
+  } else {
+
+    return false;
+  }
 }
+  // // Check acq reg.
+  // static uint msg = 0;
+  // static bool is_event;
+
+  // Read(0x10, msg);
+  // is_event = !(msg & 0x10000);
+  
+  // // Rearm the logic if we are runnin.
+  // if (is_event && go_time_) {
+  //   uint armit = 1;
+  //   Write(0x410, armit);
+  // }
+
+  // return is_event;
+  //}
 
 // Pull the event.
 void WorkerSis3350::GetEvent(sis_3350 &bundle)
 {
   using namespace std::chrono;
 
-  int ch, offset, ret = 0;
+  int ch, offset, rc = 0;
   bool is_event = true;
 
   // Check how long the event is.

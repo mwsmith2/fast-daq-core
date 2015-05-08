@@ -15,7 +15,12 @@ WorkerCaen6742::~WorkerCaen6742()
 {
   thread_live_ = false;
   if (work_thread_.joinable()) {
-    work_thread_.join();
+    try {
+      work_thread_.join();
+    } catch (std::system_error e) {
+      std::cout << name_ << ": encountered race condition ";
+      std::cout << "joining thread." << std::endl;
+    }
   }
 
   //CAEN_DGTZ_Reset(device_);

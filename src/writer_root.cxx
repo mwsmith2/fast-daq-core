@@ -167,8 +167,10 @@ void WriterRoot::StartWriter()
 
 void WriterRoot::StopWriter()
 {
+  WriteLog("WriterRoot: Stopping");
   pf_->Write();
   pf_->Close();
+  WriteLog("WriterRoot: Closed data TFile.");
   delete pf_;
   std::string cmd("chown newg2:newg2 ");
   cmd += outfile_.c_str();

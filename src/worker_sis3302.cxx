@@ -189,9 +189,10 @@ bool WorkerSis3302::EventAvailable()
   // Check acq reg.
   static uint msg = 0;
   static bool is_event;
-  
-  int count = 0;
-  int rc = 0;
+  static int count, rc;
+
+  count = 0;
+  rc = 0;
   do {
     rc = Read(0x10, msg);
     ++count;
@@ -199,7 +200,7 @@ bool WorkerSis3302::EventAvailable()
  
   is_event = !(msg & 0x10000);
 
-  if (is_event) {
+  if (is_event && go_time_) {
     // rearm the logic
     uint armit = 1;
 
@@ -209,9 +210,11 @@ bool WorkerSis3302::EventAvailable()
       rc = Write(0x410, armit);
       ++count;
     } while ((rc < 0) && (count < 100));
+
+    return is_event;
   }
 
-  return is_event;
+  return false;
 }
 
 void WorkerSis3302::GetEvent(sis_3302 &bundle)

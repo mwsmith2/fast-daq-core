@@ -27,9 +27,14 @@ class WriterBase {
   virtual ~WriterBase() {
     thread_live_ = false;
     if (writer_thread_.joinable()) {
-      writer_thread_.join();
+      try {
+	writer_thread_.join();
+      } catch (std::system_error e) {
+	std::cout << "Writer: encountered race condition ";
+	std::cout << "joining thread." << std::endl;
+      }
     }
-    };
+  };
   
   // Basic functions
   virtual void LoadConfig() = 0;

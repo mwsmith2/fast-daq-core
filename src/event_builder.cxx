@@ -56,8 +56,8 @@ void EventBuilder::BuilderLoop()
 	}
 	queue_mutex_.unlock();
     
-    WriteLog("EventBuilder: data queue is now size = " 
-             + std::to_string(pull_data_que_.size())); 
+	WriteLog("EventBuilder: data queue is now size = " 
+		 + std::to_string(pull_data_que_.size())); 
 
 	workers_.FlushEventData();
       }

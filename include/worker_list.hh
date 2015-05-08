@@ -88,10 +88,6 @@ class WorkerList {
     // Deallocates each worker.
     void FreeList();
 
-    // Resizes the worker vector to zero, dropping all pointers.
-    void ClearList();
-
-
   private:
 
     // This is the actual worker list.

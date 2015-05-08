@@ -35,9 +35,22 @@ class EventBuilder {
   
   // dtor
   ~EventBuilder() {
+    std::cout << "Calling EventBuilder destructor." << std::endl;
     thread_live_ = false;
-    builder_thread_.join();
-    push_data_thread_.join();
+    if (builder_thread_.joinable()) {
+      try {
+	builder_thread_.join();
+      } catch (std::system_error) {
+	std::cout << "EventBuilder: thread met race condition." << std::endl;
+      }
+    }
+    if (push_data_thread_.joinable()) {
+      try {
+	push_data_thread_.join();
+      } catch (std::system_error) {
+	std::cout << "EventBuilder: thread met race condition." << std::endl;
+      }
+    }
   }
   
   // member functions
