@@ -42,6 +42,10 @@ void WorkerList::StartWorkers()
     } else if ((*it).which() == 4) {
 
       boost::get<WorkerBase<drs4> *>(*it)->StartWorker();
+
+    } else if ((*it).which() == 5) {
+
+      boost::get<WorkerBase<caen_1742> *>(*it)->StartWorker();
     }
   }
 }
@@ -72,6 +76,10 @@ void WorkerList::StartThreads()
     } else if ((*it).which() == 4) {
 
       boost::get<WorkerBase<drs4> *>(*it)->StartThread();
+
+    } else if ((*it).which() == 5) {
+
+      boost::get<WorkerBase<caen_1742> *>(*it)->StartThread();
     }
   }
 }
@@ -102,6 +110,10 @@ void WorkerList::StopWorkers()
     } else if ((*it).which() == 4) {
 
       boost::get<WorkerBase<drs4> *>(*it)->StopWorker();
+
+    } else if ((*it).which() == 5) {
+
+      boost::get<WorkerBase<caen_1742> *>(*it)->StopWorker();
     }
   }
 }
@@ -132,6 +144,10 @@ void WorkerList::StopThreads()
     } else if ((*it).which() == 4) {
 
       boost::get<WorkerBase<drs4> *>(*it)->StopThread();
+
+    } else if ((*it).which() == 5) {
+
+      boost::get<WorkerBase<caen_1742> *>(*it)->StopThread();
     }
   }
 }
@@ -163,6 +179,10 @@ bool WorkerList::AllWorkersHaveEvent()
     } else if ((*it).which() == 4) {
 
       has_event &= boost::get<WorkerBase<drs4> *>(*it)->HasEvent();
+
+    } else if ((*it).which() == 5) {
+
+      has_event &= boost::get<WorkerBase<caen_1742> *>(*it)->HasEvent();
     }
   }
 
@@ -196,6 +216,10 @@ bool WorkerList::AnyWorkersHaveEvent()
     } else if ((*it).which() == 4) {
 
       any_events |= boost::get<WorkerBase<drs4> *>(*it)->HasEvent();
+
+    } else if ((*it).which() == 5) {
+
+      any_events |= boost::get<WorkerBase<caen_1742> *>(*it)->HasEvent();
     }
   }
 
@@ -227,6 +251,10 @@ bool WorkerList::AnyWorkersHaveMultiEvent()
     } else if ((*it).which() == 4) {
 
       num_events = boost::get<WorkerBase<drs4> *>(*it)->num_events();
+
+    } else if ((*it).which() == 5) {
+
+      num_events = boost::get<WorkerBase<caen_1742> *>(*it)->num_events();
     }
 
     if (num_events > 1) return true;
@@ -265,6 +293,10 @@ void WorkerList::GetEventData(event_data &bundle)
       auto ptr = boost::get<WorkerBase<drs4> *>(*it);
       bundle.drs.push_back(ptr->PopEvent());
 
+    } else if ((*it).which() == 5) {
+
+      auto ptr = boost::get<WorkerBase<caen_1742> *>(*it);
+      bundle.caen_1742_vec.push_back(ptr->PopEvent());
     }
   }
 }
@@ -293,6 +325,10 @@ void WorkerList::FlushEventData()
     } else if ((*it).which() == 4) {
 
       boost::get<WorkerBase<drs4> *>(*it)->FlushEvents();
+
+    } else if ((*it).which() == 5) {
+
+      boost::get<WorkerBase<caen_1742> *>(*it)->FlushEvents();
     }
   } 
 }
@@ -323,6 +359,10 @@ void WorkerList::FreeList()
     } else if ((*it).which() == 4) {
 
       delete boost::get<WorkerBase<drs4> *>(*it);
+
+    } else if ((*it).which() == 5) {
+
+      delete boost::get<WorkerBase<caen_1742> *>(*it);
     }
   }
 
