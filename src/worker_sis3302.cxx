@@ -26,7 +26,7 @@ void WorkerSis3302::LoadConfig()
   string dev_path = conf.get<string>("device");
 
   // Get the base address for the device.  Convert from hex.
-  base_address_ = std::stoi(conf.get<string>("base_address"), nullptr, 0);
+  base_address_ = std::stoul(conf.get<string>("base_address"), nullptr, 0);
 
   // Read the base register.
   Read(0x0, msg);

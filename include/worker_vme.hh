@@ -50,15 +50,15 @@ protected:
   int read_trace_len_;
 
   int device_;
-  int base_address_; // contained in the conf file.
+  uint base_address_; // contained in the conf file.
   
   virtual bool EventAvailable() = 0;
   
-  int Read(int addr, uint &msg);        // A32D32
-  int Write(int addr, uint msg);        // A32D32
-  int Read16(int addr, ushort &msg);    // A16D16
-  int Write16(int addr, ushort msg);    // A16D16
-  int ReadTrace(int addr, uint *trace); // MLBT64
+  int Read(uint addr, uint &msg);        // A32D32
+  int Write(uint addr, uint msg);        // A32D32
+  int Read16(uint addr, ushort &msg);    // A16D16
+  int Write16(uint addr, ushort msg);    // A16D16
+  int ReadTrace(uint addr, uint *trace); // MLBT64
 
 };
 
@@ -71,7 +71,7 @@ protected:
 // return:
 //   error code from vme read
 template<typename T>
-int WorkerVme<T>::Read(int addr, uint &msg)
+int WorkerVme<T>::Read(uint addr, uint &msg)
 {
   std::lock_guard<std::mutex> lock(daq::vme_mutex);
   static int retval, status;
@@ -100,7 +100,7 @@ int WorkerVme<T>::Read(int addr, uint &msg)
 // return:
 //   error code from vme write
 template<typename T>
-int WorkerVme<T>::Write(int addr, uint msg)
+int WorkerVme<T>::Write(uint addr, uint msg)
 {
   std::lock_guard<std::mutex> lock(daq::vme_mutex);
   static int retval, status;
@@ -129,7 +129,7 @@ int WorkerVme<T>::Write(int addr, uint msg)
 // return:
 //   error code from vme read
 template<typename T>
-int WorkerVme<T>::Read16(int addr, ushort &msg)
+int WorkerVme<T>::Read16(uint addr, ushort &msg)
 {
   std::lock_guard<std::mutex> lock(daq::vme_mutex);
   static int retval, status;
@@ -158,7 +158,7 @@ int WorkerVme<T>::Read16(int addr, ushort &msg)
 // return:
 //   error code from vme read
 template<typename T>
-int WorkerVme<T>::Write16(int addr, ushort msg)
+int WorkerVme<T>::Write16(uint addr, ushort msg)
 {
   std::lock_guard<std::mutex> lock(daq::vme_mutex);
   static int retval, status;
@@ -188,7 +188,7 @@ int WorkerVme<T>::Write16(int addr, ushort msg)
 // return:
 //   error code from vme read
 template<typename T>
-int WorkerVme<T>::ReadTrace(int addr, uint *trace)
+int WorkerVme<T>::ReadTrace(uint addr, uint *trace)
 {
   std::lock_guard<std::mutex> lock(daq::vme_mutex);
   static int retval, status;

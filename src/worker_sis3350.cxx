@@ -35,7 +35,7 @@ void WorkerSis3350::LoadConfig()
   }
 
   // Get the base address.  Needs to be converted from hex.
-  base_address_ = std::stoi(conf.get<string>("base_address"), nullptr, 0);
+  base_address_ = std::stoul(conf.get<string>("base_address"), nullptr, 0);
 
   // Check for device.
   rc = Read(0x0, msg);
