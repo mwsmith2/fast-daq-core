@@ -153,18 +153,35 @@ void WorkerCaen1742::LoadConfig()
   // }
 
 
-  // uint ch = 0;
-  // //DAC offsets
-  // for (auto &val : conf.get_child("channel_offset")) {
+  //DAC offsets
+  uint ch = 0;
+  uint ch_idx = 0;
+  uint group_size = CAEN_1742_CH / CAEN_1742_GR;
+  for (auto &val : conf.get_child("channel_offset")) {
 
-  //   float volts = val.second.get_value<float>();
-  //   int dac = (int)((volts / vpp_) * 0xffff + 0x8000);
+    // Set group
+    int group_idx = ch / group_size;
 
-  //   if (dac < 0x0) dac = 0;
-  //   if (dac > 0xffff) dac = 0xffff;
+    // Convert the voltage to a dac value.
+    float volts = val.second.get_value<float>();
+    uint dac = (uint)((volts / vpp_) * 0xffff + 0x8000);
     
-  //   CAEN_DGTZ_SetChannelDCOffset(device_, ch++, dac);
-  // }    
+    if (dac < 0x0) dac = 0;
+    if (dac > 0xffff) dac = 0xffff;
+    
+    // Make sure the board isn't busy
+    int count = 0;
+    while (true) {
+      rc = Read(0x1088 + 0x100*group_idx, msg);
+      
+      if ((rc < 0) || !(msg & 0x84) || (++count > 100)) {
+	break;
+      }
+    }
+    
+    ch_idx = (ch++) % group_size;
+    rc = Write(0x1098 + 0x100*group_idx, dac | (ch_idx << 16));
+  }    
 
 
   // ret = CAEN_DGTZ_SetGroupFastTriggerDCOffset(device_, 0x10DC, 0x8000);
