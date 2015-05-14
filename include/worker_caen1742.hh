@@ -6,7 +6,6 @@
 #include <iostream>
 
 //--- other includes --------------------------------------------------------//
-#include "CAENDigitizer.h"
 
 //--- project includes ------------------------------------------------------//
 #include "worker_vme.hh"
@@ -15,7 +14,7 @@
 // This class pulls data from a caen_1742 device.
 namespace daq {
 
-class WorkerCaen1742 : public WorkerBase<caen_1742> {
+  class WorkerCaen1742 : public WorkerVme<caen_1742> {
 
 public:
   
@@ -25,7 +24,7 @@ public:
   // dtor
   ~WorkerCaen1742();
 
-  int dev_sn() { return board_info_.SerialNumber; };
+  int dev_sn() { return 0;};
   void LoadConfig();
   void WorkLoop();
   caen_1742 PopEvent();
@@ -40,9 +39,6 @@ private:
 
   std::chrono::high_resolution_clock::time_point t0_;
 
-  CAEN_DGTZ_BoardInfo_t board_info_;
-  CAEN_DGTZ_EventInfo_t event_info_;
-  CAEN_DGTZ_X742_EVENT_t *event_;
   
   bool EventAvailable();
   void GetEvent(caen_1742 &bundle);

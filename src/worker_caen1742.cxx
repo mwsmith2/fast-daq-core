@@ -3,11 +3,8 @@
 namespace daq {
 
 WorkerCaen1742::WorkerCaen1742(std::string name, std::string conf) : 
-  WorkerBase<caen_1742>(name, conf)
+  WorkerVme<caen_1742>(name, conf)
 {
-  buffer_ = nullptr;
-  event_ = nullptr;
-
   LoadConfig();
 }
 
@@ -22,10 +19,6 @@ WorkerCaen1742::~WorkerCaen1742()
       std::cout << "joining thread." << std::endl;
     }
   }
-
-  //CAEN_DGTZ_Reset(device_);
-  CAEN_DGTZ_FreeReadoutBuffer(&buffer_);
-  CAEN_DGTZ_CloseDigitizer(device_);
 }
 
 void WorkerCaen1742::LoadConfig()
@@ -34,111 +27,192 @@ void WorkerCaen1742::LoadConfig()
   boost::property_tree::ptree conf;
   boost::property_tree::read_json(conf_file_, conf);
 
-  int ret;
+  int rc;
   uint msg = 0;
+  std::string tmp;
+  char str[256];
 
-  int device_id = conf.get<int>("device_id");
-  
-  auto tp = CAEN_DGTZ_ConnectionType::CAEN_DGTZ_PCI_OpticalLink;
+  // Get the base address for the device.  Convert from hex.
+  tmp = conf.get<std::string>("base_address");
+  base_address_ = std::stoul(tmp, nullptr, 0);
 
-  ret = CAEN_DGTZ_OpenDigitizer(tp, 0, 0, 0xD0000000, &device_);
-  // Reset the device.
-  ret = CAEN_DGTZ_Reset(device_);
+  // Software board reset.
+  rc = Write(0xef24, msg);
+  usleep(300000);
+
+  // Make certain we aren't running
+  rc = Read(0x8104, msg);
+  if (msg & (0x1 << 2)) {
+    WriteLog("%s: We were running during init.", name_.c_str());
+    rc = Read(0x8100, msg);
+    msg &= ~(0x1 << 2);
+    rc = Write(0x8100, msg);
+  }
 
   // Get the board info.
-  ret = CAEN_DGTZ_GetInfo(device_, &board_info_);
-  printf("\nFound caen %s.\n", board_info_.ModelName);
-  printf("\nSerial Number: %i.\n", board_info_.SerialNumber);
-  printf("\tROC FPGA Release is %s\n", board_info_.ROC_FirmwareRel);
-  printf("\tAMC FPGA Release is %s\n", board_info_.AMC_FirmwareRel);
-  
-  // Set the trace length.
-  ret = CAEN_DGTZ_SetRecordLength(device_, CAEN_1742_LN);
+  rc = Read(0xf034, msg);
 
-  // Set "pretrigger".
-  int pretrigger_delay = conf.get<int>("pretrigger_delay", 35);
-  ret = CAEN_DGTZ_SetPostTriggerSize(device_, pretrigger_delay);
+  // Board type
+  if ((msg & 0xff) == 0x00) {
+
+    WriteLog("%s: Found caen v1742.", name_.c_str());
+
+  } else if ((msg & 0xff) == 0x01) {
+
+    WriteLog("%s: Found caen vx1742.", name_.c_str());
+  }
+
+  // Check the serial number 
+  int sn = 0;
+  rc = Read(0xf080, msg);
+  sn += (msg & 0xff) << 2;
+  
+  rc = Read(0xf084, msg);
+  sn += (msg & 0xff);
+  WriteLog("%s: Serial Number: %i.", name_.c_str(), sn);
+  
+  // Get the hardware revision numbers.
+  uint rev[4];
+  
+  for (int i = 0; i < 4; ++i) {
+    rc = Read(0xf040 + 4*i, msg);
+    rev[i] = msg;
+  }
+
+  WriteLog("%s: Board Hardware Release %i.%i.%i.%i.\n", 
+	   name_.c_str(), rev[0], rev[1], rev[2], rev[3]);
+  
+  // Check the temperature.
+  for (int i = 0; i < 4; ++i) {
+
+    rc = Read(0x1088 + i*0x100, msg);
+
+    if (msg & ((0x1 << 2) | (0x1 << 8)))
+      WriteLog("%s: Unit %i is busy.", name_.c_str(), i);
+
+    rc = Read(0x10A0 + i*0x100, msg);
+    WriteLog("%s: DRS4 Chip %i at temperature %i C.\n", 
+	     name_.c_str(), i, msg & 0xff);
+  }
+    
+  // Enable external/software triggers.
+  rc = Read(0x810c, msg);
+  rc = Write(0x810c, msg | (0x3 << 30));
+
+  // Set the group enable mask.
+  rc = Read(0x8120, msg);
+  rc = Write(0x8120, msg | 0xf);
+
+  // Enable digitization of the triggers using config bit enable register.
+  rc = Write(0x8004, 0x1 << 11);
+
+  rc = Read(0x8120, msg);
+  WriteLog("%s: Group enable mask reads: %08x\n", name_.c_str(), msg);
+
+  // Set the trace length.
+  rc = Read(0x8020, msg);
+  rc = Write(0x8020, msg & 0xfffffffc); // 1024
 
   // Set the sampling rate.
-  CAEN_DGTZ_DRS4Frequency_t rate;
   double sampling_rate = conf.get<double>("sampling_rate", 1.0);
+  // rc = Read(0x80d8, msg);
+  // msg &= 0xfffffffc;
+  msg = 0;
 
-  if (sampling_rate > 3.75) {
+  if (sampling_rate < 1.75) {
 
-    printf("Setting sampling rate to 5.0GHz.\n");
-    rate = CAEN_DGTZ_DRS4_5GHz;
+    msg |= 0x2; // 1.0 Gsps
+    WriteLog("\tSampling set to 1.0 Gsps.\n");
 
-  } else if (sampling_rate <= 3.75 && sampling_rate >= 2.25) {
+  } else if (sampling_rate >= 1.75 && sampling_rate < 3.75) {
 
-    printf("Setting sampling rate to 2.5GHz.\n");
-    rate = CAEN_DGTZ_DRS4_2_5GHz;
-
-  } else {
-
-    printf("Setting sampling rate to 1.0GHz.\n");
-    rate = CAEN_DGTZ_DRS4_1GHz;
-  }  
-
-  ret = CAEN_DGTZ_SetDRS4SamplingFrequency(device_, rate);
-
-  if (conf.get<bool>("use_drs4_corrections")) {
-    // Load and enable DRS4 corrections.
-    ret = CAEN_DGTZ_LoadDRS4CorrectionData(device_, rate);
-    ret = CAEN_DGTZ_EnableDRS4Correction(device_);
-  }
-
-  // Set the channel enable mask.
-  ret = CAEN_DGTZ_SetGroupEnableMask(device_, 0x3); // all on
-
-  uint ch = 0;
-  //DAC offsets
-  for (auto &val : conf.get_child("channel_offset")) {
-
-    float volts = val.second.get_value<float>();
-    int dac = (int)((volts / vpp_) * 0xffff + 0x8000);
-
-    if (dac < 0x0) dac = 0;
-    if (dac > 0xffff) dac = 0xffff;
+    msg |= 0x1; // 2.5 Gsps
+    WriteLog("\tSampling set to 2.5 Gsps.\n");
     
-    CAEN_DGTZ_SetChannelDCOffset(device_, ch++, dac);
-  }    
+  } else if (sampling_rate >= 3.75) {
 
-  // Enable external trigger.
-  //  ret = CAEN_DGTZ_SetExtTriggerInputMode(device_, CAEN_DGTZ_TRGMODE_ACQ_ONLY);
-  // Enable fast trigger - NIM
-  ret = CAEN_DGTZ_SetFastTriggerMode(device_, CAEN_DGTZ_TRGMODE_ACQ_ONLY);
-  ret = CAEN_DGTZ_SetGroupFastTriggerDCOffset(device_, 0x10DC, 0x8000);
-  ret = CAEN_DGTZ_SetGroupFastTriggerThreshold(device_, 0x10D4, 0x51C6);
-
-  // Digitize the fast trigger.
-  ret = CAEN_DGTZ_SetFastTriggerDigitizing(device_, CAEN_DGTZ_ENABLE);
-
-  // Disable self trigger.
-  ret = CAEN_DGTZ_SetChannelSelfTrigger(device_, 
-					CAEN_DGTZ_TRGMODE_DISABLED, 
-					0xffff);
-  
-  // Channel pulse polarity
-  for (int ch; ch < CAEN_1742_CH; ++ch) {
-    ret = CAEN_DGTZ_SetChannelPulsePolarity(device_, ch, 
-					    CAEN_DGTZ_PulsePolarityPositive);
+    msg |= 0x0; // 5.0 Gsps
+    WriteLog("\tSampling set to 5.0 Gsps.\n");
   }
 
-  // Set the acquisition mode.
-  ret = CAEN_DGTZ_SetAcquisitionMode(device_, CAEN_DGTZ_SW_CONTROLLED);
+  // Write the sampling rate.
+  rc = Write(0x80d8, msg);
 
-  // Set max events to 1 our purposes.
-  ret = CAEN_DGTZ_SetMaxNumEventsBLT(device_, 1);
+  // Set "pretrigger" buffer.
+  rc = Read(0x8114, msg);
+  int pretrigger_delay = conf.get<int>("pretrigger_delay", 35);
+  msg &= 0xfffffe00;
+  msg |= (uint)(pretrigger_delay / 100.0 * 0x3ff);
+
+  rc = Write(0x8114, msg);
+
+  // if (conf.get<bool>("use_drs4_corrections")) {
+  //   // Load and enable DRS4 corrections.
+  //   ret = CAEN_DGTZ_LoadDRS4CorrectionData(device_, rate);
+  //   ret = CAEN_DGTZ_EnableDRS4Correction(device_);
+  // }
+
+
+  // uint ch = 0;
+  // //DAC offsets
+  // for (auto &val : conf.get_child("channel_offset")) {
+
+  //   float volts = val.second.get_value<float>();
+  //   int dac = (int)((volts / vpp_) * 0xffff + 0x8000);
+
+  //   if (dac < 0x0) dac = 0;
+  //   if (dac > 0xffff) dac = 0xffff;
+    
+  //   CAEN_DGTZ_SetChannelDCOffset(device_, ch++, dac);
+  // }    
+
+
+  // ret = CAEN_DGTZ_SetGroupFastTriggerDCOffset(device_, 0x10DC, 0x8000);
+  // ret = CAEN_DGTZ_SetGroupFastTriggerThreshold(device_, 0x10D4, 0x51C6);
+
+  // // Digitize the fast trigger.
+  // ret = CAEN_DGTZ_SetFastTriggerDigitizing(device_, CAEN_DGTZ_ENABLE);
+
+  // // Disable self trigger.
+  // ret = CAEN_DGTZ_SetChannelSelfTrigger(device_, 
+  // 					CAEN_DGTZ_TRGMODE_DISABLED, 
+  // 					0xffff);
   
-  // Allocated the readout buffer.
-  ret = CAEN_DGTZ_MallocReadoutBuffer(device_, &buffer_, &size_);
-  
+  // // Channel pulse polarity
+  // for (int ch; ch < CAEN_1742_CH; ++ch) {
+  //   ret = CAEN_DGTZ_SetChannelPulsePolarity(device_, ch, 
+  // 					    CAEN_DGTZ_PulsePolarityPositive);
+  // }
+
+  // Start acquiring events.
+  int count = 0;
+  do {
+    usleep(100);
+    rc = Read(0x8104, msg);
+    ++count;
+    WriteLog("Checking if board is ready to acquire.\n");
+  } while ((count < 100) && !(msg & 0x100));
+
+  rc = Read(0x8100, msg);
+  msg |= (0x1 << 2);
+  rc = Write(0x8100, msg);
+
+  usleep(1000);
+  // Send a test software trigger and read it out.
+  rc = Write(0x8108, msg);
+
+  // Read initial empty event.
+  WriteLog("Eating first empty event.\n");
+  if (EventAvailable()) {
+    caen_1742 bundle;
+    GetEvent(bundle);
+  }
+  WriteLog("%s: LoadConfig finished.\n");
+
 } // LoadConfig
 
 void WorkerCaen1742::WorkLoop()
 {
-  int ret = CAEN_DGTZ_AllocateEvent(device_, (void **)&event_);
-  ret = CAEN_DGTZ_SWStartAcquisition(device_);
   t0_ = std::chrono::high_resolution_clock::now();
 
   while (thread_live_) {
@@ -166,8 +240,11 @@ void WorkerCaen1742::WorkLoop()
     usleep(daq::long_sleep);
   }
 
-  ret = CAEN_DGTZ_SWStopAcquisition(device_);
-  ret = CAEN_DGTZ_FreeEvent(device_, (void **)&event_);
+  // Stop acquiring events.
+  uint rc, msg;
+  rc = Read(0x8100, msg);
+  msg &= ~(0x1 << 2);
+  rc = Write(0x8100, msg);
 }
 
 caen_1742 WorkerCaen1742::PopEvent()
@@ -198,55 +275,157 @@ caen_1742 WorkerCaen1742::PopEvent()
 
 bool WorkerCaen1742::EventAvailable()
 {
-  // Check acq reg.
-  uint num_events = 0;
+  // Check acquisition status regsiter.
+  uint msg, rc;
+  rc = Read(0x8104, msg);
 
-  CAEN_DGTZ_ReadData(device_, CAEN_DGTZ_SLAVE_TERMINATED_READOUT_MBLT, buffer_, &bsize_);
-
-  CAEN_DGTZ_GetNumEvents(device_, buffer_, bsize_, &num_events);
-
-  if (num_events > 0) {
+  if (msg & (0x1 << 3)) {
     return true;
 
   } else {
-    return false;
 
+    return false;
   }
 }
 
 void WorkerCaen1742::GetEvent(caen_1742 &bundle)
 {
   using namespace std::chrono;
-  int ch, offset, ret = 0;
+  int ch, offset, rc = 0; 
   char *evtptr = nullptr;
+  char str[256];
+  uint msg, d, size;
+  int sample;
+
+  static std::vector<uint> buffer;
+  if (buffer.size() == 0) {
+    buffer.reserve((CAEN_1742_CH * CAEN_1742_LN * 4) / 3 + 32);
+  }
 
   // Get the system time
   auto t1 = high_resolution_clock::now();
   auto dtn = t1.time_since_epoch() - t0_.time_since_epoch();
   bundle.system_clock = duration_cast<milliseconds>(dtn).count();  
 
-  // Get the event data
-  ret = CAEN_DGTZ_GetEventInfo(device_, buffer_, bsize_, 0, &event_info_, &evtptr);
-  ret = CAEN_DGTZ_DecodeEvent(device_, evtptr, (void **)&event_);
+  // Get the size of the next event data
+  rc = Read(0x814c, msg);
+  
+  buffer.resize(msg);
+  read_trace_len_ = msg;
+  WriteLog("Reading trace length: %i.\n", msg);
+  //  ReadTraceMblt64(0x0, trace);
+  
+  // Try reading out word by word
+  for (int i = 0; i < read_trace_len_; ++i) {
+    rc = Read(0x0, msg);
+    buffer[i] = msg;
+  }
 
-  int gr, idx, ch_idx, len;
-  for (gr = 0; gr < CAEN_1742_GR; ++gr) {
-    for (ch = 0; ch < CAEN_1742_CH / CAEN_1742_GR; ++ch) {
+  WriteLog("First element of event is %08x.\n", buffer[0]);
+  // Get the number of current events buffered.
+  rc = Read(0x812c, msg);
+  WriteLog("%i events in memory.\n", msg);
 
-      // Set the channels to fill as group0..group1..tr0..tr1.
-      if (ch < CAEN_1742_CH / CAEN_1742_GR - 1) {
-	ch_idx = ch + gr * (CAEN_1742_CH / CAEN_1742_GR - 1);
-      } else {
-	ch_idx = CAEN_1742_CH - 2 + gr;
-      }
+  // Make sure we aren't getting empty events
+  if (buffer.size() < 5) {
+    return;
+  }
 
-      int len = event_->DataGroup[gr].ChSize[ch];
-      bundle.device_clock[ch_idx] = event_->DataGroup[gr].TriggerTimeTag;
-      std::cout << "Copying event." << std::endl;
-      std::copy(event_->DataGroup[gr].DataChannel[ch],
-		event_->DataGroup[gr].DataChannel[ch] + len,
-		bundle.trace[ch_idx]);
+  // Figure out the group mask
+  bool grp_mask[CAEN_1742_GR];
+
+  for (int i = 0; i < CAEN_1742_GR; ++i) {
+    grp_mask[i] = buffer[1] & (0x1 << i);
+  }
+  
+  // Now unpack the data for each group
+  uint header;
+  uint chdata[8];
+  int start_idx = 4; // Skip main event header
+  int stop_idx = 4;
+
+  for (int grp_idx = 0; grp_idx < CAEN_1742_GR; ++grp_idx) {
+
+    // Skip if this group isn't present.
+    if (!grp_mask[grp_idx]) {
+      WriteLog("%s: Skipping group %i.\n", grp_idx);
+      continue;
     }
+
+    // Grab the group header info.
+    header = buffer[start_idx++];
+
+    // Check to make sure it is a header
+    if ((~header & 0xc00ce000) != 0xc00ce000) {
+      WriteLog("%s: Missed header.");
+    }
+
+    // Calculate the group size.
+    int data_size = header & 0xfff;
+    int nchannels = CAEN_1742_CH / CAEN_1742_GR;
+    bool trg_saved = header & (0x1 << 12);
+    
+    stop_idx = start_idx + data_size;
+    sample = 0;
+
+    WriteLog("start = %i, stop = %i, size = %u\n", start_idx, stop_idx, data_size);
+    for (int i = start_idx; i < stop_idx; i += 3) {
+      uint ln0 = buffer[i];
+      uint ln1 = buffer[i+1];
+      uint ln2 = buffer[i+2];
+      
+      chdata[0] = ln0 & 0xfff;
+      chdata[1] = (ln0 >> 12) & 0xfff;
+      chdata[2] = ((ln0 >> 24) & 0xff) | ((ln1 & 0xf) << 8);
+      chdata[3] = (ln1 >> 4) & 0xfff;
+      chdata[4] = (ln1 >> 16) & 0xfff;
+      chdata[5] = ((ln1 >> 28) & 0xf) | ((ln2 & 0xff) << 4);
+      chdata[6] = (ln2 >> 8) & 0xfff;
+      chdata[7] = (ln2 >> 20) & 0xfff;
+
+      for (int j = 0; j < 8; ++j) {
+	int ch_idx = j + grp_idx * nchannels;
+	bundle.trace[ch_idx][sample] = chdata[j];
+      }
+      
+      ++sample;
+    }
+
+    // Update our starting point.
+    start_idx = stop_idx;
+    sample = 0;
+
+    // Now grab the trigger if it was digitized.
+    if (trg_saved) {
+      
+      WriteLog("%s: Digitizing trigger", name_.c_str());
+      stop_idx = start_idx + (data_size / 8);
+
+      for (int i = start_idx; i < stop_idx; i += 3) {
+	uint ln0 = buffer[i];
+	uint ln1 = buffer[i+1];
+	uint ln2 = buffer[i+2];
+	
+	chdata[0] = ln0 & 0xfff;
+	chdata[1] = (ln0 >> 12) & 0xfff;
+	chdata[2] = ((ln0 >> 24) & 0xff) | ((ln1 & 0xf) << 8);
+	chdata[3] = (ln1 >> 4) & 0xfff;
+	chdata[4] = (ln1 >> 16) & 0xfff;
+	chdata[5] = ((ln1 >> 28) & 0xf) | ((ln2 & 0xff) << 4);
+	chdata[6] = (ln2 >> 8) & 0xfff;
+	chdata[7] = (ln2 >> 20) & 0xfff;
+	
+	for (int j = 0; j < 8; ++j) {
+	  bundle.trigger[grp_idx][sample++] = chdata[j];
+	}
+      }
+    }
+
+    // Grab the trigger time and increment starting index.
+    uint timestamp = buffer[stop_idx++];
+    WriteLog("timestamp: 0x%08x\n", timestamp);
+
+    start_idx = stop_idx;
   }
 }
   

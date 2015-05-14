@@ -120,6 +120,7 @@ void WriterRoot::StartWriter()
 
   }
 
+
   // Now set up the caen drs.
   count = 0;
   BOOST_FOREACH(const ptree::value_type &v, 
@@ -163,6 +164,33 @@ void WriterRoot::StartWriter()
     pt_->Branch(br_name.c_str(), &root_data_.drs[count++], br_vars);
 
   }
+
+  // Now set up the caen drs vme module.
+  count = 0;
+  BOOST_FOREACH(const ptree::value_type &v, 
+                  conf.get_child("devices.caen_1742")) {
+    count++;
+  }
+  root_data_.caen_adc.reserve(count);
+
+  count = 0;
+  BOOST_FOREACH(const ptree::value_type &v, 
+                  conf.get_child("devices.caen_1742")) {
+
+    root_data_.caen_1742_vec.resize(count + 1);
+
+    br_name = std::string(v.first);
+    sprintf(br_vars, 
+      "system_clock/l:device_clock[%i]/l:trace[%i][%i]/s:trigger[%i][%i]/s", 
+	    CAEN_1742_CH, 
+	    CAEN_1742_CH, CAEN_1742_LN, 
+	    CAEN_1742_GR, CAEN_1742_LN);
+
+    pt_->Branch(br_name.c_str(), 
+		&root_data_.caen_1742_vec[count++], 
+		br_vars);
+
+  }
 }
 
 void WriterRoot::StopWriter()
@@ -197,8 +225,18 @@ void WriterRoot::PushData(const std::vector<event_data> &data_buffer)
     }
 
     count = 0;
-    for (auto &caen: (*it).drs) {
-      root_data_.drs[count++] = caen;
+    for (auto &caen: (*it).caen_drs) {
+      root_data_.caen_drs[count++] = caen;
+    }
+
+    count = 0;
+    for (auto &caen: (*it).caen_1742_vec) {
+      root_data_.caen_1742_vec[count++] = caen;
+    }
+
+    count = 0;
+    for (auto &drs: (*it).drs) {
+      root_data_.drs[count++] = drs;
     }
 
     pt_->Fill();
