@@ -24,6 +24,10 @@ about:  Contains the data structures for several hardware devices in a single
 #define CAEN_6742_CH 18
 #define CAEN_6742_LN 1024
 
+#define CAEN_1742_GR 4
+#define CAEN_1742_CH 32
+#define CAEN_1742_LN 1024
+
 #define DRS4_CH 4 
 #define DRS4_LN 1024
 
@@ -39,6 +43,7 @@ about:  Contains the data structures for several hardware devices in a single
 //--- std includes ----------------------------------------------------------//
 #include <vector>
 #include <mutex>
+#include <cstdarg>
 
 //--- other includes --------------------------------------------------------//
 #include <boost/variant.hpp>
@@ -75,6 +80,13 @@ struct caen_6742 {
   UShort_t trace[CAEN_6742_CH][CAEN_6742_LN];
 };
 
+struct caen_1742 {
+  ULong64_t system_clock;
+  ULong64_t device_clock[CAEN_1742_CH];
+  UShort_t trace[CAEN_1742_CH][CAEN_1742_LN];
+  UShort_t trigger[CAEN_1742_GR][CAEN_1742_LN];
+};
+
 struct drs4 {
   ULong64_t system_clock;
   ULong64_t device_clock[DRS4_CH];
@@ -87,6 +99,7 @@ struct event_data {
   std::vector<sis_3302> sis_slow;
   std::vector<caen_1785> caen_adc;
   std::vector<caen_6742> caen_drs;
+  std::vector<caen_1742> caen_1742_vec;
   std::vector<drs4> drs;
 };
 
@@ -174,7 +187,8 @@ typedef boost::variant<WorkerBase<sis_3350> *,
                        WorkerBase<sis_3302> *, 
                        WorkerBase<caen_1785> *, 
                        WorkerBase<caen_6742> *,
-                       WorkerBase<drs4> *> 
+                       WorkerBase<drs4> *,
+		       WorkerBase<caen_1742> *>
 worker_ptr_types;
 
 // A useful define guard for I/O with the vme bus.
@@ -187,8 +201,8 @@ extern bool logging_on;
 extern std::string logfile;
 extern std::ofstream logstream;
 
-int WriteLog(const char *msg);
-int WriteLog(const std::string& msg);
+int WriteLog(const char *format, ...);
+int WriteLog(const std::string &format, ...);
 
 // Create a variable for a config directory.
 extern std::string conf_dir;
