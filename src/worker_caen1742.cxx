@@ -16,7 +16,7 @@ WorkerCaen1742::~WorkerCaen1742()
       work_thread_.join();
     } catch (std::system_error e) {
       std::cout << name_ << ": encountered race condition ";
-      std::cout << "joining thread." << std::endl;
+      std::cout << "joining thread" << std::endl;
     }
   }
 }
@@ -43,7 +43,7 @@ void WorkerCaen1742::LoadConfig()
   // Make certain we aren't running
   rc = Read(0x8104, msg);
   if (msg & (0x1 << 2)) {
-    writelog("%s: We were running during init.", name_.c_str());
+    writelog("%s: We were running during init", name_.c_str());
     rc = Read(0x8100, msg);
     msg &= ~(0x1 << 2);
     rc = Write(0x8100, msg);
@@ -55,11 +55,11 @@ void WorkerCaen1742::LoadConfig()
   // Board type
   if ((msg & 0xff) == 0x00) {
 
-    writelog("%s: Found caen v1742.", name_.c_str());
+    writelog("%s: Found caen v1742", name_.c_str());
 
   } else if ((msg & 0xff) == 0x01) {
 
-    writelog("%s: Found caen vx1742.", name_.c_str());
+    writelog("%s: Found caen vx1742", name_.c_str());
   }
 
   // Check the serial number 
@@ -69,7 +69,7 @@ void WorkerCaen1742::LoadConfig()
   
   rc = Read(0xf084, msg);
   sn += (msg & 0xff);
-  writelog("%s: Serial Number: %i.", name_.c_str(), sn);
+  writelog("%s: Serial Number: %i", name_.c_str(), sn);
   
   // Get the hardware revision numbers.
   uint rev[4];
@@ -79,7 +79,7 @@ void WorkerCaen1742::LoadConfig()
     rev[i] = msg;
   }
 
-  writelog("%s: Board Hardware Release %i.%i.%i.%i.\n", 
+  writelog("%s: Board Hardware Release %i.%i.%i.%i", 
 	   name_.c_str(), rev[0], rev[1], rev[2], rev[3]);
   
   // Check the temperature.
@@ -88,10 +88,10 @@ void WorkerCaen1742::LoadConfig()
     rc = Read(0x1088 + i*0x100, msg);
 
     if (msg & ((0x1 << 2) | (0x1 << 8)))
-      writelog("%s: Unit %i is busy.", name_.c_str(), i);
+      writelog("%s: Unit %i is busy", name_.c_str(), i);
 
     rc = Read(0x10A0 + i*0x100, msg);
-    writelog("%s: DRS4 Chip %i at temperature %i C.\n", 
+    writelog("%s: DRS4 Chip %i at temperature %i C", 
 	     name_.c_str(), i, msg & 0xff);
   }
     
@@ -122,17 +122,17 @@ void WorkerCaen1742::LoadConfig()
   if (sampling_rate < 1.75) {
 
     msg |= 0x2; // 1.0 Gsps
-    writelog("\tSampling set to 1.0 Gsps.\n");
+    writelog("\tSampling set to 1.0 Gsps");
 
   } else if (sampling_rate >= 1.75 && sampling_rate < 3.75) {
 
     msg |= 0x1; // 2.5 Gsps
-    writelog("\tSampling set to 2.5 Gsps.\n");
+    writelog("\tSampling set to 2.5 Gsps");
     
   } else if (sampling_rate >= 3.75) {
 
     msg |= 0x0; // 5.0 Gsps
-    writelog("\tSampling set to 5.0 Gsps.\n");
+    writelog("\tSampling set to 5.0 Gsps");
   }
 
   // Write the sampling rate.
@@ -190,7 +190,7 @@ void WorkerCaen1742::LoadConfig()
     usleep(100);
     rc = Read(0x8104, msg);
     ++count;
-    writelog("Checking if board is ready to acquire.\n");
+    writelog("Checking if board is ready to acquire");
   } while ((count < 100) && !(msg & 0x100));
 
   rc = Read(0x8100, msg);
@@ -202,12 +202,12 @@ void WorkerCaen1742::LoadConfig()
   rc = Write(0x8108, msg);
 
   // Read initial empty event.
-  writelog("Eating first empty event.\n");
+  writelog("Eating first empty event");
   if (EventAvailable()) {
     caen_1742 bundle;
     GetEvent(bundle);
   }
-  writelog("%s: LoadConfig finished.\n");
+  writelog("%s: LoadConfig finished");
 
 } // LoadConfig
 
@@ -312,7 +312,7 @@ void WorkerCaen1742::GetEvent(caen_1742 &bundle)
   
   buffer.resize(msg);
   read_trace_len_ = msg;
-  writelog("Reading trace length: %i.\n", msg);
+  writelog("Reading trace length: %i", msg);
   //  ReadTraceMblt64(0x0, trace);
   
   // Try reading out word by word
@@ -321,10 +321,10 @@ void WorkerCaen1742::GetEvent(caen_1742 &bundle)
     buffer[i] = msg;
   }
 
-  writelog("First element of event is %08x.\n", buffer[0]);
+  writelog("First element of event is %08x", buffer[0]);
   // Get the number of current events buffered.
   rc = Read(0x812c, msg);
-  writelog("%i events in memory.\n", msg);
+  writelog("%i events in memory", msg);
 
   // Make sure we aren't getting empty events
   if (buffer.size() < 5) {
@@ -348,7 +348,7 @@ void WorkerCaen1742::GetEvent(caen_1742 &bundle)
 
     // Skip if this group isn't present.
     if (!grp_mask[grp_idx]) {
-      writelog("%s: Skipping group %i.\n", grp_idx);
+      writelog("%s: Skipping group %i", grp_idx);
       continue;
     }
 
@@ -357,7 +357,7 @@ void WorkerCaen1742::GetEvent(caen_1742 &bundle)
 
     // Check to make sure it is a header
     if ((~header & 0xc00ce000) != 0xc00ce000) {
-      writelog("%s: Missed header.");
+      writelog("%s: Missed header");
     }
 
     // Calculate the group size.
