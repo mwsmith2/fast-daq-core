@@ -32,7 +32,7 @@ void WorkerSis3302::LoadConfig()
   Read(0x0, msg);
 
   sprintf(str, "%s: found at 0x%08x", name_.c_str(), base_address_);
-  WriteLog(str);
+  writelog(str);
 
   // Reset the device.
   msg = 1;
@@ -46,7 +46,7 @@ void WorkerSis3302::LoadConfig()
 
   sprintf(str, "%s ID: %04x, maj rev: %02x, min rev: %02x",
           name_.c_str(), msg >> 16, (msg >> 8) & 0xff, msg & 0xff);
-  WriteLog(str);
+  writelog(str);
 
   // Read control/status register.
 
@@ -77,7 +77,7 @@ void WorkerSis3302::LoadConfig()
   Read(0x0, msg);
 
   sprintf(str, "%s user LED: %s", name_.c_str(), (msg & 0x1) ? "ON" : "OFF");
-  WriteLog(str);
+  writelog(str);
 
   // Set Acquisition register.
   msg = 0;
@@ -97,7 +97,7 @@ void WorkerSis3302::LoadConfig()
   Read(0x10, msg);
 
   sprintf(str, "%s ACQ register set to: 0x%08x", name_.c_str(), msg);
-  WriteLog(str);
+  writelog(str);
 
   // Set the start delay.
   msg = conf.get<int>("start_delay", 0);

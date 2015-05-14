@@ -31,7 +31,7 @@ void WriterOnline::LoadConfig()
 
 void WriterOnline::PushData(const std::vector<event_data> &data_buffer)
 {
-  WriteLog("WriterOnline: received some data.");
+  writelog("WriterOnline: received some data.");
 
   writer_mutex_.lock();
 
@@ -89,7 +89,7 @@ void WriterOnline::SendMessageLoop()
 
         if (rc == true) {
 
-          WriteLog("WriterOnline: sent message successfully.");
+          writelog("WriterOnline: sent message successfully.");
           message_ready_ = false;
 
         }
@@ -112,7 +112,7 @@ void WriterOnline::PackMessage()
 {
   using boost::uint64_t;
 
-  WriteLog("WriterOnline: packing message.");
+  writelog("WriterOnline: packing message.");
 
   int count = 0;
   char str[50];
@@ -413,7 +413,7 @@ void WriterOnline::PackMessage()
   message_ = zmq::message_t(buffer.size());
   memcpy(message_.data(), buffer.c_str(), buffer.size());
 
-  WriteLog("WriterOnline: message ready.");
+  writelog("WriterOnline: message ready.");
   message_ready_ = true;
 }
 

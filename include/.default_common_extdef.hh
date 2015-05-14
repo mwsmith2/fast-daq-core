@@ -30,7 +30,7 @@ bool logging_on = true;
 std::string logfile("/usr/local/var/log/daq/fast-daq.log");
 std::ofstream logstream(logfile);
 
-int WriteLog(const char *format, ...) {
+int writelog(const char *format, ...) {
   static char str[512];
   
   if (logging_on) {
@@ -48,7 +48,7 @@ int WriteLog(const char *format, ...) {
   }
 };
 
-int WriteLog(const std::string &format, ...) {
+int writelog(const std::string &format, ...) {
   static char str[512];
   
   if (logging_on) {

@@ -56,7 +56,7 @@ void EventBuilder::BuilderLoop()
 	}
 	queue_mutex_.unlock();
     
-	WriteLog("EventBuilder: data queue is now size = " 
+	writelog("EventBuilder: data queue is now size = " 
 		 + std::to_string(pull_data_que_.size())); 
 
 	workers_.FlushEventData();
@@ -81,7 +81,7 @@ void EventBuilder::ControlLoop()
 
       if (pull_data_que_.size() >= batch_size_) {
 	
-        WriteLog("EventBuilder: pushing data.");
+        writelog("EventBuilder: pushing data.");
         CopyBatch();
         SendBatch();
       }
@@ -113,7 +113,7 @@ bool EventBuilder::WorkersGotSyncEvent()
 {
   // Check if anybody has an event.
   if (!workers_.AnyWorkersHaveEvent()) return false;
-  WriteLog("EventBuilder: detected a trigger.");
+  writelog("EventBuilder: detected a trigger.");
 
   // Wait for all devices to get a chance to read the event.
   usleep(max_event_time_); 
@@ -122,7 +122,7 @@ bool EventBuilder::WorkersGotSyncEvent()
   if (!workers_.AllWorkersHaveEvent()) {
  
     workers_.FlushEventData();
-    WriteLog("EventBuilder: event was not synched.");
+    writelog("EventBuilder: event was not synched.");
     return false;
   }
     
@@ -130,7 +130,7 @@ bool EventBuilder::WorkersGotSyncEvent()
   if (workers_.AnyWorkersHaveMultiEvent()) {
 
     workers_.FlushEventData();
-    WriteLog("EventBuilder: was actually double.");
+    writelog("EventBuilder: was actually double.");
     return false;
   }
 
@@ -151,7 +151,7 @@ void EventBuilder::CopyBatch()
       push_data_vec_.push_back(pull_data_que_.front());
       pull_data_que_.pop();
 
-      WriteLog("EventBuilder: pull queue size = " 
+      writelog("EventBuilder: pull queue size = " 
                + std::to_string(pull_data_que_.size()));
     }
 
@@ -174,7 +174,7 @@ void EventBuilder::SendBatch()
 
 void EventBuilder::SendLastBatch()
 {
-  WriteLog("EventBuilder: sending last batch.");
+  writelog("EventBuilder: sending last batch.");
 
   // Zero the pull data vec
   queue_mutex_.lock();
@@ -182,7 +182,7 @@ void EventBuilder::SendLastBatch()
   queue_mutex_.unlock();
 
   push_data_mutex_.lock();
-  WriteLog("EventBuilder: sending end of batch/run to the writers.");
+  writelog("EventBuilder: sending end of batch/run to the writers.");
   for (auto &writer : writers_) {
     
     writer->PushData(push_data_vec_);
@@ -194,13 +194,13 @@ void EventBuilder::SendLastBatch()
 
 // Start the workers taking data.
 void EventBuilder::StartWorkers() {
-  WriteLog("EventBuilder: starting workers.");
+  writelog("EventBuilder: starting workers.");
   workers_.StartWorkers();
 }
 
 // Write the data file and reset workers.
 void EventBuilder::StopWorkers() {
-  WriteLog("EventBuilder: stopping workers.");
+  writelog("EventBuilder: stopping workers.");
   workers_.StopWorkers();
 }
 

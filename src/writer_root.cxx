@@ -195,10 +195,10 @@ void WriterRoot::StartWriter()
 
 void WriterRoot::StopWriter()
 {
-  WriteLog("WriterRoot: Stopping");
+  writelog("WriterRoot: Stopping");
   pf_->Write();
   pf_->Close();
-  WriteLog("WriterRoot: Closed data TFile.");
+  writelog("WriterRoot: Closed data TFile.");
   delete pf_;
   std::string cmd("chown newg2:newg2 ");
   cmd += outfile_.c_str();
@@ -253,7 +253,7 @@ void WriterRoot::EndOfBatch(bool bad_data)
 {
   char str[128];
   sprintf(str, "WriterRoot: got EOB with bad_data flag = %i",  bad_data);
-  WriteLog(str);
+  writelog(str);
   if (need_sync_ && bad_data) {
     pt_->DropBaskets();
   } else {

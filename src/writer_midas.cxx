@@ -47,7 +47,7 @@ void WriterMidas::PushData(const std::vector<event_data> &data_buffer)
   }
   writer_mutex_.unlock();
 
-  WriteLog("WriterMidas: recieved some data.");
+  writelog("WriterMidas: recieved some data.");
 }
 
 void WriterMidas::EndOfBatch(bool bad_data)
@@ -108,7 +108,7 @@ void WriterMidas::SendDataMessage()
 {
   using boost::uint64_t;
 
-  WriteLog("WriterMidas: started sending data.");
+  writelog("WriterMidas: started sending data.");
 
   int count = 0;
   bool rc = false;
@@ -120,7 +120,7 @@ void WriterMidas::SendDataMessage()
     usleep(100);
   }
 
-  WriteLog("WriteMidas: queue got data.");
+  writelog("WriteMidas: queue got data.");
 
   // Copy the first event
   writer_mutex_.lock();
@@ -217,7 +217,7 @@ void WriterMidas::SendDataMessage()
     rc = midas_data_sck_.send(eom_msg);
   } while ((rc == false) && (zmq_errno() == EINTR));
 
-  WriteLog("WriterMidas: finished sending data.");
+  writelog("WriterMidas: finished sending data.");
 }
 
 } // ::daq

@@ -42,10 +42,10 @@ void WorkerSis3350::LoadConfig()
   if (rc >= 0) {
 
     sprintf(str, " found at vme address: 0x%08x", base_address_);
-    WriteLog(name_ + std::string(str));
+    writelog(name_ + std::string(str));
 
   } else {
-    WriteLog("Failed to communicate with VME device.");
+    writelog("Failed to communicate with VME device.");
   }
 
   // Reset device.

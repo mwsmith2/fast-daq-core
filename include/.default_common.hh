@@ -201,8 +201,8 @@ extern bool logging_on;
 extern std::string logfile;
 extern std::ofstream logstream;
 
-int WriteLog(const char *format, ...);
-int WriteLog(const std::string &format, ...);
+int writelog(const char *format, ...);
+int writelog(const std::string &format, ...);
 
 // Create a variable for a config directory.
 extern std::string conf_dir;
