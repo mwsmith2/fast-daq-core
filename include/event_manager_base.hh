@@ -30,12 +30,12 @@
 
 namespace daq {
 
-class EventManagerBase {
+class EventManagerBase : public CommonBase {
   
 public:
   
   // ctor
-  EventManagerBase() {};
+  EventManagerBase() : CommonBase(std::string("EventManager")) {};
   
   // dtor
   virtual ~EventManagerBase() {};

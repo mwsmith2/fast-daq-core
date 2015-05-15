@@ -26,11 +26,12 @@
 #include <boost/property_tree/json_parser.hpp>
 
 //--- project includes ------------------------------------------------------//
+#include "common_base.hh"
 
 namespace daq {
 
 template <typename T>
-class WorkerBase {
+class WorkerBase : public CommonBase {
 
  public:
 
@@ -38,12 +39,11 @@ class WorkerBase {
   //   name - used in naming the output data and monitor specific worker
   //   conf_file - used to load important configurable device parameters
   WorkerBase(std::string name, std::string conf_file) : 
-    name_(name),
     thread_live_(true),
     conf_file_(conf_file),
     go_time_(false), 
-    has_event_(false) {
-};
+    has_event_(false),
+    CommonBase(name) {};
   
   // Dtor rejoins the data pulling thread before destroying the object.
   virtual ~WorkerBase() {

@@ -17,12 +17,12 @@ namespace daq {
 
 // This class defines an abstract base class for data writers to inherit form.
 
-class WriterBase {
+class WriterBase : public CommonBase {
 
  public:
 
-  WriterBase(std::string conf_file) : 
-    conf_file_(conf_file), thread_live_(true) {};
+  WriterBase(std::string conf_file, std::string name = "Writer") : 
+    conf_file_(conf_file), thread_live_(true), CommonBase(name) {};
   
   virtual ~WriterBase() {
     thread_live_ = false;

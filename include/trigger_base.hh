@@ -34,9 +34,11 @@ inline long systime_us() {
   return 1000000*t.tv_sec + t.tv_usec;
 }
 
-class TriggerBase {
+class TriggerBase : public CommonBase {
 
  public:
+
+  TriggerBase(std::string name = "Trigger") : CommonBase(name) {};
 
  protected:
 
