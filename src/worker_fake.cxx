@@ -37,7 +37,7 @@ void WorkerFake::GenerateEvent()
 
     while (go_time_) {
 
-      cout << name_ << " generated an event." << endl;
+      LogMessage("Generated an event");
 
       event_mutex_.lock(); // mutex guard
       // Get the system time
@@ -96,7 +96,7 @@ void WorkerFake::WorkLoop()
         data_queue_.push(bundle);
         has_event_ = true;
 
-        cout << name_ << " pushed an event into the queue." << endl;
+        LogMessage("Pushed an event into the queue");
         queue_mutex_.unlock();
 
       }

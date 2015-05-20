@@ -199,7 +199,7 @@ void EventManagerTrgSeq::RunLoop()
       
       if (workers_.AnyWorkersHaveEvent()) {
         
-        writelog("RunLoop: got potential event");
+        LogMessage("RunLoop: got potential event");
         
         // Wait to be sure the others have events too.
         usleep(max_event_time_);
@@ -221,7 +221,7 @@ void EventManagerTrgSeq::RunLoop()
         queue_mutex_.lock();
         if (data_queue_.size() <= kMaxQueueSize) {
           data_queue_.push(bundle);
-          writelog(std::string("RunLoop: Got data. Data queue is now: ") +
+          LogMessage(std::string("RunLoop: Got data. Data queue is now: ") +
                    std::to_string(data_queue_.size()));
         }
         
@@ -250,7 +250,7 @@ void EventManagerTrgSeq::TriggerLoop()
 	builder_has_finished_ = false;
 	mux_round_configured_ = false;
 
-	writelog("TriggerLoop: beginning trigger sequence");
+	LogMessage("TriggerLoop: beginning trigger sequence");
 
 	for (auto &round : trg_seq_) { // {mux_conf_0...mux_conf_n}
 	  if (!go_time_) break;
@@ -260,7 +260,7 @@ void EventManagerTrgSeq::TriggerLoop()
 	  for (auto &conf : round) { // {mux_name, set_channel}
 	    if (!go_time_) break;
 
-	    writelog(std::string("TriggerLoop: setting ") + 
+	    LogMessage(std::string("TriggerLoop: setting ") + 
 		     conf.first + std::string(" to ") +
 		     std::to_string(conf.second));
 
@@ -268,7 +268,7 @@ void EventManagerTrgSeq::TriggerLoop()
 	    mux_board->SetMux(conf.first, conf.second);
 	  }
 
-	  writelog("TriggerLoop: muxes are configured for this round");
+	  LogMessage("TriggerLoop: muxes are configured for this round");
 
 	  nmr_pulser_trg_->FireTrigger(nmr_trg_bit_);
 	  mux_round_configured_ = true;
@@ -329,7 +329,7 @@ void EventManagerTrgSeq::BuilderLoop()
             data_queue_.pop();
             queue_mutex_.unlock();
 
-            writelog("BuilderLoop: Got data, starting to copy it");
+            LogMessage("BuilderLoop: Got data, starting to copy it");
 
             for (auto &pair : trg_seq_[seq_index]) {
 	      
@@ -337,7 +337,7 @@ void EventManagerTrgSeq::BuilderLoop()
               int sis_idx = sis_idx_map_[data_in_[pair.first].first];
               int trace_idx = data_in_[pair.first].second;
 
-              writelog(std::string("BuilderLoop: Copied sis ") +
+              LogMessage(std::string("BuilderLoop: Copied sis ") +
                        std::to_string(sis_idx) +
                        std::string(", ch ") +
                        std::to_string(trace_idx));
@@ -402,12 +402,12 @@ void EventManagerTrgSeq::BuilderLoop()
       // Sequence finished.
       if (!sequence_in_progress_ && !builder_has_finished_) {
 
-        writelog("BuilderLoop: Pushing event to run_queue_");
+        LogMessage("BuilderLoop: Pushing event to run_queue_");
         
         queue_mutex_.lock();
         run_queue_.push(bundle);
         
-        writelog(std::string("BuilderLoop: Size of run_queue_ = ") +
+        LogMessage(std::string("BuilderLoop: Size of run_queue_ = ") +
                  std::to_string(run_queue_.size()));
         
         has_event_ = true;
@@ -454,13 +454,13 @@ void EventManagerTrgSeq::StarterLoop()
 
       if (rc == true) {
 	got_start_trg_ = true;
-	writelog("StarterLoop: Got tcp start trigger");
+	LogMessage("StarterLoop: Got tcp start trigger");
       }
 
       if (got_software_trg_){
 	got_start_trg_ = true;
 	got_software_trg_ = false;
-	writelog("StarterLoop: Got software trigger.");
+	LogMessage("StarterLoop: Got software trigger");
       }
 
       std::this_thread::yield();

@@ -23,19 +23,18 @@
 #include "vme/sis3100_vme_calls.h"
 
 //--- project includes ------------------------------------------------------//
+#include "common_base.hh"
 
-class Sis3100VmeDev {
+class Sis3100VmeDev : public daq::CommonBase {
 
 protected:
 
   // ctor
   Sis3100VmeDev(std::string devpath, int addr, 
-		int addr_type=32, int mblt_type=64) {
-    devpath_ = devpath;
-    addr_ = addr;
-    addr_type_ = addr_type;
-    mblt_type_ = mblt_type;
-  }
+		int addr_type=32, int mblt_type=64, 
+		std::string name="VmeDevice") :
+    devpath_(devpath), addr_(addr), addr_type_(addr_type), mblt_type_(mblt_type),
+    CommonBase(name) {};
 
   inline void OpenVme() {
     while (dev_ <= 0) {

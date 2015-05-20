@@ -16,21 +16,13 @@ void AlteraCycII::CheckBoardId()
     name[i] = data & 0xff;
   }
   
-  if (logging_on) {
-    logstream << name_ << " device description: " << name << endl;
-  }
+  LogMessage("Device description: %s", name);
 
   Read(id_addr + 0x06, data);
-  
-  if (logging_on) {
-    logstream << name_ << " Acromag ID: " << (data & 0x00ff) << endl;
-  }
+  LogMessage("Acromag ID: %i", data & 0x00ff);
 
   Read(id_addr + 0x08, data);
-
-  if (logging_on) {
-    logstream << "IP Model Code: " << (data & 0x00ff) << endl;
-  }
+  LogMessage("IP Model Code: %i", data & 0x00ff);
 }
 
 int AlteraCycII::LoadHexCode(std::ifstream& in)
@@ -42,23 +34,17 @@ int AlteraCycII::LoadHexCode(std::ifstream& in)
   char str[256];
 
   // Check to make sure we are in configuration mode.
-  if (logging_on) {
-    logstream << name_ << " (*" << this << "): ";
-    logstream << "Starting to load hex code." << endl;
-  }
+  LogMessage("Starting to load hex code");
 
   data_ = 0xA;
   rc = Read(0x8A, data_);
   data_ &= 0xff; // only care about the last byte
   
-  if (logging_on) {
-    sprintf(str, " 0x8A: %02x", data_);
-    logstream << name_ << str << endl;
-  }
+  LogMessage("0x8A: %02x", data_);
 
   if (data_ == 0x49) {
 
-    std::cerr << name_ << " Cyclone II device is in in user mode." << endl;
+    LogError("Cyclone II device is in in user mode");
     return -1;
 
   } else if (data_ == 0x48) {
@@ -106,13 +92,14 @@ int AlteraCycII::LoadHexCode(std::ifstream& in)
 	  //	  printf("Status register reads: %04x\n", data_);
 	  Read(0x8A, data_);
 	  //	  printf("0x8A: %02x\n", data_);
-	  if ((data_ & 0xff == 0x49) && logging_on) {
+	  if ((data_ & 0xff == 0x49)) {
 
-	    logstream << name_ << " FPGA programming complete" << endl;
+	    LogMessage("FPGA programming complete");
 
 	  } else {
 
-	    std::cerr << "Loading code onto the The Cyclone II failed.\n";
+	    LogError("Loading code onto the The Cyclone II failed");
+
 	  }
 
 	  break;
@@ -124,9 +111,8 @@ int AlteraCycII::LoadHexCode(std::ifstream& in)
     printf("0x8A: %02x\n", data_);
     if (data_ & 0xff == 0x49) {
       
-      if (logging_on) {
-	logstream << name_ << " programming done, return to user mode" << endl;
-      }
+      LogMessage("Programming done, return to user mode");
+
       return 0;
 
     } else {
@@ -137,7 +123,8 @@ int AlteraCycII::LoadHexCode(std::ifstream& in)
   } else {
     
     // Failed to communicate
-    std::cerr << name_ << " Failed to communicate with FPGA" << endl;
+    LogError("Failed to communicate with FPGA");
+
     return -1;
   }
 }

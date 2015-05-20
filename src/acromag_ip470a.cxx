@@ -15,22 +15,14 @@ void AcromagIp470a::CheckBoardId()
     name[i] = data & 0x00ff;
   }
   name[4] = '\0';
-  
-  if (logging_on) {
-    logstream << name_ << " device description: " << name << endl;
-  }
+
+  LogMessage("device description: %s", name);
 
   Read(id_addr + 0x06, data);
-
-  if (logging_on) {
-    logstream << name_ << " Acromag ID: " << (data & 0x00ff) << endl;
-  }
+  LogMessage("Acromag ID: %i", data & 0x00ff);
 
   Read(id_addr + 0x08, data);
-
-  if (logging_on) {
-    logstream << name_ << " IP model code: " << (data & 0x00ff) << endl;
-  }
+  LogMessage("IP model code: %i", data & 0x00ff);
 }
 
 void AcromagIp470a::ActivateEnhancedMode() 

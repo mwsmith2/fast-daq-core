@@ -195,11 +195,12 @@ void WriterRoot::StartWriter()
 
 void WriterRoot::StopWriter()
 {
-  writelog("WriterRoot: Stopping");
   pf_->Write();
   pf_->Close();
-  writelog("WriterRoot: Closed data TFile.");
+
+  LogMessage("Closed data TFile.");
   delete pf_;
+
   std::string cmd("chown newg2:newg2 ");
   cmd += outfile_.c_str();
   system((const char*)cmd.c_str());
@@ -251,9 +252,8 @@ void WriterRoot::PushData(const std::vector<event_data> &data_buffer)
 
 void WriterRoot::EndOfBatch(bool bad_data)
 {
-  char str[128];
-  sprintf(str, "WriterRoot: got EOB with bad_data flag = %i",  bad_data);
-  writelog(str);
+  LogMessage("Received EOB with bad_data flag = %i",  bad_data);
+
   if (need_sync_ && bad_data) {
     pt_->DropBaskets();
   } else {

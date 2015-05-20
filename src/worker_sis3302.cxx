@@ -30,23 +30,20 @@ void WorkerSis3302::LoadConfig()
 
   // Read the base register.
   Read(0x0, msg);
-
-  sprintf(str, "%s: found at 0x%08x", name_.c_str(), base_address_);
-  writelog(str);
+  LogMessage("SIS3302 Found at 0x%08x", base_address_);
 
   // Reset the device.
   msg = 1;
   if ((ret = Write(0x400, msg)) != 0) {
-    std::cerr << name_ << ": error writing sis3302 reset register\n.";
+    LogError("Error writing sis3302 reset register");
   }
 
   // Get device ID.
   msg = 0;
   Read(0x4, msg);
 
-  sprintf(str, "%s ID: %04x, maj rev: %02x, min rev: %02x",
-          name_.c_str(), msg >> 16, (msg >> 8) & 0xff, msg & 0xff);
-  writelog(str);
+  LogMessage("ID: %04x, maj rev: %02x, min rev: %02x",
+	     msg >> 16, (msg >> 8) & 0xff, msg & 0xff);
 
   // Read control/status register.
 
@@ -75,9 +72,7 @@ void WorkerSis3302::LoadConfig()
   
   msg = 0;
   Read(0x0, msg);
-
-  sprintf(str, "%s user LED: %s", name_.c_str(), (msg & 0x1) ? "ON" : "OFF");
-  writelog(str);
+  LogMessage("User LED: %s", (msg & 0x1) ? "ON" : "OFF");
 
   // Set Acquisition register.
   msg = 0;
@@ -96,8 +91,7 @@ void WorkerSis3302::LoadConfig()
   msg = 0;
   Read(0x10, msg);
 
-  sprintf(str, "%s ACQ register set to: 0x%08x", name_.c_str(), msg);
-  writelog(str);
+  LogMessage("ACQ register set to: 0x%08x", msg);
 
   // Set the start delay.
   msg = conf.get<int>("start_delay", 0);

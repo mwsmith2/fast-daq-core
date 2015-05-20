@@ -26,21 +26,21 @@ void WorkerCaen1785::LoadConfig()
   ushort msg_16 = 0;
 
   Read(0x0, msg);
-  printf("CAEN 1785 found at 0x%08x\n", base_address_);
+  LogMessage("CAEN 1785 found at 0x%08x", base_address_);
 
   // Reset the device.
   Write16(0x1006, 0x80); // J
   Write16(0x1008, 0x80); // and K
 
   Read16(0x1000, msg_16);
-  printf("Firmware Revision: %i.%i\n", (msg_16 >> 8) & 0xff, msg_16& 0xff); 
+  LogMessage("Firmware Revision: %i.%i", (msg_16 >> 8) & 0xff, msg_16& 0xff); 
 
   // Disable suppressors.
   //  Write16(0x1032, 0x18);
 
   // Reset the data on the device.
   ClearData();
-  printf("CAEN 1785 data cleared.\n");
+  LogMessage("CAEN 1785 data cleared");
 
 } // LoadConfig
 

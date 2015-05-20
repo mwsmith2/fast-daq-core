@@ -18,7 +18,7 @@ void WorkerList::StopRun()
 void WorkerList::StartWorkers()
 {
   // Starts gathering data.
-  writelog("WorkerList: starting workers.");
+  LogMessage("Starting workers");
 
   for (auto it = workers_.begin(); it != workers_.end(); ++it) {
 
@@ -53,7 +53,7 @@ void WorkerList::StartWorkers()
 void WorkerList::StartThreads()
 {
   // Launches the data worker threads.
-  writelog("WorkerList: launching worker threads.");
+  LogMessage("Launching worker threads");
 
   for (auto it = workers_.begin(); it != workers_.end(); ++it) {
 
@@ -87,7 +87,7 @@ void WorkerList::StartThreads()
 void WorkerList::StopWorkers()
 {
   // Stop collecting data.
-  writelog("WorkerList: stopping workers.");
+  LogMessage("Stopping workers");
 
   for (auto it = workers_.begin(); it != workers_.end(); ++it) {
 
@@ -121,7 +121,7 @@ void WorkerList::StopWorkers()
 void WorkerList::StopThreads()
 {
   // Stop and rejoin worker threads.
-  writelog("WorkerList: stopping worker threads.");
+  LogMessage("Stopping worker threads");
 
   for (auto it = workers_.begin(); it != workers_.end(); ++it) {
 
@@ -336,7 +336,7 @@ void WorkerList::FlushEventData()
 void WorkerList::FreeList()
 {
   // Delete the allocated workers.
-  writelog("WorkerList: freeing workers.");
+  LogMessage("Freeing workers");
 
   for (auto it = workers_.begin(); it != workers_.end(); ++it) {       
 

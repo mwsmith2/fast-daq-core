@@ -24,7 +24,7 @@
 namespace daq {
 
 // This class pulls data form all the workers.
-class EventBuilder {
+class EventBuilder : public CommonBase {
 
  public:
 

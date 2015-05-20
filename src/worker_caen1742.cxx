@@ -29,7 +29,6 @@ void WorkerCaen1742::LoadConfig()
   int rc;
   uint msg = 0;
   std::string tmp;
-  char str[256];
 
   // Get the base address for the device.  Convert from hex.
   tmp = conf.get<std::string>("base_address");
@@ -308,7 +307,6 @@ void WorkerCaen1742::GetEvent(caen_1742 &bundle)
   using namespace std::chrono;
   int ch, offset, rc = 0; 
   char *evtptr = nullptr;
-  char str[256];
   uint msg, d, size;
   int sample;
 

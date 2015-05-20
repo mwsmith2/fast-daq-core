@@ -18,8 +18,7 @@ WorkerCaen6742::~WorkerCaen6742()
     try {
       work_thread_.join();
     } catch (std::system_error e) {
-      std::cout << name_ << ": encountered race condition ";
-      std::cout << "joining thread." << std::endl;
+      LogError("Encountered race condition joining thread");
     }
   }
 
@@ -44,10 +43,10 @@ void WorkerCaen6742::LoadConfig()
 
   // Get the board info.
   ret = CAEN_DGTZ_GetInfo(device_, &board_info_);
-  printf("\nFound caen %s.\n", board_info_.ModelName);
-  printf("\nSerial Number: %i.\n", board_info_.SerialNumber);
-  printf("\tROC FPGA Release is %s\n", board_info_.ROC_FirmwareRel);
-  printf("\tAMC FPGA Release is %s\n", board_info_.AMC_FirmwareRel);
+  LogMessage("Found caen %s.", board_info_.ModelName);
+  LogMessage("Serial Number: %i.", board_info_.SerialNumber);
+  LogMessage("ROC FPGA Release is %s", board_info_.ROC_FirmwareRel);
+  LogMessage("AMC FPGA Release is %s", board_info_.AMC_FirmwareRel);
   
   // Set the trace length.
   ret = CAEN_DGTZ_SetRecordLength(device_, CAEN_6742_LN);
@@ -62,17 +61,17 @@ void WorkerCaen6742::LoadConfig()
 
   if (sampling_rate > 3.75) {
 
-    printf("Setting sampling rate to 5.0GHz.\n");
+    LogMessage("Setting sampling rate to 5.0GHz.");
     rate = CAEN_DGTZ_DRS4_5GHz;
 
   } else if (sampling_rate <= 3.75 && sampling_rate >= 2.25) {
 
-    printf("Setting sampling rate to 2.5GHz.\n");
+    LogMessage("Setting sampling rate to 2.5GHz.");
     rate = CAEN_DGTZ_DRS4_2_5GHz;
 
   } else {
 
-    printf("Setting sampling rate to 1.0GHz.\n");
+    LogMessage("Setting sampling rate to 1.0GHz.");
     rate = CAEN_DGTZ_DRS4_1GHz;
   }  
 

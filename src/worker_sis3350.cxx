@@ -20,7 +20,6 @@ void WorkerSis3350::LoadConfig()
 
   int rc = 0;
   uint msg = 0;
-  char str[256];
 
   // Open the configuration file.
   boost::property_tree::ptree conf;
@@ -29,10 +28,7 @@ void WorkerSis3350::LoadConfig()
   // Get the device filestream.  If it isn't open, open it.
   string dev_path = conf.get<string>("device");
 
-  if (logging_on) {
-    logstream << name_ << " (WorkerSis3350, *" << this << "): ";
-    logstream << "is initializing." << device_ << endl;
-  }
+  LogMessage("Starting initialization");
 
   // Get the base address.  Needs to be converted from hex.
   base_address_ = std::stoul(conf.get<string>("base_address"), nullptr, 0);
@@ -41,11 +37,11 @@ void WorkerSis3350::LoadConfig()
   rc = Read(0x0, msg);
   if (rc >= 0) {
 
-    sprintf(str, " found at vme address: 0x%08x", base_address_);
-    writelog(name_ + std::string(str));
+    LogMessage("Found at vme address: 0x%08x", base_address_);
 
   } else {
-    writelog("Failed to communicate with VME device.");
+
+    LogError("Failed to communicate with VME device.");
   }
 
   // Reset device.
@@ -56,11 +52,8 @@ void WorkerSis3350::LoadConfig()
   msg = 0;
   Read(0x4, msg);
   
-  if (logging_on) {
-    sprintf(str, " ID: %04x, maj rev: %02x, min rev: %02x",
-	    msg >> 16, (msg >> 8) & 0xff, msg & 0xff);
-    logstream << name_ << str << endl;
-  }
+  LogMessage("ID: %04x, maj rev: %02x, min rev: %02x",
+	     msg >> 16, (msg >> 8) & 0xff, msg & 0xff);
 
   // Set and check the control/status register.
   msg = 0;
@@ -80,13 +73,8 @@ void WorkerSis3350::LoadConfig()
   msg = 0;
   Read(0x0, msg);
 
-  if (logging_on) {
-    sprintf(str, " EXT LEMO: %s", ((msg & 0x10) == 0x10) ? "NIM" : "TTL");
-    logstream << name_ << str << endl;
-
-    sprintf(str, " user LED: %s", (msg & 0x1) ? "ON" : "OFF");
-    logstream << name_ << str << endl;
-  }
+  LogMessage("EXT LEMO: %s", ((msg & 0x10) == 0x10) ? "NIM" : "TTL");
+  LogMessage("User LED: %s", (msg & 0x1) ? "ON" : "OFF");
 
   // Set to the acquisition register.
   msg = 0;
@@ -108,10 +96,7 @@ void WorkerSis3350::LoadConfig()
 
   msg = 0;
   Read(0x10, msg);
-  if (logging_on) {
-    sprintf(str, " ACQ register set to: 0x%08x", msg);
-    logstream << name_ << str << endl;
-  }
+  LogMessage("ACQ register set to: 0x%08x", msg);
 
   // Set the synthesizer register.
   msg = 0x14; //500 MHz
@@ -147,7 +132,7 @@ void WorkerSis3350::LoadConfig()
   } while (((msg & 0x8000) == 0x8000) && (timeout_cnt < timeout_max));
 
   if (timeout_cnt == timeout_max) {
-    cerr << name_ << ": error loading ext trg shift reg" << endl;
+    LogError("Failure loading ext trg shift register");
   }
 
   msg = 0;
@@ -165,17 +150,14 @@ void WorkerSis3350::LoadConfig()
   } while (((msg & 0x8000) == 0x8000) && (timeout_cnt < timeout_max));
 
   if (timeout_cnt == timeout_max) {
-    cerr << name_ << ": error loading ext trg dac" << endl;
+    LogError("Failure loading ext trg DAC");
   }
 
   //board temperature
   msg = 0;
 
   Read(0x70, msg);
-  if (logging_on) {
-    sprintf(str, " board temperature: %.2f degC", (float)msg / 4.0);
-    logstream << name_ << str << endl;
-  }
+  LogMessage("Board temperature: %.2f degC", (float)msg / 4.0);
   
   //ring buffer sample length
   msg = SIS_3350_LN;
@@ -212,7 +194,7 @@ void WorkerSis3350::LoadConfig()
     } while (((msg & 0x8000) == 0x8000) && (timeout_cnt < timeout_max));
 
     if (timeout_cnt == timeout_max) {
-      cerr << name_ << ": error loading ext trg shift reg" << endl;
+      LogError("Failure loading ext trg shift reg");
     }
 
     msg = 0;
@@ -228,7 +210,7 @@ void WorkerSis3350::LoadConfig()
     } while (((msg & 0x8000) == 0x8000) && (timeout_cnt < timeout_max));
 
     if (timeout_cnt == timeout_max) {
-      printf("error loading adc dac\n");
+      LogError("Failure loading adc dac");
     }
 
     ++ch;
@@ -247,10 +229,7 @@ void WorkerSis3350::LoadConfig()
     offset |= (ch % 2) << 2;
     Write(offset, msg);
     
-    if (logging_on) {
-      sprintf(str, " adc %d gain %d\n", ch, msg);
-      logstream << name_ << str << endl;
-    }
+    LogMessage("ADC %d gain %d", ch, msg);
 
     ++ch;
     usleep(20000);
@@ -353,21 +332,6 @@ bool WorkerSis3350::EventAvailable()
     return false;
   }
 }
-  // // Check acq reg.
-  // static uint msg = 0;
-  // static bool is_event;
-
-  // Read(0x10, msg);
-  // is_event = !(msg & 0x10000);
-  
-  // // Rearm the logic if we are runnin.
-  // if (is_event && go_time_) {
-  //   uint armit = 1;
-  //   Write(0x410, armit);
-  // }
-
-  // return is_event;
-  //}
 
 // Pull the event.
 void WorkerSis3350::GetEvent(sis_3350 &bundle)
