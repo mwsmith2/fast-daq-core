@@ -36,6 +36,8 @@ class CommonBase {
   
  protected:
   
+  const int name_width_ = 12;
+
   std::string name_; // given class(hardware) name
   char logstr_[512];
   time_t timer_;
@@ -56,7 +58,7 @@ class CommonBase {
       char *tm_str = asctime(t);
       tm_str[strlen(tm_str) - 1] = '\0';
 
-      logstream_ << std::left << std::setw(20) << name_;
+      logstream_ << std::left << std::setw(name_width_) << name_;
       logstream_ << " [" << tm_str << "]: ";
       
       va_list args;
@@ -82,7 +84,7 @@ class CommonBase {
       char *tm_str = asctime(t);
       tm_str[strlen(tm_str) - 1] = '\0';
 
-      logstream_ << std::left << std::setw(20) << name_;
+      logstream_ << std::left << std::setw(name_width_) << name_;
       logstream_ << " [" << tm_str << "]: ";
       logstream_ << message << std::endl;
       
@@ -102,7 +104,7 @@ class CommonBase {
       char *tm_str = asctime(t);
       tm_str[strlen(tm_str) - 1] = '\0';
 
-      logstream_ << std::left << std::setw(20) << name_;
+      logstream_ << std::left << std::setw(name_width_) << name_;
       logstream_ << " [" << tm_str << "]: ***WARNING*** ";
       
       va_list args;
@@ -128,7 +130,7 @@ class CommonBase {
       char *tm_str = asctime(t);
       tm_str[strlen(tm_str) - 1] = '\0';
 
-      logstream_ << std::left << std::setw(20) << name_;
+      logstream_ << std::left << std::setw(name_width_) << name_;
       logstream_ << " [" << tm_str << "]: ***WARNING*** ";
       logstream_ << warning << std::endl;
       
@@ -148,7 +150,7 @@ class CommonBase {
       char *tm_str = asctime(t);
       tm_str[strlen(tm_str) - 1] = '\0';
 
-      logstream_ << std::left << std::setw(20) << name_;
+      logstream_ << std::left << std::setw(name_width_) << name_;
       logstream_ << " [" << tm_str << "]: ***ERROR*** ";
 
       va_list args;
@@ -174,7 +176,7 @@ class CommonBase {
       char *tm_str = asctime(t);
       tm_str[strlen(tm_str) - 1] = '\0';
 
-      logstream_ << std::left << std::setw(20) << name_;
+      logstream_ << std::left << std::setw(name_width_) << name_;
       logstream_ << " [" << tm_str << "]: ***ERROR*** ";
       logstream_ << error << std::endl;
       
