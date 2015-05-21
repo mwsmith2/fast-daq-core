@@ -13,11 +13,6 @@ WorkerSis3350::WorkerSis3350(std::string name, std::string conf) :
 
 void WorkerSis3350::LoadConfig()
 { 
-  using std::cout;
-  using std::endl;
-  using std::cerr;
-  using std::string;
-
   int rc = 0;
   uint msg = 0;
 
@@ -26,12 +21,12 @@ void WorkerSis3350::LoadConfig()
   boost::property_tree::read_json(conf_file_, conf);
 
   // Get the device filestream.  If it isn't open, open it.
-  string dev_path = conf.get<string>("device");
+  std::string dev_path = conf.get<std::string>("device");
 
   LogMessage("Starting initialization");
 
   // Get the base address.  Needs to be converted from hex.
-  base_address_ = std::stoul(conf.get<string>("base_address"), nullptr, 0);
+  base_address_ = std::stoul(conf.get<std::string>("base_address"), nullptr, 0);
 
   // Check for device.
   rc = Read(0x0, msg);
@@ -164,7 +159,7 @@ void WorkerSis3350::LoadConfig()
   Write(0x01000020, msg);
 
   //ring buffer pre-trigger sample length
-  msg = std::stoi(conf.get<string>("pretrigger_samples"), nullptr, 0);
+  msg = std::stoi(conf.get<std::string>("pretrigger_samples"), nullptr, 0);
   Write(0x01000024, msg);
 
   //range -1.5 to +0.3 V

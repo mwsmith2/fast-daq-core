@@ -92,10 +92,6 @@ void WorkerCaen1742::LoadConfig()
     LogMessage("DRS4 Chip %i at temperature %i C", i, msg & 0xff);
   }
     
-  // Enable external/software triggers.
-  rc = Read(0x810c, msg);
-  rc = Write(0x810c, msg | (0x3 << 30));
-
   // Set the group enable mask.
   rc = Read(0x8120, msg);
   rc = Write(0x8120, msg | 0xf);
@@ -112,28 +108,26 @@ void WorkerCaen1742::LoadConfig()
 
   // Set the sampling rate.
   double sampling_rate = conf.get<double>("sampling_rate", 1.0);
-  // rc = Read(0x80d8, msg);
-  // msg &= 0xfffffffc;
-  msg = 0;
+  sampling_setting_ = 0;
 
   if (sampling_rate < 1.75) {
 
-    msg |= 0x2; // 1.0 Gsps
+    sampling_setting_ |= 0x2; // 1.0 Gsps
     LogMessage("Sampling rate set to 1.0 Gsps");
 
   } else if (sampling_rate >= 1.75 && sampling_rate < 3.75) {
 
-    msg |= 0x1; // 2.5 Gsps
+    sampling_setting_ |= 0x1; // 2.5 Gsps
     LogMessage("Sampling rate set to 2.5 Gsps");
     
   } else if (sampling_rate >= 3.75) {
 
-    msg |= 0x0; // 5.0 Gsps
+    sampling_setting_ |= 0x0; // 5.0 Gsps
     LogMessage("Sampling rate set to 5.0 Gsps");
   }
 
   // Write the sampling rate.
-  rc = Write(0x80d8, msg);
+  rc = Write(0x80d8, sampling_setting_);
 
   // Set "pretrigger" buffer.
   rc = Read(0x8114, msg);
@@ -180,7 +174,6 @@ void WorkerCaen1742::LoadConfig()
     rc = Write(0x1098 + 0x100*group_idx, dac | (ch_idx << 16));
   }    
 
-
   // ret = CAEN_DGTZ_SetGroupFastTriggerDCOffset(device_, 0x10DC, 0x8000);
   // ret = CAEN_DGTZ_SetGroupFastTriggerThreshold(device_, 0x10D4, 0x51C6);
 
@@ -197,6 +190,13 @@ void WorkerCaen1742::LoadConfig()
   //   ret = CAEN_DGTZ_SetChannelPulsePolarity(device_, ch, 
   // 					    CAEN_DGTZ_PulsePolarityPositive);
   // }
+
+  caen_1742 bundle;
+  ApplyDataCorrection(bundle);
+
+  // Enable external/software triggers.
+  rc = Read(0x810c, msg);
+  rc = Write(0x810c, msg | (0x3 << 30));
 
   // Start acquiring events.
   int count = 0;
@@ -218,9 +218,9 @@ void WorkerCaen1742::LoadConfig()
   // Read initial empty event.
   LogMessage("Eating first empty event");
   if (EventAvailable()) {
-    caen_1742 bundle;
     GetEvent(bundle);
   }
+
   LogMessage("LoadConfig finished");
 
 } // LoadConfig
@@ -381,7 +381,7 @@ void WorkerCaen1742::GetEvent(caen_1742 &bundle)
     stop_idx = start_idx + data_size;
     sample = 0;
 
-    LogMessage("start = %i, stop = %i, size = %u\n", start_idx, stop_idx, data_size);
+    LogMessage("start = %i, stop = %i, size = %u", start_idx, stop_idx, data_size);
     for (int i = start_idx; i < stop_idx; i += 3) {
       uint ln0 = buffer[i];
       uint ln1 = buffer[i+1];
@@ -440,6 +440,258 @@ void WorkerCaen1742::GetEvent(caen_1742 &bundle)
 
     start_idx = stop_idx;
   }
+
+  if (true) {
+    ApplyDataCorrection(bundle);
+  }
 }
+
+int WorkerCaen1742::GetChannelCorrectionData(uint ch, drs_correction &table)
+{
+  int rc = 0;
+  uint32_t d32 = 0;
+  uint16_t d16 = 0;
+
+  uint32_t group = 0;
+  uint32_t pagenum = 0;
+  int start = 0;
+  int chunk = 256;
+  int last = 0;
+  short cell = 0;
+
+  std::vector<uint8_t> vec;
+
+  // Set the page index
+  group = ch / (CAEN_1742_CH / CAEN_1742_GR);
+  pagenum = (group % 2) ? 0xc00 : 0x800;
+  pagenum |= (sampling_setting_) << 8;
+  pagenum |= (ch % (CAEN_1742_CH / CAEN_1742_GR)) << 2;
   
+  LogMessage("channel %i pagenum = 0x%08x", ch, pagenum);
+
+  // Get the cell corrections
+  for (int i = 0; i < 4; ++i) {
+
+    ReadFlashPage(group, pagenum, vec);
+
+    // Peak correction if needed.
+    last = chunk;
+    for (int j = start; j < start + chunk; ++j) {
+      
+      // No correction.
+      if (vec[j - start] != 0x7f) {
+	
+	table.cell[ch][j] = vec[j - start];
+
+      } else {
+	
+	cell = (short)((vec[last + 1] << 8) | vec[last]);
+	
+	if (cell == 0) {
+	  
+	  table.cell[ch][j] = vec[j - start];
+
+	} else {
+	
+	  table.cell[ch][j] = cell;
+	}
+
+	last += 2;
+
+	if (last > 263) {
+	  last = 256; // This should never happen
+	}
+      }
+    } // Peak correction
+
+    // Increment for next round.
+    start += chunk;
+    pagenum++;
+  }
+
+  // Now get the nsamples correction data.
+  start = 0;
+
+  // Calculate new pagenum via magic numbers
+  pagenum &= 0xf00;
+  pagenum |= 0x40;
+  pagenum |= (ch % (CAEN_1742_CH / CAEN_1742_GR)) << 2;
+
+  for (int i = 0; i < 4; ++i) {
+
+    ReadFlashPage(group, pagenum, vec);
+    
+    for (int j = start; j < start + chunk; ++j) {
+      
+      table.nsample[ch][j] = vec[j - start];
+
+    }
+
+    start += chunk;
+    pagenum++;
+  }
+
+  // Read the time correction if it's the first channel in the group.
+  if (ch % (CAEN_1742_LN / CAEN_1742_GR) == 0) {
+    
+    pagenum &= 0xf00;
+    pagenum |= 0xa0;
+
+    start = 0;
+
+    for (int i = 0; i < 16; ++i) {
+      
+      rc = ReadFlashPage(group, pagenum, vec);
+
+      std::copy((float *)&vec[0], 
+		(float *)&vec[chunk - 4], 
+		&table.time[group][start]);
+
+      start += chunk / 4;
+      pagenum++;
+    }
+  }
+}
+
+int WorkerCaen1742::ReadFlashPage(uint32_t group, 
+				  uint32_t pagenum, 
+				  std::vector<uint8_t> &page)
+{
+  LogMessage("reading flash page 0x%08x for group %i", pagenum, group);
+
+  // Some basic variables
+  int rc = 0;
+  uint32_t d32 = 0;
+  uint16_t d16 = 0;
+
+  // Set some vme registers for convenience.
+  uint32_t gr_status =  0x1088 | (group << 8);
+  uint32_t gr_sel_flash = 0x10cc | (group << 8);
+  uint32_t gr_flash = 0x10d0 | (group << 8);
+  uint32_t flash_addr = pagenum << 9;
+
+  page.resize(0);   // clear data
+  page.resize(264); // magic resize
+
+  rc = Read16(gr_status, d16);
+  LogMessage("group status is 0x%04x", d16);
+
+  // Enable the flash memory and tell it to read the main memory page.
+  rc = Write16(gr_sel_flash, 0x1);
+  rc = Write16(gr_flash, 0xd2);
+  rc = Write16(gr_flash, (flash_addr << 16) & 0xff);
+  rc = Write16(gr_flash, (flash_addr << 8) & 0xff);
+  rc = Write16(gr_flash, (flash_addr) & 0xff);
+
+  // Requires for more writes for no apparent reason.
+  rc = Write16(gr_flash, 0x0);
+  rc = Write16(gr_flash, 0x0);
+  rc = Write16(gr_flash, 0x0);
+  rc = Write16(gr_flash, 0x0);
+
+  // Now read the data into the output vector.
+  for (int i = 0; i < 264; ++i) {
+
+    rc = Read(gr_flash, d32);
+    page[i] = (uint8_t)(d32 & 0xff);
+
+    if (i == 0) {
+      LogMessage("first value in pagenum 0x%08x is %i", pagenum, d32 & 0xff);
+    }
+
+    rc = Read(gr_status, d32);
+  }
+
+  // Disable the flash memory
+  rc = Write16(gr_sel_flash, 0x0);
+
+  return 0;
+}
+
+// This ended up being a silly division of labor, 
+// might merge with GetChannelCorrectionData.
+int WorkerCaen1742::GetCorrectionData(drs_correction &table) 
+{
+  for (uint ch = 0; ch < CAEN_1742_CH; ++ch) {
+    GetChannelCorrectionData(ch, table);
+  }
+}
+
+
+int WorkerCaen1742::ApplyDataCorrection(caen_1742 &data)
+{
+  static bool correction_loaded = false;
+  static drs_correction table;
+
+  if (!correction_loaded) {
+    GetCorrectionData(table);
+  }
+
+  // unfinished, just printing for now
+  std::ofstream out;
+  out.open("correction_table.csv");
+  
+  for (int i = -1; i < 1024; ++i) {
+
+    // Cell corrections
+    for (int j = 0; j < CAEN_1742_CH; ++j) {
+      
+      if (i == -1) {
+
+	out << "cell_ch_" << i + 1;
+
+      }	else {
+
+	out << table.cell[j][i];
+	
+      }
+
+      out << ", ";
+
+    } // cell
+
+    // nsamples corrections
+    for (int j = 0; j < CAEN_1742_CH; ++j) {
+      
+      if (i == -1) {
+
+	out << "nsamples_ch_" << i + 1;
+
+      }	else {
+
+	out << table.nsample[j][i];
+	
+      }
+
+      out << ", ";
+
+    } // nsamples
+
+    // timing corrections
+    for (int j = 0; j < CAEN_1742_GR; ++j) {
+      
+      if (i == -1) {
+
+	out << "time_gr_" << i + 1;
+
+      }	else {
+
+	out << table.cell[j][i];
+	
+      }
+
+      if (j != CAEN_1742_GR - 1) {
+
+	out << ", ";
+
+      } else {
+	
+	out << std::endl;
+
+      }
+    } // time
+  } // i
+}
+
+
 } // ::daq

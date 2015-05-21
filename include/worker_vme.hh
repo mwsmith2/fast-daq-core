@@ -84,9 +84,7 @@ int WorkerVme<T>::Read(uint addr, uint &msg)
   close(device_);
 
   if (status != 0) {
-    char str[100];
-    sprintf(str, "Address 0x%08x not readable.\n", base_address_ + addr);
-    perror(str);
+    this->LogError("Address 0x%08x not readable", base_address_ + addr);
   }
 
   return retval;
@@ -113,9 +111,7 @@ int WorkerVme<T>::Write(uint addr, uint msg)
   close(device_);
 
   if (status != 0) {
-    char str[100];
-    sprintf(str, "Address 0x%08x not writeable.\n", base_address_ + addr);
-    perror(str);
+    this->LogError("Address 0x%08x not writeable", base_address_ + addr);
   }
 
   return retval;
@@ -142,9 +138,7 @@ int WorkerVme<T>::Read16(uint addr, ushort &msg)
   close(device_);
 
   if (status != 0) {
-    char str[100];
-    sprintf(str, "Address 0x%08x not readable.\n", base_address_ + addr);
-    perror(str);
+    this->LogError("Address 0x%08x not readable", base_address_ + addr);
   }
 
   return retval;
@@ -171,9 +165,7 @@ int WorkerVme<T>::Write16(uint addr, ushort msg)
   close(device_);
 
   if (status != 0) {
-    char str[100];
-    sprintf(str, "Address 0x%08x not writeable.\n", base_address_ + addr);
-    perror(str);
+    this->LogError("Address 0x%08x not writeable", base_address_ + addr);
   }
 
   return retval;
@@ -206,9 +198,7 @@ int WorkerVme<T>::ReadTrace(uint addr, uint *trace)
   close(device_);
 
   if (status != 0) {
-    char str[100];
-    sprintf(str, "Error reading trace at 0x%08x.\n", base_address_ + addr);
-    perror(str);
+    this->LogError("Error reading trace at 0x%08x", base_address_ + addr);
   }
 
   return retval;
@@ -241,9 +231,7 @@ int WorkerVme<T>::ReadTraceMblt64(uint addr, uint *trace)
   close(device_);
 
   if (status != 0) {
-    char str[100];
-    sprintf(str, "Error reading trace at 0x%08x.\n", base_address_ + addr);
-    perror(str);
+    this->LogError("Error reading trace at 0x%08x", base_address_ + addr);
   }
 
   return retval;

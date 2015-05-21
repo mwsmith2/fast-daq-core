@@ -103,7 +103,7 @@ class CommonBase {
       tm_str[strlen(tm_str) - 1] = '\0';
 
       logstream_ << std::left << std::setw(20) << name_;
-      logstream_ << " [" << tm_str << "][WARNING]: ";
+      logstream_ << " [" << tm_str << "]: ***WARNING*** ";
       
       va_list args;
       va_start(args, format);
@@ -117,7 +117,7 @@ class CommonBase {
     }
   };
 
-  inline int LogWarning(const std::string& warning, ...) {
+  inline int LogWarning(const std::string& warning) {
     
     if (logging_on_) {
       log_mutex_.lock();      
@@ -129,7 +129,7 @@ class CommonBase {
       tm_str[strlen(tm_str) - 1] = '\0';
 
       logstream_ << std::left << std::setw(20) << name_;
-      logstream_ << " [" << tm_str << "][WARNING]: ";
+      logstream_ << " [" << tm_str << "]: ***WARNING*** ";
       logstream_ << warning << std::endl;
       
       log_mutex_.unlock();      
@@ -149,7 +149,7 @@ class CommonBase {
       tm_str[strlen(tm_str) - 1] = '\0';
 
       logstream_ << std::left << std::setw(20) << name_;
-      logstream_ << " [" << tm_str << "][ERROR!]: ";
+      logstream_ << " [" << tm_str << "]: ***ERROR*** ";
 
       va_list args;
       va_start(args, format);
@@ -175,7 +175,7 @@ class CommonBase {
       tm_str[strlen(tm_str) - 1] = '\0';
 
       logstream_ << std::left << std::setw(20) << name_;
-      logstream_ << " [" << tm_str << "][ERROR!]: ";
+      logstream_ << " [" << tm_str << "]: ***ERROR*** ";
       logstream_ << error << std::endl;
       
       log_mutex_.unlock();      
