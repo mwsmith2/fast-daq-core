@@ -196,14 +196,6 @@ extern int vme_dev;
 extern std::string vme_path;
 extern std::mutex vme_mutex;
 
-// Create a single log file for the whole DAQ.
-extern bool logging_on; 
-extern std::string logfile;
-extern std::ofstream logstream;
-
-int writelog(const char *format, ...);
-int writelog(const std::string &format, ...);
-
 // Create a variable for a config directory.
 extern std::string conf_dir;
 

@@ -574,7 +574,7 @@ int WorkerCaen1742::ReadFlashPage(uint32_t group,
   page.resize(264); // magic resize
 
   rc = Read16(gr_status, d16);
-  LogMessage("group status is 0x%04x", d16);
+  LogMessage("group %i status is 0x%04x", group, d16);
 
   // Enable the flash memory and tell it to read the main memory page.
   rc = Write16(gr_sel_flash, 0x1);

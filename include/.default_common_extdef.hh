@@ -26,45 +26,10 @@ std::string conf_dir("/usr/local/opt/daq/config/");
 zmq::context_t msg_context(1);
 
 // Set the default logging behavior
-bool logging_on = true;
-std::string logfile("/usr/local/var/log/daq/fast-daq.log");
-std::ofstream logstream(logfile);
-
-int writelog(const char *format, ...) {
-  static char str[512];
-  
-  if (logging_on) {
-    va_list args;
-    va_start(args, format);
-    vsprintf(str, format, args);
-    va_end(args);
-
-    logstream << str << std::endl;
-    return 0;
-    
-  } else {
-    
-    return -1;
-  }
-};
-
-int writelog(const std::string &format, ...) {
-  static char str[512];
-  
-  if (logging_on) {
-    va_list args;
-    va_start(args, format.c_str());
-    vsprintf(str, format.c_str(), args);
-    va_end(args);
-
-    logstream << str << std::endl;
-    return 0;
-    
-  } else {
-    
-    return -1;
-  }
-};
+bool CommonBase::logging_on_ = true;
+std::string CommonBase::logfile_("/usr/local/var/log/daq/fast-daq.log");
+std::ofstream CommonBase::logstream_(logfile_);
+std::mutex CommonBase::log_mutex_;
 
 } // ::daq
 
