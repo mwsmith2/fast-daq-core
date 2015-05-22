@@ -50,15 +50,15 @@ private:
   bool EventAvailable();
   void GetEvent(caen_1742 &bundle);
 
-  int ReadFlashPage(uint32_t group, uint32_t pagenum, std::vector<uint8_t> &page);
-  int GetChannelCorrectionData(uint ch, drs_correction &table);
-  int GetCorrectionData(drs_correction &table);
-  int WriteCorrectionDataCsv();
-  int ApplyDataCorrection(caen_1742 &data, std::vector<int> startcells);
+  int ApplyDataCorrection(caen_1742 &data, const std::vector<uint> &startcells);
   int PeakCorrection(caen_1742 &data, const drs_correction &table);
   int CellCorrection(caen_1742 &data, 
 		     const drs_correction &table, 
-		     const std::vector<int> &startcells);
+		     const std::vector<uint> &startcells);
+  int GetCorrectionData(drs_correction &table);
+  int WriteCorrectionDataCsv();
+  int GetChannelCorrectionData(uint ch, drs_correction &table);
+  int ReadFlashPage(uint32_t group, uint32_t pagenum, std::vector<int8_t> &page);
 };
 
 } // ::daq

@@ -309,7 +309,7 @@ void WorkerCaen1742::GetEvent(caen_1742 &bundle)
   char *evtptr = nullptr;
   uint msg, d, size;
   int sample;
-  std::vector<int> startcells;
+  std::vector<uint> startcells(4, 0);
 
   static std::vector<uint> buffer;
   if (buffer.size() == 0) {
@@ -448,6 +448,164 @@ void WorkerCaen1742::GetEvent(caen_1742 &bundle)
   }
 }
 
+
+// This function does the caen corrections directly as they do.
+int WorkerCaen1742::ApplyDataCorrection(caen_1742 &data, 
+					const std::vector<uint> &startcells)
+{
+  static bool correction_loaded = false;
+  static drs_correction table;
+
+  if (!correction_loaded) {
+    GetCorrectionData(table);
+  }
+
+  CellCorrection(data, table, startcells);
+  //  PeakCorrection(data, table);
+
+  return 0;
+}
+
+
+int WorkerCaen1742::CellCorrection(caen_1742 &data, 
+				   const drs_correction &table,
+				   const std::vector<uint> &startcells)
+{
+  LogDebug("running cell correction");
+
+  uint i, j, k;
+  short startcell;
+  uint nchannels = CAEN_1742_CH / CAEN_1742_GR;
+  
+  for (i = 0; i < CAEN_1742_CH; ++i) {
+
+    startcell = startcells[i / nchannels];
+
+    for (j = 0; j < CAEN_1742_LN; ++j) {
+
+      data.trace[i][j] -= table.cell[i][(startcell + j) % 1024];
+      data.trace[i][j] -= table.nsample[i][j];
+    }
+  }
+
+  return 0;
+}
+
+
+// todo: make this human readable.
+int WorkerCaen1742::PeakCorrection(caen_1742 &data, const drs_correction &table)
+{
+  LogDebug("running drs peak correction");
+  int offset;
+  uint i, j;
+
+  for (i = 0; i < CAEN_1742_CH; ++i) {
+    data.trace[i][0] = data.trace[i][1];
+  }
+  
+  for (i = 0; i < CAEN_1742_LN; ++i) {
+
+    offset = 0;
+
+    for (j = 0; j < CAEN_1742_CH; ++j) {
+
+      LogDebug("peak correction on cell[%i][%i]", i, j);
+
+      if (i == 1) {
+
+	if (data.trace[j][2] - data.trace[j][1] > 30) {
+	  
+	  offset++;
+	  
+	} else {
+	  
+	  if ((data.trace[j][3] - data.trace[j][1] > 30) &&
+	      (data.trace[j][3] - data.trace[j][2] > 30)) {
+	    
+	    offset++;
+	  }
+	}
+
+      } else {
+
+	if ((i == CAEN_1742_CH - 1) && 
+	    (data.trace[j][i-1] - data.trace[j][i] > 30)) {
+	  offset++;
+
+	} else {
+	  
+	  if (data.trace[j][i-1] - data.trace[j][i] > 30) {
+
+	    if (data.trace[j][i+1] - data.trace[j][i] > 30) {
+		
+	      offset++;
+
+	    } else {
+	      
+	      if ((i == CAEN_1742_CH - 2) || 
+		  (data.trace[j][i+2] - data.trace[j][i] > 30)) {
+		
+		offset++;
+	      }
+	    }
+	  }
+	}
+      }
+    }
+    
+    if (offset == 8) {
+      
+      for (j = 0; j < (CAEN_1742_CH / CAEN_1742_GR); ++j) {
+
+	if (i == 1) {
+	  
+	  if (data.trace[j][2] - data.trace[j][1] > 30) {
+	    
+	    data.trace[j][0] = data.trace[j][2];
+	    data.trace[j][1] = data.trace[j][2];
+	    
+	  } else {
+	    
+	    data.trace[j][0] = data.trace[j][3];
+	    data.trace[j][1] = data.trace[j][3];
+	    data.trace[j][2] = data.trace[j][3];
+	  }
+	  
+	} else {
+	  
+	  if (i == CAEN_1742_CH - 1) {
+	    
+	    data.trace[j][CAEN_1742_CH - 1] = data.trace[j][CAEN_1742_CH - 2];
+	    
+	  } else {
+	    
+	    if (data.trace[j][i + 1] - data.trace[j][i] > 30) {
+	      
+	      data.trace[j][i] = 0.5 * (data.trace[j][i+1] + data.trace[j][i-1]);
+	      
+	    } else {
+	      
+	      if (i == CAEN_1742_CH - 2) {
+		
+		data.trace[j][i] = data.trace[j][i-1];
+		data.trace[j][i+1] = data.trace[j][i-1];
+		
+	      } else {
+		
+		data.trace[j][i] = 0.5 * (data.trace[j][i+2] + data.trace[j][i-1]);
+		data.trace[j][i+1] = 0.5 * (data.trace[j][i+2] + data.trace[j][i-1]);
+	      }
+	    }
+	  }
+	}
+      }
+    } // j
+  } // i
+
+  return 0;
+}
+
+
 int WorkerCaen1742::GetChannelCorrectionData(uint ch, drs_correction &table)
 {
   int rc = 0;
@@ -461,7 +619,7 @@ int WorkerCaen1742::GetChannelCorrectionData(uint ch, drs_correction &table)
   int last = 0;
   short cell = 0;
 
-  std::vector<uint8_t> vec;
+  std::vector<int8_t> vec;
 
   // Set the page index
   group = ch / (CAEN_1742_CH / CAEN_1742_GR);
@@ -557,7 +715,7 @@ int WorkerCaen1742::GetChannelCorrectionData(uint ch, drs_correction &table)
 
 int WorkerCaen1742::ReadFlashPage(uint32_t group, 
 				  uint32_t pagenum, 
-				  std::vector<uint8_t> &page)
+				  std::vector<int8_t> &page)
 {
   LogMessage("reading flash page 0x%08x for group %i", pagenum, group);
 
@@ -595,7 +753,7 @@ int WorkerCaen1742::ReadFlashPage(uint32_t group,
   for (int i = 0; i < 264; ++i) {
 
     rc = Read(gr_flash, d32);
-    page[i] = (uint8_t)(d32 & 0xff);
+    page[i] = (int8_t)(d32 & 0xff);
 
     if (i == 0) {
       LogMessage("first value in pagenum 0x%08x is %i", pagenum, d32 & 0xff);
@@ -693,152 +851,5 @@ int WorkerCaen1742::WriteCorrectionDataCsv()
 }
 
 
-// This function does the caen corrections directly as they do.
-int WorkerCaen1742::ApplyDataCorrection(caen_1742 &data, std::vector<int> startcells)
-{
-  static bool correction_loaded = false;
-  static drs_correction table;
-
-  if (!correction_loaded) {
-    GetCorrectionData(table);
-  }
-
-  CellCorrection(data, table, startcells);
-  PeakCorrection(data, table);
-
-  return 0;
-}
-
-
-// todo: make this human readable.
-int WorkerCaen1742::PeakCorrection(caen_1742 &data, const drs_correction &table)
-{
-  int offset;
-  uint i, j;
-
-  for (i = 0; i < CAEN_1742_CH; ++i) {
-    data.trace[i][0] = data.trace[i][1];
-  }
-  
-  for (i = 0; i < CAEN_1742_LN; ++i) {
-
-    offset = 0;
-
-    for (j = 0; j < CAEN_1742_CH; ++j) {
-
-      if (i == 1) {
-
-	if (data.trace[j][2] - data.trace[j][1] > 30) {
-	  
-	  offset++;
-	  
-	} else {
-	  
-	  if ((data.trace[j][3] - data.trace[j][1] > 30) &&
-	      (data.trace[j][3] - data.trace[j][2] > 30)) {
-	    
-	    offset++;
-	  }
-	}
-
-      } else {
-
-	if ((i == CAEN_1742_CH - 1) && 
-	    (data.trace[j][i-1] - data.trace[j][i] > 30)) {
-	  offset++;
-
-	} else {
-	  
-	  if (data.trace[j][i-1] - data.trace[j][i] > 30) {
-
-	    if (data.trace[j][i+1] - data.trace[j][i] > 30) {
-		
-	      offset++;
-
-	    } else {
-	      
-	      if ((i == CAEN_1742_CH - 2) || 
-		  (data.trace[j][i+2] - data.trace[j][i] > 30)) {
-		
-		offset++;
-	      }
-	    }
-	  }
-	}
-      }
-    }
-    
-    if (offset == 8) {
-      
-      for (j = 0; j < (CAEN_1742_CH / CAEN_1742_GR); ++j) {
-
-	if (i == 1) {
-	  
-	  if (data.trace[j][2] - data.trace[j][1] > 30) {
-	    
-	    data.trace[j][0] = data.trace[j][2];
-	    data.trace[j][1] = data.trace[j][2];
-	    
-	  } else {
-	    
-	    data.trace[j][0] = data.trace[j][3];
-	    data.trace[j][1] = data.trace[j][3];
-	    data.trace[j][2] = data.trace[j][3];
-	  }
-	  
-	} else {
-	  
-	  if (i == CAEN_1742_CH - 1) {
-	    
-	    data.trace[j][CAEN_1742_CH - 1] = data.trace[j][CAEN_1742_CH - 2];
-	    
-	  } else {
-	    
-	    if (data.trace[j][i + 1] - data.trace[j][i] > 30) {
-	      
-	      data.trace[j][i] = 0.5 * (data.trace[j][i+1] + data.trace[j][i-1]);
-	      
-	    } else {
-	      
-	      if (i == CAEN_1742_CH - 2) {
-		
-		data.trace[j][i] = data.trace[j][i-1];
-		data.trace[j][i+1] = data.trace[j][i-1];
-		
-	      } else {
-		
-		data.trace[j][i] = 0.5 * (data.trace[j][i+2] + data.trace[j][i-1]);
-		data.trace[j][i+1] = 0.5 * (data.trace[j][i+2] + data.trace[j][i-1]);
-	      }
-	    }
-	  }
-	}
-      }
-    } // j
-  } // i
-
-  return 0;
-}
-
-int WorkerCaen1742::CellCorrection(caen_1742 &data, 
-				   const drs_correction &table,
-				   const std::vector<int> &startcells)
-{
-  uint i, j;
-  short startcell;
-  
-  for (i = 0; i < CAEN_1742_GR; ++i) {
-
-    startcell = startcells[i];
-
-    for (int j = 0; j < CAEN_1742_LN; ++j) {
-
-      data.trace[i][j] -= table.cell[i][(startcell + j) % 1024];
-      data.trace[i][j] -= table.nsample[i][j];
-    }
-  }
-
-  return 0;
-}
 
 } // ::daq
