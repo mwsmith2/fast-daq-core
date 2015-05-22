@@ -36,20 +36,66 @@ class CommonBase {
   
  protected:
   
-  const int name_width_ = 12;
+  static const int name_width_ = 16;
 
   std::string name_; // given class(hardware) name
   char logstr_[512];
   time_t timer_;
 
-  static bool logging_on_; 
+  static int logging_verbosity_; 
   static std::string logfile_;
   static std::ofstream logstream_;
   static std::mutex log_mutex_;
 
+  inline int LogDebug(const char *format, ...) {
+    
+    if (logging_verbosity_ > 2) {
+      log_mutex_.lock();      
+
+      time(&timer_);
+      auto t = localtime(&timer_);
+
+      char *tm_str = asctime(t);
+      tm_str[strlen(tm_str) - 1] = '\0';
+
+      logstream_ << std::left << std::setw(name_width_) << name_;
+      logstream_ << " [" << tm_str << "]: *DEBUG* ";
+      
+      va_list args;
+      va_start(args, format);
+      vsprintf(logstr_, format, args);
+      va_end(args);
+      
+      logstream_ << logstr_ << std::endl;
+      log_mutex_.unlock();      
+      
+      return 0;
+    }
+  };
+  
+  inline int LogDebug(const std::string& message) {
+    
+    if (logging_verbosity_ > 2) {
+      log_mutex_.lock();      
+
+      time(&timer_);
+      auto t = localtime(&timer_);
+
+      char *tm_str = asctime(t);
+      tm_str[strlen(tm_str) - 1] = '\0';
+
+      logstream_ << std::left << std::setw(name_width_) << name_;
+      logstream_ << " [" << tm_str << "]: *DEBUG* ";
+      logstream_ << message << std::endl;
+      
+      log_mutex_.unlock();      
+      return 0;
+    }
+  };
+  
   inline int LogMessage(const char *format, ...) {
     
-    if (logging_on_) {
+    if (logging_verbosity_ > 1) {
       log_mutex_.lock();      
 
       time(&timer_);
@@ -75,7 +121,7 @@ class CommonBase {
   
   inline int LogMessage(const std::string& message) {
     
-    if (logging_on_) {
+    if (logging_verbosity_ > 1) {
       log_mutex_.lock();      
 
       time(&timer_);
@@ -92,10 +138,10 @@ class CommonBase {
       return 0;
     }
   };
-  
+
   inline int LogWarning(const char *format, ...) {
     
-    if (logging_on_) {
+    if (logging_verbosity_ > 0) {
       log_mutex_.lock();      
 
       time(&timer_);
@@ -105,7 +151,7 @@ class CommonBase {
       tm_str[strlen(tm_str) - 1] = '\0';
 
       logstream_ << std::left << std::setw(name_width_) << name_;
-      logstream_ << " [" << tm_str << "]: ***WARNING*** ";
+      logstream_ << " [" << tm_str << "]: **WARNING** ";
       
       va_list args;
       va_start(args, format);
@@ -121,7 +167,7 @@ class CommonBase {
 
   inline int LogWarning(const std::string& warning) {
     
-    if (logging_on_) {
+    if (logging_verbosity_ > 0) {
       log_mutex_.lock();      
 
       time(&timer_);
@@ -131,7 +177,7 @@ class CommonBase {
       tm_str[strlen(tm_str) - 1] = '\0';
 
       logstream_ << std::left << std::setw(name_width_) << name_;
-      logstream_ << " [" << tm_str << "]: ***WARNING*** ";
+      logstream_ << " [" << tm_str << "]: **WARNING** ";
       logstream_ << warning << std::endl;
       
       log_mutex_.unlock();      
@@ -141,48 +187,44 @@ class CommonBase {
 
   inline int LogError(const char *format, ...) {
     
-    if (logging_on_) {
-      log_mutex_.lock();      
-
-      time(&timer_);
-      auto t = localtime(&timer_);
-
-      char *tm_str = asctime(t);
-      tm_str[strlen(tm_str) - 1] = '\0';
-
-      logstream_ << std::left << std::setw(name_width_) << name_;
-      logstream_ << " [" << tm_str << "]: ***ERROR*** ";
-
-      va_list args;
-      va_start(args, format);
-      vsprintf(logstr_, format, args);
-      va_end(args);
-      
-      logstream_ << logstr_ << std::endl;
-      
-      log_mutex_.unlock();      
-      return 0;
-    }
+    log_mutex_.lock();      
+    
+    time(&timer_);
+    auto t = localtime(&timer_);
+    
+    char *tm_str = asctime(t);
+    tm_str[strlen(tm_str) - 1] = '\0';
+    
+    logstream_ << std::left << std::setw(name_width_) << name_;
+    logstream_ << " [" << tm_str << "]: ***ERROR*** ";
+    
+    va_list args;
+    va_start(args, format);
+    vsprintf(logstr_, format, args);
+    va_end(args);
+    
+    logstream_ << logstr_ << std::endl;
+    
+    log_mutex_.unlock();      
+    return 0;
   };
 
   inline int LogError(const std::string& error) {
     
-    if (logging_on_) {
-      log_mutex_.lock();      
-
-      time(&timer_);
-      auto t = localtime(&timer_);
-
-      char *tm_str = asctime(t);
-      tm_str[strlen(tm_str) - 1] = '\0';
-
-      logstream_ << std::left << std::setw(name_width_) << name_;
-      logstream_ << " [" << tm_str << "]: ***ERROR*** ";
-      logstream_ << error << std::endl;
-      
-      log_mutex_.unlock();      
-      return 0;
-    }
+    log_mutex_.lock();      
+    
+    time(&timer_);
+    auto t = localtime(&timer_);
+    
+    char *tm_str = asctime(t);
+    tm_str[strlen(tm_str) - 1] = '\0';
+    
+    logstream_ << std::left << std::setw(name_width_) << name_;
+    logstream_ << " [" << tm_str << "]: ***ERROR*** ";
+    logstream_ << error << std::endl;
+    
+    log_mutex_.unlock();      
+    return 0;
   };
 
   void SetLogFile(const std::string& logfile) {

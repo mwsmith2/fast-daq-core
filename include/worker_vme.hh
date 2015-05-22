@@ -80,11 +80,14 @@ int WorkerVme<T>::Read(uint addr, uint &msg)
   device_ = open(daq::vme_path.c_str(), O_RDWR);
   if (device_ < 0) return device_;
 
+  this->LogDebug("read32 vme device 0x%08x, register 0x%08x", 
+		 base_address_, addr);
+
   status = (retval = vme_A32D32_read(device_, base_address_ + addr, &msg));
   close(device_);
 
   if (status != 0) {
-    this->LogError("Address 0x%08x not readable", base_address_ + addr);
+    this->LogError("address 0x%08x not readable", base_address_ + addr);
   }
 
   return retval;
@@ -107,11 +110,14 @@ int WorkerVme<T>::Write(uint addr, uint msg)
   device_ = open(daq::vme_path.c_str(), O_RDWR);
   if (device_ < 0) return device_;
 
+  this->LogDebug("write32 0x%08x to vme device 0x%08x, register 0x%08x", 
+		 msg, base_address_, addr);
+
   status = (retval = vme_A32D32_write(device_, base_address_ + addr, msg));
   close(device_);
 
   if (status != 0) {
-    this->LogError("Address 0x%08x not writeable", base_address_ + addr);
+    this->LogError("address 0x%08x not writeable", base_address_ + addr);
   }
 
   return retval;
@@ -133,6 +139,9 @@ int WorkerVme<T>::Read16(uint addr, ushort &msg)
 
   device_ = open(daq::vme_path.c_str(), O_RDWR);
   if (device_ < 0) return device_;
+
+  this->LogDebug("read16 vme device 0x%08x, register 0x%08x", 
+		 base_address_, addr);
 
   status = (retval = vme_A32D16_read(device_, base_address_ + addr, &msg));
   close(device_);
@@ -160,6 +169,9 @@ int WorkerVme<T>::Write16(uint addr, ushort msg)
 
   device_ = open(daq::vme_path.c_str(), O_RDWR);
   if (device_ < 0) return device_;
+
+  this->LogDebug("write16 0x%08x to device 0x%08x, register 0x%08x", 
+		 msg, base_address_, addr);
 
   status = (retval = vme_A32D16_write(device_, base_address_ + addr, msg));
   close(device_);
@@ -189,6 +201,9 @@ int WorkerVme<T>::ReadTrace(uint addr, uint *trace)
 
   device_ = open(daq::vme_path.c_str(), O_RDWR);
   if (device_ < 0) return device_;
+  
+  this->LogDebug("read_2evme vme device 0x%08x, register 0x%08x, samples %i", 
+		 base_address_, addr, read_trace_len_);
 
   status = (retval = vme_A32_2EVME_read(device_,
                                         base_address_ + addr,
@@ -220,8 +235,12 @@ int WorkerVme<T>::ReadTraceMblt64(uint addr, uint *trace)
   static int retval, status;
   static uint num_got;
 
+  this->LogDebug("read_mblt64 vme device 0x%08x, register 0x%08x, samples %i", 
+		 base_address_, addr, read_trace_len_);
+
   device_ = open(daq::vme_path.c_str(), O_RDWR);
   if (device_ < 0) return device_;
+
 
   status = (retval = vme_A32MBLT64_read(device_,
                                         base_address_ + addr,

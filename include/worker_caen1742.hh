@@ -53,7 +53,12 @@ private:
   int ReadFlashPage(uint32_t group, uint32_t pagenum, std::vector<uint8_t> &page);
   int GetChannelCorrectionData(uint ch, drs_correction &table);
   int GetCorrectionData(drs_correction &table);
-  int ApplyDataCorrection(caen_1742 &data);
+  int WriteCorrectionDataCsv();
+  int ApplyDataCorrection(caen_1742 &data, std::vector<int> startcells);
+  int PeakCorrection(caen_1742 &data, const drs_correction &table);
+  int CellCorrection(caen_1742 &data, 
+		     const drs_correction &table, 
+		     const std::vector<int> &startcells);
 };
 
 } // ::daq
