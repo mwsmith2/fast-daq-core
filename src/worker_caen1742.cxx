@@ -191,7 +191,7 @@ void WorkerCaen1742::LoadConfig()
   // 					    CAEN_DGTZ_PulsePolarityPositive);
   // }
 
-  // WriteCorrectionDataCsv();
+  //  WriteCorrectionDataCsv();
 
   // Enable external/software triggers.
   rc = Read(0x810c, msg);
@@ -461,7 +461,8 @@ int WorkerCaen1742::ApplyDataCorrection(caen_1742 &data,
   }
 
   CellCorrection(data, table, startcells);
-  //  PeakCorrection(data, table);
+  PeakCorrection(data, table);
+  TimeCorrection(data, table, startcells);
 
   return 0;
 }
@@ -497,8 +498,8 @@ int WorkerCaen1742::PeakCorrection(caen_1742 &data, const drs_correction &table)
 {
   LogDebug("running drs peak correction");
   int offset;
-  uint i, j;
-  auto wf = data.trace; // Shortened to clean up loops.
+  uint i, j, k;
+  auto wf = data.trace; // Shortened to clean up logic notation.
 
   // Drop first sample automatically apparently.
   for (i = 0; i < CAEN_1742_CH; ++i) wf[i][0] = wf[i][1];
@@ -511,100 +512,173 @@ int WorkerCaen1742::PeakCorrection(caen_1742 &data, const drs_correction &table)
       // Reset if we are at the beginning of a new group.
       if (j % (CAEN_1742_CH / CAEN_1742_GR) == 0) offset = 0;
 
-      LogDebug("peak correction on cell[%i][%i]", i, j);
+      LogDebug("peak correction on cell[%i][%i]", j, i);
 
-      if (i == 1) {
+      switch(i) {
+      
+        case 1: 
+	  if (wf[j][i+1] - wf[j][i] > peakthresh) 
+	    offset++;
+	  break;
 
-	if (wf[j][2] - wf[j][1] > 30) {
+        case 2:
+	  if ((wf[j][i+1] - wf[j][i-1] > peakthresh) && 
+	      (wf[j][i+1] - wf[j][i] > peakthresh))
+	    offset++;
+	  break;
+
+        case CAEN_1742_LN - 2:
+	  if (wf[j][i-1] - wf[j][i] > peakthresh) 
+	    offset++;
+	  break;
+
+        case CAEN_1742_LN - 1:
+	  if (wf[j][i-1] - wf[j][i] > peakthresh) 
+	    offset++;
+	  break;
 	  
-	  offset++;
-	  
-	} else {
-	  
-	  if ((wf[j][3] - wf[j][1] > 30) &&
-	      (wf[j][3] - wf[j][2] > 30)) {
-	    
+        default:
+	  if ((wf[j][i-1] - wf[j][i] > peakthresh) && 
+	      ((wf[j][i+1] - wf[j][i] > peakthresh) || 
+	       (wf[j][i+2] - wf[j][i] > peakthresh))) {
 	    offset++;
 	  }
-	}
-
-      } else {
-
-	if ((i == CAEN_1742_LN - 1) && 
-	    (wf[j][i-1] - wf[j][i] > 30)) {
-	  offset++;
-
-	} else {
-	  
-	  if (wf[j][i-1] - wf[j][i] > 30) {
-
-	    if (wf[j][i+1] - wf[j][i] > 30) {
-		
-	      offset++;
-
-	    } else {
-	      
-	      if ((i == CAEN_1742_LN - 2) || 
-		  (wf[j][i+2] - wf[j][i] > 30)) {
-		
-		offset++;
-	      }
-	    }
-	  }
-	}
+	  break;
       }
-    }
     
-    if (offset == 8) {
-      
-      for (j = 0; j < (CAEN_1742_CH / CAEN_1742_GR); ++j) {
+      if (offset == (CAEN_1742_CH / CAEN_1742_GR)) {
+	
+	for (k = j - (CAEN_1742_CH / CAEN_1742_GR) + 1; k < j + 1; ++k) {
 
-	if (i == 1) {
-	  
-	  if (wf[j][2] - wf[j][1] > 30) {
+	  switch(i) {
 	    
-	    wf[j][0] = wf[j][2];
-	    wf[j][1] = wf[j][2];
+	    case 1:
+	      wf[k][0] = wf[k][2];
+	      wf[k][1] = wf[k][2];
+	      break;
 	    
-	  } else {
-	    
-	    wf[j][0] = wf[j][3];
-	    wf[j][1] = wf[j][3];
-	    wf[j][2] = wf[j][3];
+	    case 2:
+	      wf[k][0] = wf[k][3];
+	      wf[k][1] = wf[k][3];
+	      wf[k][2] = wf[k][3];
+	      break;
+	      
+	    case CAEN_1742_LN - 1:
+	      wf[k][i] = wf[k][i-1];
+	      break;
+
+	    case CAEN_1742_LN - 2:
+	      wf[k][i] = wf[k][i-1];
+	      wf[k][i+1] = wf[k][i-1];
+	      break;
+	      
+	    default:
+	      if (wf[k][i+1] - wf[k][i] > peakthresh) {
+
+		wf[k][i] = 0.5 * (wf[k][i+1] + wf[k][i-1]);
+
+	      } else if (wf[k][i+2] - wf[k][i] > peakthresh) {
+
+		wf[k][i] = 0.5 * (wf[k][i+2] + wf[k][i-1]);
+		wf[k][i+1] = wf[k][i];
+	      }		
+	      break;
 	  }
-	  
-	} else {
-	  
-	  if (i == CAEN_1742_CH - 1) {
-	    
-	    wf[j][CAEN_1742_CH - 1] = wf[j][CAEN_1742_CH - 2];
-	    
-	  } else {
-	    
-	    if (wf[j][i + 1] - wf[j][i] > 30) {
-	      
-	      wf[j][i] = 0.5 * (wf[j][i+1] + wf[j][i-1]);
-	      
-	    } else {
-	      
-	      if (i == CAEN_1742_CH - 2) {
-		
-		wf[j][i] = wf[j][i-1];
-		wf[j][i+1] = wf[j][i-1];
-		
-	      } else {
-		
-		wf[j][i] = 0.5 * (wf[j][i+2] + wf[j][i-1]);
-		wf[j][i+1] = 0.5 * (wf[j][i+2] + wf[j][i-1]);
-	      }
-	    }
-	  }
-	}
-      }
+	} // k
+      } // peak fix
     } // j
   } // i
 
   return 0;
+}
+
+
+int WorkerCaen1742::TimeCorrection(caen_1742 &data, 
+				   const drs_correction &table,
+				   const std::vector<uint> &startcells)
+{
+  LogDebug("performing drs time correction");
+  uint i, j, k, grp_idx;
+  float t0, t1, dv, dt, vcorr, vrem;
+  static float time[CAEN_1742_GR][CAEN_1742_LN];
+  static float wf[CAEN_1742_LN];
+  static float sample_time = 0.0; // in ns
+  static bool initialized = false;
+
+  // Set up time if first time.
+  if (!initialized) {
+
+    if (sampling_setting_ == 0x0) {
+
+      sample_time = 0.2;
+
+    } else if (sampling_setting_ == 0x1) {
+      
+      sample_time = 0.4;
+
+    } else {
+
+      sample_time = 1.0;
+    }
+
+    for (i = 0; i < CAEN_1742_GR; ++i) {
+
+      // Set a initial time reference
+      t0 = table.time[i][startcells[i] % CAEN_1742_LN];
+      time[i][0] = 0.0;
+
+      for (j = 1; j < CAEN_1742_LN; ++j) {
+
+	dt = table.time[i][(startcells[i]+j) % CAEN_1742_LN] - t0;
+	
+	if (dt > 0) {
+
+	  time[i][j] = time[i][j-1] + dt;
+	  LogDebug("time[%i][%i] = %.4f", i, j, time[i][j]);
+
+	} else {
+	  
+	  time[i][j] = time[i][j-1] + dt + CAEN_1742_LN * sample_time;
+	  LogDebug("time[%i][%i] = %.4f", i, j, time[i][j]);
+	}
+
+	t0 = table.time[i][(startcells[i]+j) % CAEN_1742_LN];
+      }
+    }
+
+    initialized = true;
+  }
+      
+  // Now do a linear interpolation to the correct time points.
+  for (i = 0; i < CAEN_1742_CH; ++i) {
+    
+    grp_idx = i / (CAEN_1742_CH / CAEN_1742_GR);
+    vcorr = 0.0;
+    vrem = 0.0;
+    dv = 0.0;
+    k = 1;
+
+    wf[0] = data.trace[i][0];
+
+    for (j = 1; j < CAEN_1742_LN; ++j) {
+      
+      // Find the next sample in time order.
+      while ((k < CAEN_1742_LN) && (time[grp_idx][k-1] < j * sample_time)) ++k;
+      
+      dv = data.trace[i][k+1] - data.trace[i][k];
+      dt = time[grp_idx][k+1] - time[grp_idx][k];
+      vcorr = (float) dv / dt * (j * sample_time - time[grp_idx][k]);
+      LogDebug("vcorr[%i][%i] = %.4f", i, j, vcorr);
+
+      wf[j] = data.trace[i][k] + vcorr;
+      
+      if (k > 1) k--; 
+    }
+
+    for (j = 0; j < CAEN_1742_LN; ++j) {
+      data.trace[i][j] = wf[j];
+    }
+  }    
 }
 
 
@@ -694,8 +768,9 @@ int WorkerCaen1742::GetChannelCorrectionData(uint ch, drs_correction &table)
   }
 
   // Read the time correction if it's the first channel in the group.
-  if (ch % (CAEN_1742_LN / CAEN_1742_GR) == 0) {
+  if (ch % (CAEN_1742_CH / CAEN_1742_GR) == 0) {
     
+    LogDebug("loading time corrections for gr %i", ch % (CAEN_1742_LN / CAEN_1742_GR));
     pagenum &= 0xf00;
     pagenum |= 0xa0;
 
@@ -706,7 +781,7 @@ int WorkerCaen1742::GetChannelCorrectionData(uint ch, drs_correction &table)
       rc = ReadFlashPage(group, pagenum, vec);
 
       std::copy((float *)&vec[0], 
-		(float *)&vec[chunk - 4], 
+		(float *)&vec[chunk], 
 		&table.time[group][start]);
 
       start += chunk / 4;
@@ -835,7 +910,7 @@ int WorkerCaen1742::WriteCorrectionDataCsv()
 
       }	else {
 
-	out << table.cell[j][i];
+	out << table.time[j][i];
 	
       }
 

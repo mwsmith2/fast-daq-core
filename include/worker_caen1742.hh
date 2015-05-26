@@ -39,6 +39,7 @@ class WorkerCaen1742 : public WorkerVme<caen_1742> {
 private:
 
   const float vpp_ = 1.0;
+  const ushort peakthresh = 30;
   
   int device_;
   uint sampling_setting_;
@@ -55,10 +56,13 @@ private:
   int CellCorrection(caen_1742 &data, 
 		     const drs_correction &table, 
 		     const std::vector<uint> &startcells);
+  int TimeCorrection(caen_1742 &data, 
+		     const drs_correction &table, 
+		     const std::vector<uint> &startcells);
   int GetCorrectionData(drs_correction &table);
-  int WriteCorrectionDataCsv();
   int GetChannelCorrectionData(uint ch, drs_correction &table);
   int ReadFlashPage(uint32_t group, uint32_t pagenum, std::vector<int8_t> &page);
+  int WriteCorrectionDataCsv();
 };
 
 } // ::daq

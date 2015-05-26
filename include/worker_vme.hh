@@ -170,7 +170,7 @@ int WorkerVme<T>::Write16(uint addr, ushort msg)
   device_ = open(daq::vme_path.c_str(), O_RDWR);
   if (device_ < 0) return device_;
 
-  this->LogDebug("write16 0x%08x to device 0x%08x, register 0x%08x", 
+  this->LogDebug("write16 0x%08x to vme device 0x%08x, register 0x%08x", 
 		 msg, base_address_, addr);
 
   status = (retval = vme_A32D16_write(device_, base_address_ + addr, msg));
