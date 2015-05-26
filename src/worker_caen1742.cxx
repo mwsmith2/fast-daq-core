@@ -482,7 +482,7 @@ int WorkerCaen1742::CellCorrection(caen_1742 &data,
     startcell = startcells[i / nchannels];
 
     for (j = 0; j < CAEN_1742_LN; ++j) {
-
+      
       data.trace[i][j] -= table.cell[i][(startcell + j) % 1024];
       data.trace[i][j] -= table.nsample[i][j];
     }
@@ -498,29 +498,31 @@ int WorkerCaen1742::PeakCorrection(caen_1742 &data, const drs_correction &table)
   LogDebug("running drs peak correction");
   int offset;
   uint i, j;
+  auto wf = data.trace; // Shortened to clean up loops.
 
-  for (i = 0; i < CAEN_1742_CH; ++i) {
-    data.trace[i][0] = data.trace[i][1];
-  }
+  // Drop first sample automatically apparently.
+  for (i = 0; i < CAEN_1742_CH; ++i) wf[i][0] = wf[i][1];
   
-  for (i = 0; i < CAEN_1742_LN; ++i) {
-
-    offset = 0;
+  // Now check the other waveform indexes.
+  for (i = 1; i < CAEN_1742_LN; ++i) {
 
     for (j = 0; j < CAEN_1742_CH; ++j) {
+
+      // Reset if we are at the beginning of a new group.
+      if (j % (CAEN_1742_CH / CAEN_1742_GR) == 0) offset = 0;
 
       LogDebug("peak correction on cell[%i][%i]", i, j);
 
       if (i == 1) {
 
-	if (data.trace[j][2] - data.trace[j][1] > 30) {
+	if (wf[j][2] - wf[j][1] > 30) {
 	  
 	  offset++;
 	  
 	} else {
 	  
-	  if ((data.trace[j][3] - data.trace[j][1] > 30) &&
-	      (data.trace[j][3] - data.trace[j][2] > 30)) {
+	  if ((wf[j][3] - wf[j][1] > 30) &&
+	      (wf[j][3] - wf[j][2] > 30)) {
 	    
 	    offset++;
 	  }
@@ -528,22 +530,22 @@ int WorkerCaen1742::PeakCorrection(caen_1742 &data, const drs_correction &table)
 
       } else {
 
-	if ((i == CAEN_1742_CH - 1) && 
-	    (data.trace[j][i-1] - data.trace[j][i] > 30)) {
+	if ((i == CAEN_1742_LN - 1) && 
+	    (wf[j][i-1] - wf[j][i] > 30)) {
 	  offset++;
 
 	} else {
 	  
-	  if (data.trace[j][i-1] - data.trace[j][i] > 30) {
+	  if (wf[j][i-1] - wf[j][i] > 30) {
 
-	    if (data.trace[j][i+1] - data.trace[j][i] > 30) {
+	    if (wf[j][i+1] - wf[j][i] > 30) {
 		
 	      offset++;
 
 	    } else {
 	      
-	      if ((i == CAEN_1742_CH - 2) || 
-		  (data.trace[j][i+2] - data.trace[j][i] > 30)) {
+	      if ((i == CAEN_1742_LN - 2) || 
+		  (wf[j][i+2] - wf[j][i] > 30)) {
 		
 		offset++;
 	      }
@@ -559,41 +561,41 @@ int WorkerCaen1742::PeakCorrection(caen_1742 &data, const drs_correction &table)
 
 	if (i == 1) {
 	  
-	  if (data.trace[j][2] - data.trace[j][1] > 30) {
+	  if (wf[j][2] - wf[j][1] > 30) {
 	    
-	    data.trace[j][0] = data.trace[j][2];
-	    data.trace[j][1] = data.trace[j][2];
+	    wf[j][0] = wf[j][2];
+	    wf[j][1] = wf[j][2];
 	    
 	  } else {
 	    
-	    data.trace[j][0] = data.trace[j][3];
-	    data.trace[j][1] = data.trace[j][3];
-	    data.trace[j][2] = data.trace[j][3];
+	    wf[j][0] = wf[j][3];
+	    wf[j][1] = wf[j][3];
+	    wf[j][2] = wf[j][3];
 	  }
 	  
 	} else {
 	  
 	  if (i == CAEN_1742_CH - 1) {
 	    
-	    data.trace[j][CAEN_1742_CH - 1] = data.trace[j][CAEN_1742_CH - 2];
+	    wf[j][CAEN_1742_CH - 1] = wf[j][CAEN_1742_CH - 2];
 	    
 	  } else {
 	    
-	    if (data.trace[j][i + 1] - data.trace[j][i] > 30) {
+	    if (wf[j][i + 1] - wf[j][i] > 30) {
 	      
-	      data.trace[j][i] = 0.5 * (data.trace[j][i+1] + data.trace[j][i-1]);
+	      wf[j][i] = 0.5 * (wf[j][i+1] + wf[j][i-1]);
 	      
 	    } else {
 	      
 	      if (i == CAEN_1742_CH - 2) {
 		
-		data.trace[j][i] = data.trace[j][i-1];
-		data.trace[j][i+1] = data.trace[j][i-1];
+		wf[j][i] = wf[j][i-1];
+		wf[j][i+1] = wf[j][i-1];
 		
 	      } else {
 		
-		data.trace[j][i] = 0.5 * (data.trace[j][i+2] + data.trace[j][i-1]);
-		data.trace[j][i+1] = 0.5 * (data.trace[j][i+2] + data.trace[j][i-1]);
+		wf[j][i] = 0.5 * (wf[j][i+2] + wf[j][i-1]);
+		wf[j][i+1] = 0.5 * (wf[j][i+2] + wf[j][i-1]);
 	      }
 	    }
 	  }
