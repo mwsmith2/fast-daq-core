@@ -668,7 +668,7 @@ int WorkerCaen1742::TimeCorrection(caen_1742 &data,
     for (j = 1; j < CAEN_1742_LN; ++j) {
       
       // Find the next sample in time order.
-      while ((k < CAEN_1742_LN) && (time[grp_idx][k-1] < j * sample_time)) ++k;
+      while ((k < CAEN_1742_LN - 1) && (time[grp_idx][k-1] < j * sample_time)) ++k;
       
       dv = data.trace[i][k+1] - data.trace[i][k];
       dt = time[grp_idx][k+1] - time[grp_idx][k];
