@@ -30,6 +30,11 @@ void WorkerCaen1742::LoadConfig()
   uint msg = 0;
   std::string tmp;
 
+  // Get the correction plan
+  drs_cell_corrections_ = conf.get<bool>("drs_cell_corrections", true);
+  drs_peak_corrections_ = conf.get<bool>("drs_peak_corrections", true);
+  drs_time_corrections_ = conf.get<bool>("drs_time_corrections", false);
+
   // Get the base address for the device.  Convert from hex.
   tmp = conf.get<std::string>("base_address");
   base_address_ = std::stoul(tmp, nullptr, 0);

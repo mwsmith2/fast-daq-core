@@ -45,6 +45,9 @@ private:
   uint sampling_setting_;
   uint size_, bsize_;
   char *buffer_;
+  bool drs_cell_corrections_;
+  bool drs_peak_corrections_;
+  bool drs_time_corrections_;
 
   std::chrono::high_resolution_clock::time_point t0_;
 
