@@ -2,12 +2,12 @@
 
 namespace daq {
 
-  EventManagerBasic::EventManagerBasic() : EventManagerBase()
+EventManagerBasic::EventManagerBasic(std::string conf_file) : 
+  EventManagerBase()
 {
   go_time_ = false;
   thread_live_ = false;
-
-  conf_file_ = std::string("config/fe_vme_basic.json");
+  conf_file_ = conf_file;
 }
 
 EventManagerBasic::~EventManagerBasic() 
