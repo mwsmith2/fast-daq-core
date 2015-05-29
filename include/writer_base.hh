@@ -30,7 +30,7 @@ class WriterBase : public CommonBase {
       try {
 	writer_thread_.join();
       } catch (std::system_error e) {
-	WriteError("encountered race condition joining thread");
+	LogError("encountered race condition joining thread");
       }
     }
   };
