@@ -53,10 +53,65 @@ class EventBuilder : public CommonBase {
     }
   }
   
-  // member functions
+  // Intended to be called by master frontend at start of run.
   void StartBuilder() { go_time_ = true; };
+
+  // Intended to be called by master frontend at end of run.
   void StopBuilder() { quitting_time_ = true; };
+
+  // Load the configurable parameters from a json file, same as used by master.
+  // Example config:
+  // {
+  //     "trigger_port":"tcp://127.0.0.1:42040",
+  //     "handshake_port":"tcp://127.0.0.1:42041",
+  //     "batch_size":1,
+  //     "max_event_time":1200,
+  //     "devices":
+  //     {
+  //         "fake": {
+  // 	     },
+  //         "sis_3350": {
+  //         },
+  //         "sis_3302": {
+  //         },
+  //         "caen_1785": {
+  // 	     },
+  //         "caen_6742": {
+  // 	     },
+  //         "caen_1742": {
+  // 	         "caen_0": "caen_1742_0.json"
+  // 	     },
+  // 	     "drs4": {
+  // 	     }
+  //     },
+  //     "writers": {
+  //        "root": {
+  // 	         "in_use":true,
+  //             "file":"data/run_00247.root",
+  //             "tree":"t",
+  // 	         "sync":false
+  //         },
+  //         "online": {
+  // 	         "in_use":true,
+  //             "port":"tcp://127.0.0.1:42043",
+  // 	         "high_water_mark":10,
+  // 	         "max_trace_length":1024
+  //         },
+  // 	     "midas": {
+  // 	          "in_use":false,
+  // 	           "port":"tcp://127.0.0.1:42044",
+  // 	           "high_water_mark":10
+  // 	     }
+  //     },
+  //     "trigger_control": {
+  //         "live_time":"10000000",
+  //         "dead_time":"1"
+  //     }
+  // }
   void LoadConfig();
+
+  // Allows master frontend to know whether all worker data is packed and sent
+  // to the writers.
   bool FinishedRun() { return finished_run_; };
   
 private:
@@ -91,15 +146,27 @@ private:
   std::thread builder_thread_;
   std::thread push_data_thread_;
   
-  // Private member functions
+  // Checks for any workers reporting events, then makes sure that 
+  // no workers have doubles or zeros.
   bool WorkersGotSyncEvent();
+
+  // Copies a batch of data to the queue sending to writers.
   void CopyBatch();
+
+  // Send a full batch to the writers.
   void SendBatch();
+
+  // Send the last batch after receiving quitting_time_ = true.
   void SendLastBatch();
+
+  // Worker control functions.
   void StopWorkers();
   void StartWorkers();
 
+  // Thread the polls workers and packs events.
   void BuilderLoop();
+
+  // Thread that listens for triggers.
   void ControlLoop();
 };
 

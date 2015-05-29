@@ -10,7 +10,6 @@ author: Matthias W. Smith
 
 //---std includes-----------------------------------------------------------//
 #include <string>
-#include <sys/time.h>
 
 //---other includes---------------------------------------------------------//
 #include "zmq.hpp"
@@ -19,20 +18,6 @@ author: Matthias W. Smith
 #include "common.hh"
 
 namespace daq {
-
-inline void light_sleep() {
-  usleep(100); // in usec
-}
-
-inline void heavy_sleep() {
-  usleep(100000); // in usec
-}
-
-inline long systime_us() {
-  static timeval t;
-  gettimeofday(&t, nullptr);
-  return 1000000*t.tv_sec + t.tv_usec;
-}
 
 class TriggerBase : public CommonBase {
 
@@ -56,6 +41,7 @@ class TriggerBase : public CommonBase {
   std::string status_address_;
   std::string heartbeat_address_;
 
+  // Convenience function that constructs a full socket address.
   inline std::string ConstructAddress(std::string address, int port) {
     std::string ret = address;
     ret += std::string(":");

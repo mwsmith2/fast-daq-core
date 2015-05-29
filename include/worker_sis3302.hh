@@ -40,15 +40,16 @@ class WorkerSis3302 : public WorkerVme<sis_3302> {
   // Reads the json config file and load the desired parameters.
   // An example:
   // {
-  //   "device":vme_path.c_str(),
   //   "base_address":"0x60000000",
+  //   "pretrigger_samples":"0x200",
   //   "user_led_on":false,
   //   "invert_ext_lemo":false,
+  //   "enable_int_stop":true,
   //   "enable_ext_lemo":true,
   //   "clock_settings":"3",
   //   "start_delay":"0",
   //   "stop_delay":"0",
-  //   "enable_event_length_stop":true,
+  //   "enable_event_length_stop":true
   //   "pretrigger_samples":"0xfff"
   //  }
   void LoadConfig();

@@ -59,9 +59,14 @@ class WriterOnline : public WriterBase {
   // zmq stuff
   zmq::socket_t online_sck_;
   zmq::message_t message_;
-  
+
+  // Pack data into a json stream to pass to the daqometer.
   void PackMessage();
+
+  // Thread that sends data messages to the online monitor.
   void SendMessageLoop();
+
+  // Send all data currently in the queue.
   void FlushData() {
     writer_mutex_.lock();
     while (!data_queue_.empty()) {

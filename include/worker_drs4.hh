@@ -39,8 +39,27 @@ public:
     delete drs_;
   }
   
+  // Read in the configuration from a json file.
+  // example file:
+  // {
+  //     "name":"drs_0",
+  //     "device_id":0,
+  //     "board_number":0,
+  //     "sampling_rate":5.12,
+  //     "voltage_range": 0.375,
+  //     "trigger_ext":true,
+  //     "trigger_chan":1,
+  //     "trigger_thresh":0.05,
+  //     "trigger_pos":false,
+  //     "trigger_delay":150,
+  //     "use_drs4_corrections":true
+  // }
   void LoadConfig();
+
+  // Collect event data from the device.
   void WorkLoop();
+
+  // Return the oldest event data to the event builder/frontend.
   drs4 PopEvent();
   
 private:
@@ -50,8 +69,11 @@ private:
 
   DRS *drs_;
   DRSBoard *board_;
-  
+
+  // Ask the device it has data.
   bool EventAvailable();
+
+  // Read out the data and add it to the queue.
   void GetEvent(drs4 &bundle);
 
 };

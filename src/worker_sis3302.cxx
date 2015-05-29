@@ -23,8 +23,6 @@ void WorkerSis3302::LoadConfig()
   boost::property_tree::ptree conf;
   boost::property_tree::read_json(conf_file_, conf);
   
-  string dev_path = conf.get<string>("device");
-
   // Get the base address for the device.  Convert from hex.
   base_address_ = std::stoul(conf.get<string>("base_address"), nullptr, 0);
 
@@ -46,22 +44,11 @@ void WorkerSis3302::LoadConfig()
 	     msg >> 16, (msg >> 8) & 0xff, msg & 0xff);
 
   // Read control/status register.
-
-  if (conf.get<bool>("user_led_on", true))
-    msg |= 0x1; // LED on
-
-  msg |= 0xfffe0000; // zero reserved bits
-
-  Write(0x0, msg);
-
-  // Set and check the control/status register.
   msg = 0;
 
-  
   if (conf.get<bool>("invert_ext_lemo")) {
     msg |= 0x10; // invert EXT TRIG
   }
-
   
   if (conf.get<bool>("user_led_on")) {
     msg |= 0x1; // LED on

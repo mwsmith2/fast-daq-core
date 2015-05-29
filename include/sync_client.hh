@@ -78,11 +78,22 @@ class SyncClient : TriggerBase {
   zmq::socket_t status_sck_;
   zmq::socket_t heartbeat_sck_;
 
+  // Read configuration file and launch different threads.
   void DefaultInit();
+
+  // Initialized the sockets according the config file, called by DefaultInit.
   void InitSockets();
+
+  // Launch the socket threads, called by DefaultInit.
   void LaunchThreads();
+
+  // Thread that handles synchronizing triggers.
   void StatusLoop();
+
+  // Thread that handles restarts if we break connection.
   void RestartLoop();
+
+  // Communicates with clients.
   void HeartbeatLoop();
 };
 

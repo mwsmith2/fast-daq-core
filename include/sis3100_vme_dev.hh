@@ -36,12 +36,14 @@ protected:
     devpath_(devpath), addr_(addr), addr_type_(addr_type), mblt_type_(mblt_type),
     CommonBase(name) {};
 
+  // Open vme device handle from the standard struck location.
   inline void OpenVme() {
     while (dev_ <= 0) {
       dev_ = open(devpath_.c_str(), O_RDWR);
     }
   }
 
+  // Close vme device handle from the standard struck location.
   inline void CloseVme() {
     if (dev_ > 0) {
       close(dev_);

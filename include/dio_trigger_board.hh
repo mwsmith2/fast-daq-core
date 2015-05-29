@@ -31,7 +31,10 @@ class DioTriggerBoard
   DioTriggerBoard(std::string devpath, int board_addr, 
                   board_id bid, int trg_port);
 
+  // Set the proper acromag port used for sending TTL triggers.
   void SetTriggerPort(int trg_port) { trg_port_ = trg_port; };
+
+  // Fire TTL pulse
   void FireTrigger(int trg_bit=0, int length_us=10);
 
  private:

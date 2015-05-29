@@ -30,8 +30,13 @@ class MuxControlBoard
   // Ctor params:
   MuxControlBoard(std::string dev, int board_addr, board_id bid);
 
+  // Add a new multiplexer controlled by the acromag dio.
   void AddMux(std::string mux_name, int port_idx);
+
+  // Set for the next command.
   void SetMux(std::string mux_name, int mux_ch);
+
+  // Check if a multiplexer is already present.
   bool HasMux(std::string mux_name) { 
     return (mux_port_map_.count(mux_name) > 0); 
   };
