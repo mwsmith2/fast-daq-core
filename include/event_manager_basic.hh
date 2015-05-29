@@ -30,7 +30,7 @@ class EventManagerBasic: public EventManagerBase {
  public:
   
   //ctor 
-  EventManagerBasic();
+  EventManagerBasic(std::string conf_file);
   
   //dtor
   ~EventManagerBasic();
