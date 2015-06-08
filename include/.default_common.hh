@@ -47,6 +47,7 @@ about:  Contains the data structures for several hardware devices in a single
 #include <vector>
 #include <mutex>
 #include <cstdarg>
+#include <sys/time.h>
 
 //--- other includes --------------------------------------------------------//
 #include <boost/variant.hpp>
@@ -216,6 +217,20 @@ const int sample_period = 0.1; // in microseconds
 
 // Set up a global zmq context
 extern zmq::context_t msg_context;
+
+inline void light_sleep() {
+ usleep(100); // in usec
+}
+
+inline void heavy_sleep() {
+usleep(100000); // in usec
+}
+
+inline long systime_us() {
+ static timeval t;
+ gettimeofday(&t, nullptr);
+ return 1000000*t.tv_sec + t.tv_usec;
+}
 
 } // ::daq
 
