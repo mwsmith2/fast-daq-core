@@ -38,15 +38,17 @@ class CommonBase {
   
   static const int name_width_ = 16;
 
-  std::string name_; // given class(hardware) name
-  char logstr_[512];
-  time_t timer_;
-
+  // These should be defined in common_extdef.hh
   static int logging_verbosity_; 
   static std::string logfile_;
   static std::ofstream logstream_;
   static std::mutex log_mutex_;
 
+  std::string name_; // given class(hardware) name
+  char logstr_[512];
+  time_t timer_;
+
+  // Printf style logging function (for max verbosity).
   inline int LogDebug(const char *format, ...) {
     
     if (logging_verbosity_ > 2) {
@@ -73,6 +75,7 @@ class CommonBase {
     }
   };
   
+  // Prints a simple string to the log file (for max verbosity).
   inline int LogDebug(const std::string& message) {
     
     if (logging_verbosity_ > 2) {
@@ -93,6 +96,7 @@ class CommonBase {
     }
   };
   
+  // Printf style logging function (verbosity = 2).
   inline int LogMessage(const char *format, ...) {
     
     if (logging_verbosity_ > 1) {
@@ -119,6 +123,7 @@ class CommonBase {
     }
   };
   
+  // Prints string to log file (verbosity = 2).
   inline int LogMessage(const std::string& message) {
     
     if (logging_verbosity_ > 1) {
@@ -139,6 +144,7 @@ class CommonBase {
     }
   };
 
+  // Printf style logging function (verbosity = 1).
   inline int LogWarning(const char *format, ...) {
     
     if (logging_verbosity_ > 0) {
@@ -165,6 +171,7 @@ class CommonBase {
     }
   };
 
+  // Prints string to log file (verbosity = 1).
   inline int LogWarning(const std::string& warning) {
     
     if (logging_verbosity_ > 0) {
@@ -185,6 +192,7 @@ class CommonBase {
     }
   };
 
+  // Printf style logging function (always).
   inline int LogError(const char *format, ...) {
     
     log_mutex_.lock();      
@@ -209,6 +217,7 @@ class CommonBase {
     return 0;
   };
 
+  // Prints string to log file (always).
   inline int LogError(const std::string& error) {
     
     log_mutex_.lock();      
@@ -227,6 +236,7 @@ class CommonBase {
     return 0;
   };
 
+  // User to override the default log file (/var/log/lab-daq/fast-daq.log).
   void SetLogFile(const std::string& logfile) {
    
     log_mutex_.lock();      

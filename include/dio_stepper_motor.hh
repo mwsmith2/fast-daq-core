@@ -45,12 +45,19 @@ class DioStepperMotor
     }
   };
 
+  // Set the proper acromag port used for stepper motor input pins.
   void SetInputPort(int input_port) { input_port_ = input_port; };
+
+  // Set the proper acromag port used for stepper motor input pins.
   void SetOutputPort(int output_port) { output_port_ = output_port; };
+
+  // Movement functions, scales were determined empirically.
   int MoveInchesForward(double in=1.0);
   int MoveInchesBackward(double in=1.0);
   int MoveCmForward(double cm=1.0);
   int MoveCmBackward(double cm=1.0);
+
+  // Stop/start functions.
   int EnableMotor() { move_it_ = true; };
   int DisableMotor() { move_it_ = false; };
 
@@ -77,10 +84,15 @@ class DioStepperMotor
   std::mutex board_guard_;
   std::thread clock_thread_;
 
+  // Internal functions used to take single steps
   int StepForward(double num_steps);
   int StepBackward(double num_steps);
+  
+  // Set the direction on the motor, could be relative if set up changes.
   int ForwardDirection();
   int BackwardDirection();
+
+  // Get its own thread to act as the clock driving the motor.
   void ClockLoop();
 };
 

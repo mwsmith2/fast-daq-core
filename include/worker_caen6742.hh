@@ -25,14 +25,47 @@ public:
   // dtor
   ~WorkerCaen6742();
 
+  // Return the device serial number, used to order USB device consistently.
   int dev_sn() { return board_info_.SerialNumber; };
+
+  // Read in the configuration from a json file.
+  // example file:
+  // {
+  // 	"name":"caen_drs_0",
+  // 	"device_id":0,
+  //         "sampling_rate":1.0,
+  //         "pretrigger_delay":50,
+  // 	"use_drs4_corrections":true,
+  // 	"channel_offset":[
+  // 	    0.15,
+  // 	    0.15,
+  // 	    0.15,
+  // 	    0.15,
+  // 	    0.15,
+  // 	    0.15,
+  // 	    0.15,
+  // 	    0.15,
+  // 	    0.15,
+  // 	    0.15,
+  // 	    0.15,
+  // 	    0.15,
+  // 	    0.15,
+  // 	    0.15,
+  // 	    0.15,
+  // 	    0.15
+  // 	]
+  // }
   void LoadConfig();
+
+  // Collect event data from the device.
   void WorkLoop();
+
+  // Return the oldest event data to the event builder/frontend.
   caen_6742 PopEvent();
 
 private:
 
-  const float vpp_ = 1.0;
+  const float vpp_ = 1.0; // voltage range of device.
   
   int device_;
   uint size_, bsize_;
@@ -44,7 +77,10 @@ private:
   CAEN_DGTZ_EventInfo_t event_info_;
   CAEN_DGTZ_X742_EVENT_t *event_;
   
+  // Ask the device if it has data.
   bool EventAvailable();
+
+  // Read out the data and add it to the queue.
   void GetEvent(caen_6742 &bundle);
 
 };

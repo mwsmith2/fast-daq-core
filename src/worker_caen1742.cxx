@@ -33,7 +33,7 @@ void WorkerCaen1742::LoadConfig()
   // Get the correction plan
   drs_cell_corrections_ = conf.get<bool>("drs_cell_corrections", true);
   drs_peak_corrections_ = conf.get<bool>("drs_peak_corrections", true);
-  drs_time_corrections_ = conf.get<bool>("drs_time_corrections", false);
+  drs_time_corrections_ = conf.get<bool>("drs_time_corrections", true);
 
   // Get the base address for the device.  Convert from hex.
   tmp = conf.get<std::string>("base_address");
@@ -465,9 +465,17 @@ int WorkerCaen1742::ApplyDataCorrection(caen_1742 &data,
     GetCorrectionData(table);
   }
 
-  CellCorrection(data, table, startcells);
-  PeakCorrection(data, table);
+  if (drs_cell_corrections_) {
+    CellCorrection(data, table, startcells);
+  }
+
+  if (drs_peak_corrections_) {
+    PeakCorrection(data, table);
+  }
+  
+  if (drs_time_corrections_) {
   TimeCorrection(data, table, startcells);
+  }
 
   return 0;
 }

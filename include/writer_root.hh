@@ -30,7 +30,7 @@ class WriterRoot : public WriterBase {
   void LoadConfig();
   void StartWriter();
   void StopWriter();
-  
+
   void PushData(const std::vector<event_data> &data_buffer);
   void EndOfBatch(bool bad_data);
   

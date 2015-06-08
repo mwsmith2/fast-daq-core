@@ -35,8 +35,11 @@ class WriterMidas : public WriterBase {
     go_time_ = true; 
     number_of_events_ = 0; };
   void StopWriter() { go_time_ = false; };
-  
+
+  // Push data to the writer.
   void PushData(const std::vector<event_data> &data_buffer);
+
+  // Signify that batch is complete and whether it was synchronous.
   void EndOfBatch(bool bad_data);
   
  private:
@@ -52,7 +55,10 @@ class WriterMidas : public WriterBase {
   zmq::socket_t midas_data_sck_;
   zmq::message_t message_;
 
+  // Pack data into a zmq message.
   void SendDataMessage();
+
+  // Thread used to send data messages to the MIDAS frontend.
   void SendMessageLoop();
 };
 

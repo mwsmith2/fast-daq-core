@@ -30,18 +30,20 @@ class WriterBase : public CommonBase {
       try {
 	writer_thread_.join();
       } catch (std::system_error e) {
-	std::cout << "Writer: encountered race condition ";
-	std::cout << "joining thread." << std::endl;
+	LogError("encountered race condition joining thread");
       }
     }
   };
   
-  // Basic functions
+  // Basic functions to be defined per writer.
   virtual void LoadConfig() = 0;
   virtual void StartWriter() = 0;
   virtual void StopWriter() = 0;
+
+  // Let the writer know that a batch is complete.
   virtual void EndOfBatch(bool bad_data) = 0;
   
+  // Push data to the writer, called by event builder/frontend.
   virtual void PushData(const std::vector<event_data> &data_buffer) = 0;
   
  protected:

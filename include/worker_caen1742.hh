@@ -31,15 +31,63 @@ class WorkerCaen1742 : public WorkerVme<caen_1742> {
   // dtor
   ~WorkerCaen1742();
 
-  int dev_sn() { return 0;};
+  // Load parameters from a json file.
+  // Example file:
+  // {
+  //     "name":"caen_drs_0",
+  //     "base_address": "0xD0000000",
+  //     "sampling_rate":1.0,
+  //     "pretrigger_delay":50,
+  //     "drs_cell_corrections":true,
+  //     "drs_peak_corrections":false,
+  //     "drs_time_corrections":true,
+  //     "channel_offset":[
+  // 	     0.15,
+  // 	     0.15,
+  // 	     0.15,
+  // 	     0.15,
+  // 	     0.15,
+  // 	     0.15,
+  // 	     0.15,
+  // 	     0.15,
+  // 	     0.15,
+  // 	     0.15,
+  // 	     0.15,
+  // 	     0.15,
+  // 	     0.15,
+  // 	     0.15,
+  // 	     0.15,
+  // 	     0.15,
+  // 	     0.15,
+  // 	     0.15,
+  // 	     0.15,
+  // 	     0.15,
+  // 	     0.15,
+  // 	     0.15,
+  // 	     0.15,
+  // 	     0.15,
+  // 	     0.15,
+  // 	     0.15,
+  // 	     0.15,
+  // 	     0.15,
+  // 	     0.15,
+  // 	     0.15,
+  // 	     0.15,
+  // 	     0.15
+  //     ]
+  // }
   void LoadConfig();
+
+  // Thread that collects data.
   void WorkLoop();
+
+  // Returns oldest event data to event builder/frontend.
   caen_1742 PopEvent();
 
 private:
 
-  const float vpp_ = 1.0;
-  const ushort peakthresh = 30;
+  const float vpp_ = 1.0; // Scale of the device's voltage range
+  const ushort peakthresh = 30; // For peak corrections
   
   int device_;
   uint sampling_setting_;
@@ -51,20 +99,42 @@ private:
 
   std::chrono::high_resolution_clock::time_point t0_;
 
+  // Ask device whether it has data.
   bool EventAvailable();
+
+  // If EventAvailable, read the data and add it to the queue.
   void GetEvent(caen_1742 &bundle);
 
+  // A function that runs through the three different DRS4 corrections
+  // remove effects produce by imperfection in the domino sampling process.
   int ApplyDataCorrection(caen_1742 &data, const std::vector<uint> &startcells);
-  int PeakCorrection(caen_1742 &data, const drs_correction &table);
+
+  // Subtracts off an average inherent bias in the chip based on the sampling
+  // start index in the domino ring cycle.
   int CellCorrection(caen_1742 &data, 
 		     const drs_correction &table, 
 		     const std::vector<uint> &startcells);
+
+  // Check each channel for spikes above threshold and remove it if present
+  // in all channels for a group.
+  int PeakCorrection(caen_1742 &data, const drs_correction &table);
+
+  // Interpolates values to on evenly spaced grid from the unevenly sampled
+  // values reported by the DRS4
   int TimeCorrection(caen_1742 &data, 
 		     const drs_correction &table, 
 		     const std::vector<uint> &startcells);
+
+  // Readout correction data from the board.
   int GetCorrectionData(drs_correction &table);
+
+  // Readout individual channel's correction data.
   int GetChannelCorrectionData(uint ch, drs_correction &table);
+ 
+  // Read a page of flash memory on the device, used in getting correction data.
   int ReadFlashPage(uint32_t group, uint32_t pagenum, std::vector<int8_t> &page);
+
+  // Optionally write out the correction data as a csv to observe.
   int WriteCorrectionDataCsv();
 };
 

@@ -49,11 +49,19 @@ class SyncTrigger : TriggerBase {
     }
   }
 
+  // Start sending triggers to connected clients.
   void StartTriggers() {triggering_ = true;};
+
+  // Stop sending triggers to connected clients.
   void StopTriggers() {triggering_ = false;};
+
+  // Check if all clients are still active.
   const std::atomic<bool> &clients_good() {return clients_good_;};
 
+  // Prevent more clients from subscribing.
   void FixNumClients() {fix_num_clients_ = true;};
+
+  // Invoke a magic number of expected clients to connect.
   void FixNumClients(int num_clients) { 
     fix_num_clients_ = true;
     num_clients_ = num_clients;
@@ -77,12 +85,16 @@ class SyncTrigger : TriggerBase {
   std::thread trigger_thread_;
   std::thread register_thread_;
 
-  void TriggerLoop();
-  void ClientLoop();
-
+  // All part of the initialization
   void DefaultInit();
   void InitSockets();
   void LaunchThreads();
+
+  // Thread to handle sending triggers
+  void TriggerLoop();
+
+  // Thread to handle client registration/status checks.
+  void ClientLoop();
 };
 
 } // ::sp

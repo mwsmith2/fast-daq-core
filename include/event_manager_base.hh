@@ -40,11 +40,13 @@ public:
   // dtor
   virtual ~EventManagerBase() {};
 
+  // Run control functions to be defined by inheritor.
   virtual int BeginOfRun() = 0;
   virtual int EndOfRun() = 0;
   inline  int PauseRun() { go_time_ = false; };
   inline  int ResumeRun() {go_time_ = true; };
 
+  // Resize event_data to match the proper number of devices in use
   virtual int ResizeEventData(event_data &data) = 0;
 
   // Returns the oldest stored event.
@@ -62,6 +64,7 @@ public:
     queue_mutex_.unlock();
   };
 
+  // Called by higher level frontend, i.e., MIDAS.
   inline bool HasEvent() { return has_event_; };
 
 protected:
