@@ -31,6 +31,9 @@ about:  Contains the data structures for several hardware devices in a single
 #define DRS4_CH 4 
 #define DRS4_LN 1024
 
+#define TEK_SCOPE_CH 4
+#define TEK_SCOPE_LN 10000
+
 // NMR specific stuff
 #define NMR_FID_LN SIS_3302_LN
 #define SHORT_FID_LN 10000
@@ -91,6 +94,13 @@ struct drs4 {
   ULong64_t system_clock;
   ULong64_t device_clock[DRS4_CH];
   UShort_t trace[DRS4_CH][DRS4_LN];
+};
+
+struct tek_scope {
+  ULong64_t system_clock;
+  ULong64_t device_clock[TEK_SCOPE_CH];
+  Double_t time[TEK_SCOPE_CH][TEK_SCOPE_LN];
+  Double_t trace[TEK_SCOPE_CH][TEK_SCOPE_LN];
 };
 
 // Built from basic structs 
@@ -188,7 +198,7 @@ typedef boost::variant<WorkerBase<sis_3350> *,
                        WorkerBase<caen_1785> *, 
                        WorkerBase<caen_6742> *,
                        WorkerBase<drs4> *,
-		       WorkerBase<caen_1742> *>
+                       WorkerBase<caen_1742> *>
 worker_ptr_types;
 
 // A useful define guard for I/O with the vme bus.
