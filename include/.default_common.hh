@@ -104,6 +104,13 @@ struct tek_scope {
   Double_t trace[TEK_SCOPE_CH][TEK_SCOPE_LN];
 };
 
+struct run_info {
+  Double_t step_size;
+  Int_t num_steps;
+  Int_t num_shots;
+  Int_t run_number;
+};
+
 // Built from basic structs 
 struct event_data {
   std::vector<sis_3350> sis_fast;

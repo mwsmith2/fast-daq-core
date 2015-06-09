@@ -8,6 +8,9 @@ SyncClient::SyncClient() :
   status_sck_(msg_context, ZMQ_REQ),
   heartbeat_sck_(msg_context, ZMQ_PUB)
 {
+  base_tcpip_ = default_tcpip_;
+  base_port_ = default_port_;
+
   DefaultInit();
   InitSockets();
   LaunchThreads();
@@ -19,10 +22,10 @@ SyncClient::SyncClient(std::string address) :
   status_sck_(msg_context, ZMQ_REQ),
   heartbeat_sck_(msg_context, ZMQ_PUB)
 {
-  DefaultInit();
-
   base_tcpip_ = address;
+  base_port_ = default_port_;
 
+  DefaultInit();
   InitSockets();
   LaunchThreads();
 }
@@ -33,21 +36,21 @@ SyncClient::SyncClient(std::string address, int port) :
   status_sck_(msg_context, ZMQ_REQ),
   heartbeat_sck_(msg_context, ZMQ_PUB)
 {
-  DefaultInit();
-
   base_tcpip_ = address;
   base_port_ = port;
 
+  DefaultInit();
   InitSockets();
   LaunchThreads();
 }
 
 void SyncClient::DefaultInit()
 {
-  register_address_ = ConstructAddress(default_tcpip_, default_port_);
+  register_address_ = ConstructAddress(base_tcpip_, base_port_);
   auto uuid = boost::uuids::random_generator()();
   client_name_ = boost::uuids::to_string(uuid) + std::string(";");
-  std::cout << "SyncClient: named " << client_name_ << std::endl;
+  name_ = std::string("SyncClient-") + client_name_.substr(0, 4);
+  LogMessage("full id is %s", client_name_.c_str());
 
   connected_ = false;
   ready_ = false;
@@ -125,14 +128,14 @@ void SyncClient::InitSockets()
   std::getline(ss, address, ';');
   heartbeat_address_ = address;
 
-  std::cout << "trigger address: " << trigger_address_ << std::endl;
+  LogMessage("trigger address: %s", trigger_address_.c_str());
   trigger_sck_.connect(trigger_address_.c_str());
   trigger_sck_.setsockopt(ZMQ_SUBSCRIBE, "", 0); // Subscribe post connect
 
-  std::cout << "status address: " << status_address_ << std::endl;
+  LogMessage("status address: %s", status_address_.c_str());
   status_sck_.connect(status_address_.c_str());
 
-  std::cout << "heartbeat address: " << heartbeat_address_ << std::endl;
+  LogMessage("heartbeat address; %s", heartbeat_address_.c_str());
   heartbeat_sck_.connect(heartbeat_address_.c_str());
 }
 
@@ -145,7 +148,7 @@ void SyncClient::LaunchThreads()
 
 void SyncClient::StatusLoop()
 {
-  std::cout << "StatusLoop launched." << std::endl;
+  LogMessage("StatusLoop launched");
 
   zmq::message_t msg(256);
   zmq::message_t ready_msg(32);
@@ -235,24 +238,24 @@ bool SyncClient::HasTrigger()
 // Restarts the other sockets and other thread when we lose connection.
 void SyncClient::RestartLoop()
 {
-  std::cout << "RestartLoop launched." << std::endl;
+  LogMessage("RestartLoop launched");
 
   while(thread_live_) {
 
     if (!connected_) {
       
-      std::cout << "Starting to join threads." << std::endl;
+      LogMessage("starting to join threads");
       // Kill the other thread.
       thread_live_ = false;
       if (status_thread_.joinable()) {
         status_thread_.join();
       }
-      std::cout << "Joined status_thread." << std::endl;
+      LogMessage("joined status_thread");
 
       if (heartbeat_thread_.joinable()) {
         heartbeat_thread_.join();
       }
-      std::cout << "Joined heartbeat_thread." << std::endl;
+      LogMessage("joined heartbeat_thread");
 
       zmq_disconnect(trigger_sck_, trigger_address_.c_str());
       zmq_disconnect(register_sck_, register_address_.c_str());
@@ -264,9 +267,9 @@ void SyncClient::RestartLoop()
       thread_live_ = true;
 
       // Reinitialize sockets.
-      std::cout << "SyncClient: Reinitializing sockets." << std::endl;
+      LogMessage("reinitializing sockets");
       InitSockets();
-      std::cout << "SyncClient: Reinitialization success." << std::endl;
+      LogMessage("reinitialization success");
       status_thread_ = std::thread(&SyncClient::StatusLoop, this);
       heartbeat_thread_ = std::thread(&SyncClient::HeartbeatLoop, this);
 
@@ -280,7 +283,7 @@ void SyncClient::RestartLoop()
 
 void SyncClient::HeartbeatLoop()
 {
-  std::cout << "HeartbeatLoop launched." << std::endl;
+  LogMessage("HeartbeatLoop launched");
 
   // Try to ping every every two long sleep periods.
   while (thread_live_) {
