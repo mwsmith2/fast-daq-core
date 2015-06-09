@@ -290,10 +290,12 @@ void SyncClient::HeartbeatLoop()
 
     zmq::message_t msg(client_name_.size());
     std::copy(client_name_.begin(), client_name_.end(),(char *)msg.data());
-    heartbeat_sck_.send(msg, ZMQ_DONTWAIT);
+
+    if(heartbeat_sck_.send(msg, ZMQ_DONTWAIT) == false) {
+      LogWarning("heartbeat message failed to send");
+    }
 
     std::this_thread::yield();
-    heavy_sleep();
     heavy_sleep();
   }
 }

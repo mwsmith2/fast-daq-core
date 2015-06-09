@@ -52,7 +52,8 @@ class CommonBase {
   inline int LogDebug(const char *format, ...) {
     
     if (logging_verbosity_ > 2) {
-      log_mutex_.lock();      
+      log_mutex_.lock(); 
+      logstream_.open(logfile_, std::ios_base::app);      
 
       time(&timer_);
       auto t = localtime(&timer_);
@@ -69,6 +70,7 @@ class CommonBase {
       va_end(args);
       
       logstream_ << logstr_ << std::endl;
+      logstream_.close();
       log_mutex_.unlock();      
       
       return 0;
@@ -79,7 +81,8 @@ class CommonBase {
   inline int LogDebug(const std::string& message) {
     
     if (logging_verbosity_ > 2) {
-      log_mutex_.lock();      
+      log_mutex_.lock(); 
+      logstream_.open(logfile_, std::ios_base::app);      
 
       time(&timer_);
       auto t = localtime(&timer_);
@@ -91,6 +94,7 @@ class CommonBase {
       logstream_ << " [" << tm_str << "]: *DEBUG* ";
       logstream_ << message << std::endl;
       
+      logstream_.close();
       log_mutex_.unlock();      
       return 0;
     }
@@ -100,7 +104,8 @@ class CommonBase {
   inline int LogMessage(const char *format, ...) {
     
     if (logging_verbosity_ > 1) {
-      log_mutex_.lock();      
+      log_mutex_.lock(); 
+      logstream_.open(logfile_, std::ios_base::app);      
 
       time(&timer_);
       auto t = localtime(&timer_);
@@ -117,6 +122,7 @@ class CommonBase {
       va_end(args);
       
       logstream_ << logstr_ << std::endl;
+      logstream_.close();
       log_mutex_.unlock();      
       
       return 0;
@@ -127,7 +133,8 @@ class CommonBase {
   inline int LogMessage(const std::string& message) {
     
     if (logging_verbosity_ > 1) {
-      log_mutex_.lock();      
+      log_mutex_.lock(); 
+      logstream_.open(logfile_, std::ios_base::app);      
 
       time(&timer_);
       auto t = localtime(&timer_);
@@ -139,6 +146,7 @@ class CommonBase {
       logstream_ << " [" << tm_str << "]: ";
       logstream_ << message << std::endl;
       
+      logstream_.close();
       log_mutex_.unlock();      
       return 0;
     }
@@ -148,7 +156,8 @@ class CommonBase {
   inline int LogWarning(const char *format, ...) {
     
     if (logging_verbosity_ > 0) {
-      log_mutex_.lock();      
+      log_mutex_.lock(); 
+      logstream_.open(logfile_, std::ios_base::app);      
 
       time(&timer_);
       auto t = localtime(&timer_);
@@ -166,6 +175,7 @@ class CommonBase {
       
       logstream_ << logstr_ << std::endl;
       
+      logstream_.close();
       log_mutex_.unlock();      
       return 0;
     }
@@ -175,7 +185,8 @@ class CommonBase {
   inline int LogWarning(const std::string& warning) {
     
     if (logging_verbosity_ > 0) {
-      log_mutex_.lock();      
+      log_mutex_.lock(); 
+      logstream_.open(logfile_, std::ios_base::app);      
 
       time(&timer_);
       auto t = localtime(&timer_);
@@ -187,6 +198,7 @@ class CommonBase {
       logstream_ << " [" << tm_str << "]: **WARNING** ";
       logstream_ << warning << std::endl;
       
+      logstream_.close();
       log_mutex_.unlock();      
       return 0;
     }
@@ -195,7 +207,8 @@ class CommonBase {
   // Printf style logging function (always).
   inline int LogError(const char *format, ...) {
     
-    log_mutex_.lock();      
+    log_mutex_.lock(); 
+    logstream_.open(logfile_, std::ios_base::app);      
     
     time(&timer_);
     auto t = localtime(&timer_);
@@ -212,7 +225,8 @@ class CommonBase {
     va_end(args);
     
     logstream_ << logstr_ << std::endl;
-    
+  
+    logstream_.close();
     log_mutex_.unlock();      
     return 0;
   };
@@ -220,7 +234,8 @@ class CommonBase {
   // Prints string to log file (always).
   inline int LogError(const std::string& error) {
     
-    log_mutex_.lock();      
+    log_mutex_.lock();
+    logstream_.open(logfile_, std::ios_base::app);
     
     time(&timer_);
     auto t = localtime(&timer_);
@@ -232,22 +247,15 @@ class CommonBase {
     logstream_ << " [" << tm_str << "]: ***ERROR*** ";
     logstream_ << error << std::endl;
     
+    logstream_.close();
     log_mutex_.unlock();      
     return 0;
   };
 
   // User to override the default log file (/var/log/lab-daq/fast-daq.log).
   void SetLogFile(const std::string& logfile) {
-   
-    log_mutex_.lock();      
+    log_mutex_.lock();
     logfile_ = logfile;
-    
-    if (logstream_.is_open()) {
-      logstream_.close();
-    }
-
-    logstream_.open(logfile);
-
     log_mutex_.unlock();      
   };
 

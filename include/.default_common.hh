@@ -109,6 +109,8 @@ struct run_info {
   Int_t num_steps;
   Int_t num_shots;
   Int_t run_number;
+  Int_t fid_ch0;
+  Int_t fid_ch1;
 };
 
 // Built from basic structs 
