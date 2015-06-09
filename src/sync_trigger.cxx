@@ -23,6 +23,7 @@ SyncTrigger::SyncTrigger(std::string address) :
 
   // Get the register socket tcpip from 
   base_tcpip_ = address;
+  register_address_ = ConstructAddress(base_tcpip_, base_port_);
 
   InitSockets();
   LaunchThreads();
@@ -35,9 +36,12 @@ SyncTrigger::SyncTrigger(std::string address, int port) :
   heartbeat_sck_(msg_context, ZMQ_SUB)
 {
   DefaultInit();
+ 
+  base_tcpip_ = address;
+  base_port_ = port;
 
   // Get the register socket address from 
-  register_address_ = ConstructAddress(address, port);
+  register_address_ = ConstructAddress(base_tcpip_, base_port_);
 
   InitSockets();
   LaunchThreads();
@@ -52,9 +56,9 @@ SyncTrigger::SyncTrigger(boost::property_tree::ptree &conf) :
   DefaultInit();
 
   // Set the register socket address from the input config file.
-
   base_tcpip_ = conf.get<std::string>("trigger_address", default_tcpip_); 
   base_port_ = conf.get<int>("trigger_port", default_port_);
+  register_address_ = ConstructAddress(base_tcpip_, base_port_);
 
   InitSockets();
   LaunchThreads();
@@ -155,7 +159,7 @@ void SyncTrigger::LaunchThreads()
 
 void SyncTrigger::TriggerLoop()
 {
-  std::cout << "TriggerLoop launched." << std::endl;
+  LogMessage("TriggerLoop launched");
 
   zmq::message_t msg;
   zmq::message_t ready_msg;
@@ -215,7 +219,7 @@ void SyncTrigger::TriggerLoop()
 
 void SyncTrigger::ClientLoop()
 {
-  std::cout << "ClientLoop launched." << std::endl;
+  LogMessage("ClientLoop launched");
   zmq::message_t msg;
 
   std::string addr_str = trigger_address_;
@@ -264,13 +268,13 @@ void SyncTrigger::ClientLoop()
       if (!fix_num_clients_ && !client_reconnect) {
 
         ++num_clients_;
-	std::cout << "New client "  << client_name << " registered. [";
-	std::cout << num_clients_ << "]" << std::endl;
+        LogMessage("New client %s registered. [", 
+                   client_name.c_str(), (int)num_clients_);
 
       } else {
-	
-	std::cout << "Client " << client_name << " reconnected. [";
-	std::cout << client_time.size() << "/" << num_clients_ << "]";
+        
+        LogMessage("client-%s reconnected. [%i/%i]", 
+                   client_name.c_str(), client_time.size(), (int)num_clients_);
       }
     }
 
@@ -293,8 +297,7 @@ void SyncTrigger::ClientLoop()
 
 	client_time.erase(it++);
 
-        std::cout << "Dropping unresponsive client [";
-        std::cout << num_clients_ << "]." << std::endl;
+    LogMessage("Dropping unresponsive client [%i]", (int)num_clients_);
 
 	if (!fix_num_clients_) {
 

@@ -28,7 +28,7 @@ class TriggerBase : public CommonBase {
  protected:
 
   const int timeout_ = 100; // in ms
-  const long client_timeout_ = 1 * 1e6; // in usec
+  const long client_timeout_ = 2 * 1e6; // in usec
   const long trigger_timeout_ = 20 * 1e6; // in usec
   const int default_port_ = 42024;
   const std::string default_tcpip_ = "tcp://127.0.0.1";

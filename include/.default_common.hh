@@ -94,6 +94,20 @@ struct drs4 {
   UShort_t trace[DRS4_CH][DRS4_LN];
 };
 
+struct tek_scope {
+  ULong64_t system_clock;
+  ULong64_t device_clock[TEK_SCOPE_CH];
+  Double_t time[TEK_SCOPE_CH][TEK_SCOPE_LN];
+  Double_t trace[TEK_SCOPE_CH][TEK_SCOPE_LN];
+};
+
+struct run_info {
+  Double_t step_size;
+  Int_t num_steps;
+  Int_t num_shots;
+  Int_t run_number;
+};
+
 // Built from basic structs 
 struct event_data {
   std::vector<sis_3350> sis_fast;
