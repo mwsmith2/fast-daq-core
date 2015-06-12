@@ -175,8 +175,36 @@ void WriterOnline::PackMessage()
 
       json_spirit::Array arr;
       for (int ch = 0; ch < SIS_3302_CH; ++ch) {
-	arr.push_back(json_spirit::Array(
+        arr.push_back(json_spirit::Array(
 			&sis.trace[ch][0], &sis.trace[ch][SIS_3302_LN]));
+
+      }
+
+      sprintf(str, "trace");
+      sis_map.push_back(json_spirit::Pair(str, arr));
+      
+      sprintf(str, "sis_slow_%i", count++);
+      json_map.push_back(json_spirit::Pair(str, sis_map));
+    }
+
+    count = 0;
+    for (auto &sis : data.sis_3316_vec) {
+      
+      json_spirit::Object sis_map;
+      
+      sprintf(str, "system_clock");
+      sis_map.push_back(json_spirit::Pair(str, (uint64_t)sis.system_clock));
+      
+      sprintf(str, "device_clock");
+      sis_map.push_back(json_spirit::Pair(str, 
+                          json_spirit::Array(
+			    (uint64_t *)&sis.device_clock[0], 
+			    (uint64_t *)&sis.device_clock[SIS_3316_CH])));
+
+      json_spirit::Array arr;
+      for (int ch = 0; ch < SIS_3316_CH; ++ch) {
+	arr.push_back(json_spirit::Array(
+			&sis.trace[ch][0], &sis.trace[ch][SIS_3316_LN]));
 
       }
 
@@ -309,11 +337,11 @@ void WriterOnline::PackMessage()
       sis_map.push_back(json_spirit::Pair(str, 
                           json_spirit::Array(
 			    (uint64_t *)&sis.device_clock[0], 
-			    (uint64_t *)&sis.device_clock[SIS_3302_CH])));
+			    (uint64_t *)&sis.device_clock[SIS_3316_CH])));
 
       json_spirit::Array arr;
-      for (int ch = 0; ch < SIS_3302_CH; ++ch) {
-	arr.push_back(json_spirit::Array(
+      for (int ch = 0; ch < SIS_3316_CH; ++ch) {
+        arr.push_back(json_spirit::Array(
 			&sis.trace[ch][0], &sis.trace[ch][max_trace_length_]));
 
       }

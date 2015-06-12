@@ -176,6 +176,23 @@ void WriterMidas::SendDataMessage()
   }
 
   count = 0;
+  for (auto &sis : data.sis_3316_vec) {
+
+    sprintf(str, "sis_3316_%i:", count++);
+    data_str.append(std::string(str));
+    data_str.append("sis_3316:");
+    
+    zmq::message_t data_msg(sizeof(data) + sizeof(sis));
+    
+    memcpy((char *)data_msg.data(), data_str.c_str(), sizeof(data));
+    memcpy((char *)data_msg.data() + sizeof(data), &sis, sizeof(sis));
+
+    do {
+      rc = midas_data_sck_.send(data_msg, ZMQ_SNDMORE);
+    } while ((rc == false) && (zmq_errno() == EINTR));
+  }
+
+  count = 0;
   for (auto &caen : data.caen_adc) {
 
     sprintf(str, "caen_adc_%i:", count++);

@@ -46,6 +46,10 @@ void WorkerList::StartWorkers()
     } else if ((*it).which() == 5) {
 
       boost::get<WorkerBase<caen_1742> *>(*it)->StartWorker();
+
+    } else if ((*it).which() == 6) {
+
+      boost::get<WorkerBase<sis_3316> *>(*it)->StartWorker();
     }
   }
 }
@@ -80,6 +84,10 @@ void WorkerList::StartThreads()
     } else if ((*it).which() == 5) {
 
       boost::get<WorkerBase<caen_1742> *>(*it)->StartThread();
+
+    } else if ((*it).which() == 6) {
+
+      boost::get<WorkerBase<sis_3316> *>(*it)->StartThread();
     }
   }
 }
@@ -114,6 +122,10 @@ void WorkerList::StopWorkers()
     } else if ((*it).which() == 5) {
 
       boost::get<WorkerBase<caen_1742> *>(*it)->StopWorker();
+
+    } else if ((*it).which() == 6) {
+
+      boost::get<WorkerBase<sis_3316> *>(*it)->StopWorker();
     }
   }
 }
@@ -148,6 +160,10 @@ void WorkerList::StopThreads()
     } else if ((*it).which() == 5) {
 
       boost::get<WorkerBase<caen_1742> *>(*it)->StopThread();
+
+    } else if ((*it).which() == 6) {
+
+      boost::get<WorkerBase<sis_3316> *>(*it)->StopThread();
     }
   }
 }
@@ -183,6 +199,10 @@ bool WorkerList::AllWorkersHaveEvent()
     } else if ((*it).which() == 5) {
 
       has_event &= boost::get<WorkerBase<caen_1742> *>(*it)->HasEvent();
+
+    } else if ((*it).which() == 6) {
+
+      has_event &= boost::get<WorkerBase<sis_3316> *>(*it)->HasEvent();
     }
   }
 
@@ -220,6 +240,10 @@ bool WorkerList::AnyWorkersHaveEvent()
     } else if ((*it).which() == 5) {
 
       any_events |= boost::get<WorkerBase<caen_1742> *>(*it)->HasEvent();
+
+    } else if ((*it).which() == 6) {
+
+      any_events |= boost::get<WorkerBase<sis_3316> *>(*it)->HasEvent();
     }
   }
 
@@ -255,6 +279,10 @@ bool WorkerList::AnyWorkersHaveMultiEvent()
     } else if ((*it).which() == 5) {
 
       num_events = boost::get<WorkerBase<caen_1742> *>(*it)->num_events();
+
+    } else if ((*it).which() == 6) {
+
+      num_events = boost::get<WorkerBase<sis_3316> *>(*it)->num_events();
     }
 
     if (num_events > 1) return true;
@@ -297,6 +325,11 @@ void WorkerList::GetEventData(event_data &bundle)
 
       auto ptr = boost::get<WorkerBase<caen_1742> *>(*it);
       bundle.caen_1742_vec.push_back(ptr->PopEvent());
+
+    } else if ((*it).which() == 6) {
+
+      auto ptr = boost::get<WorkerBase<sis_3316> *>(*it);
+      bundle.sis_3316_vec.push_back(ptr->PopEvent());
     }
   }
 }
@@ -329,6 +362,10 @@ void WorkerList::FlushEventData()
     } else if ((*it).which() == 5) {
 
       boost::get<WorkerBase<caen_1742> *>(*it)->FlushEvents();
+
+    } else if ((*it).which() == 6) {
+
+      boost::get<WorkerBase<sis_3316> *>(*it)->FlushEvents();
     }
   } 
 }
@@ -363,6 +400,10 @@ void WorkerList::FreeList()
     } else if ((*it).which() == 5) {
 
       delete boost::get<WorkerBase<caen_1742> *>(*it);
+
+    } else if ((*it).which() == 6) {
+
+      delete boost::get<WorkerBase<sis_3316> *>(*it);
     }
   }
 

@@ -98,6 +98,28 @@ void WriterRoot::StartWriter()
 
   }
 
+  // Now handle the SIS3316 devices.
+  count = 0;
+  BOOST_FOREACH(const ptree::value_type &v, 
+                conf.get_child("devices.sis_3316")) {
+    count++;
+  }
+  root_data_.sis_3316_vec.reserve(count);
+
+  count = 0;
+  BOOST_FOREACH(const ptree::value_type &v, 
+                conf.get_child("devices.sis_3316")) {
+
+    root_data_.sis_slow.resize(count + 1);
+
+    br_name = std::string(v.first);
+    sprintf(br_vars, "system_clock/l:device_clock[%i]/l:trace[%i][%i]/s", 
+      SIS_3316_CH, SIS_3316_CH, SIS_3316_LN);
+
+    pt_->Branch(br_name.c_str(), &root_data_.sis_slow[count++], br_vars);
+
+  }
+
   // Now set up the caen adc.
   count = 0;
   BOOST_FOREACH(const ptree::value_type &v, 
