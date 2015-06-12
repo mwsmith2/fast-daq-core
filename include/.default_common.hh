@@ -15,8 +15,12 @@ about:  Contains the data structures for several hardware devices in a single
 
 #define SIS_3350_CH 4
 #define SIS_3350_LN 1024
+
 #define SIS_3302_CH 8 
 #define SIS_3302_LN 100000
+
+#define SIS_3316_CH 16
+#define SIS_3316_LN 100000
 
 #define CAEN_1785_CH 8
 
@@ -72,6 +76,12 @@ struct sis_3302 {
   UShort_t trace[SIS_3302_CH][SIS_3302_LN];
 };
 
+struct sis_3316 {
+  ULong64_t system_clock;
+  ULong64_t device_clock[SIS_3316_CH];
+  UShort_t trace[SIS_3316_CH][SIS_3316_LN];
+};
+
 struct caen_1785 {
   ULong64_t system_clock;
   ULong64_t device_clock[CAEN_1785_CH];
@@ -115,12 +125,13 @@ struct run_info {
 
 // Built from basic structs 
 struct event_data {
-  std::vector<sis_3350> sis_fast;
-  std::vector<sis_3302> sis_slow;
-  std::vector<caen_1785> caen_adc;
-  std::vector<caen_6742> caen_drs;
+  std::vector<sis_3350> sis_3350_vec;
+  std::vector<sis_3302> sis_3302_vec;
+  std::vector<caen_1785> caen_1785_vec;
+  std::vector<caen_6742> caen_6742_vec;
   std::vector<caen_1742> caen_1742_vec;
-  std::vector<drs4> drs;
+  std::vector<drs4> drs4_vec;
+  std::vector<sis_3316> sis_3316_vec;
 };
 
 // NMR specific stuff
@@ -208,7 +219,8 @@ typedef boost::variant<WorkerBase<sis_3350> *,
                        WorkerBase<caen_1785> *, 
                        WorkerBase<caen_6742> *,
                        WorkerBase<drs4> *,
-                       WorkerBase<caen_1742> *>
+                       WorkerBase<caen_1742> *,
+                       WorkerBase<sis_3316> *>
 worker_ptr_types;
 
 // A useful define guard for I/O with the vme bus.
