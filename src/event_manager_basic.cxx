@@ -30,6 +30,14 @@ int EventManagerBasic::BeginOfRun()
     workers_.PushBack(new WorkerSis3302(name, dev_conf_file));
   }
 
+  for (auto &v : conf.get_child("devices.sis_3316")) {
+
+    std::string name(v.first);
+    std::string dev_conf_file = conf_dir + std::string(v.second.data());
+
+    workers_.PushBack(new WorkerSis3316(name, dev_conf_file));
+  }
+
   for (auto &v : conf.get_child("devices.sis_3350")) {
 
     std::string name(v.first);
@@ -78,6 +86,12 @@ int EventManagerBasic::ResizeEventData(event_data &data)
     count++;
   }
   data.sis_3302_vec.resize(count);
+
+  count = 0;
+  for (auto &dev : conf.get_child("devices.sis_3316")) {
+    count++;
+  }
+  data.sis_3316_vec.resize(count);
 
   count = 0;
   for (auto &dev : conf.get_child("devices.sis_3350")) {

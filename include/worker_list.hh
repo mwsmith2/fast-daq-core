@@ -22,8 +22,9 @@
 
 //--- project includes ------------------------------------------------------//
 #include "common.hh"
-#include "worker_sis3350.hh"
 #include "worker_sis3302.hh"
+#include "worker_sis3316.hh"
+#include "worker_sis3350.hh"
 #include "worker_caen1785.hh"
 #include "worker_caen6742.hh"
 #include "worker_caen1742.hh"
