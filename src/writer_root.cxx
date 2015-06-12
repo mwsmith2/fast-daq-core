@@ -226,6 +226,11 @@ void WriterRoot::PushData(const std::vector<event_data> &data_buffer)
     }
 
     count = 0;
+    for (auto &sis : (*it).sis_3316_vec) {
+      root_data_.sis_3316_vec[count++] = sis;
+    }
+
+    count = 0;
     for (auto &caen: (*it).caen_1785_vec) {
       root_data_.caen_1785_vec[count++] = caen;
     }
