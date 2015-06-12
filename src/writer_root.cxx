@@ -39,19 +39,16 @@ void WriterRoot::StartWriter()
 
   // Count the devices, reserve memory for them, then assign an address.
   int count = 0;
-  BOOST_FOREACH(const ptree::value_type &v, 
-                conf.get_child("devices.sis_3350")) {
+  for (auto &v : conf.get_child("devices.sis_3350")) {
     count++;
   }
-  BOOST_FOREACH(const ptree::value_type &v, 
-                conf.get_child("devices.fake")) {
+  for (auto &v : conf.get_child("devices.fake")) {
     count++;
   }
   root_data_.sis_fast.reserve(count + 1);
 
   count = 0;
-  BOOST_FOREACH(const ptree::value_type &v, 
-                conf.get_child("devices.sis_3350")) {
+  for (auto &v : conf.get_child("devices.sis_3350")) {
 
     root_data_.sis_fast.resize(count + 1);
 
@@ -63,8 +60,7 @@ void WriterRoot::StartWriter()
 
   }
 
-  BOOST_FOREACH(const ptree::value_type &v, 
-                conf.get_child("devices.fake")) {
+  for (auto &v : conf.get_child("devices.fake")) {
 
     root_data_.sis_fast.resize(count);
 
@@ -78,15 +74,13 @@ void WriterRoot::StartWriter()
 
   // Again, count, reserve then assign the slow struck.
   count = 0;
-  BOOST_FOREACH(const ptree::value_type &v, 
-                conf.get_child("devices.sis_3302")) {
+  for (auto &v : conf.get_child("devices.sis_3302")) {
     count++;
   }
   root_data_.sis_slow.reserve(count);
 
   count = 0;
-  BOOST_FOREACH(const ptree::value_type &v, 
-                conf.get_child("devices.sis_3302")) {
+  for (auto &v : conf.get_child("devices.sis_3302")) {
 
     root_data_.sis_slow.resize(count + 1);
 
@@ -100,15 +94,13 @@ void WriterRoot::StartWriter()
 
   // Now handle the SIS3316 devices.
   count = 0;
-  BOOST_FOREACH(const ptree::value_type &v, 
-                conf.get_child("devices.sis_3316")) {
+  for (auto &v : conf.get_child("devices.sis_3316")) {
     count++;
   }
   root_data_.sis_3316_vec.reserve(count);
 
   count = 0;
-  BOOST_FOREACH(const ptree::value_type &v, 
-                conf.get_child("devices.sis_3316")) {
+  for (auto &v : conf.get_child("devices.sis_3316")) {
 
     root_data_.sis_slow.resize(count + 1);
 
@@ -122,15 +114,13 @@ void WriterRoot::StartWriter()
 
   // Now set up the caen adc.
   count = 0;
-  BOOST_FOREACH(const ptree::value_type &v, 
-                  conf.get_child("devices.caen_1785")) {
+  for (auto &v : conf.get_child("devices.caen_1785")) {
     count++;
   }
   root_data_.caen_adc.reserve(count);
 
   count = 0;
-  BOOST_FOREACH(const ptree::value_type &v, 
-                  conf.get_child("devices.caen_1785")) {
+  for (auto &v : conf.get_child("devices.caen_1785")) {
 
     root_data_.caen_adc.resize(count + 1);
 
@@ -142,18 +132,15 @@ void WriterRoot::StartWriter()
 
   }
 
-
   // Now set up the caen drs.
   count = 0;
-  BOOST_FOREACH(const ptree::value_type &v, 
-                  conf.get_child("devices.caen_6742")) {
+  for (auto &v : conf.get_child("devices.caen_6742")) {
     count++;
   }
   root_data_.caen_drs.reserve(count);
 
   count = 0;
-  BOOST_FOREACH(const ptree::value_type &v, 
-                  conf.get_child("devices.caen_6742")) {
+  for (auto &v : conf.get_child("devices.caen_6742")) {
 
     root_data_.caen_drs.resize(count + 1);
 
@@ -167,15 +154,13 @@ void WriterRoot::StartWriter()
 
   // Now set up the drs evaluation board.
   count = 0;
-  BOOST_FOREACH(const ptree::value_type &v, 
-                  conf.get_child("devices.drs4")) {
+  for (auto &v : conf.get_child("devices.drs4")) {
     count++;
   }
   root_data_.drs.reserve(count);
 
   count = 0;
-  BOOST_FOREACH(const ptree::value_type &v, 
-                  conf.get_child("devices.drs4")) {
+  for (auto &v : conf.get_child("devices.drs4")) {
 
     root_data_.drs.resize(count + 1);
 
@@ -189,15 +174,13 @@ void WriterRoot::StartWriter()
 
   // Now set up the caen drs vme module.
   count = 0;
-  BOOST_FOREACH(const ptree::value_type &v, 
-                  conf.get_child("devices.caen_1742")) {
+  for (auto &v : conf.get_child("devices.caen_1742")) {
     count++;
   }
   root_data_.caen_adc.reserve(count);
 
   count = 0;
-  BOOST_FOREACH(const ptree::value_type &v, 
-                  conf.get_child("devices.caen_1742")) {
+  for (auto &v : conf.get_child("devices.caen_1742")) {
 
     root_data_.caen_1742_vec.resize(count + 1);
 
