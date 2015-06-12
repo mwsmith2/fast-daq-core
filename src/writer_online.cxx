@@ -132,7 +132,7 @@ void WriterOnline::PackMessage()
   json_map.push_back(json_spirit::Pair("event_number", number_of_events_));
 
   if (max_trace_length_ < 0) {
-    for (auto &sis : data.sis_fast) {
+    for (auto &sis : data.sis_3350_vec) {
       
       json_spirit::Object sis_map;
       
@@ -155,12 +155,12 @@ void WriterOnline::PackMessage()
       sprintf(str, "trace");
       sis_map.push_back(json_spirit::Pair(str, arr));
       
-      sprintf(str, "sis_fast_%i", count++);
+      sprintf(str, "sis_3350_vec_%i", count++);
       json_map.push_back(json_spirit::Pair(str, sis_map));
     }
     
     count = 0;
-    for (auto &sis : data.sis_slow) {
+    for (auto &sis : data.sis_3302_vec) {
       
       json_spirit::Object sis_map;
       
@@ -183,7 +183,7 @@ void WriterOnline::PackMessage()
       sprintf(str, "trace");
       sis_map.push_back(json_spirit::Pair(str, arr));
       
-      sprintf(str, "sis_slow_%i", count++);
+      sprintf(str, "sis_3302_vec_%i", count++);
       json_map.push_back(json_spirit::Pair(str, sis_map));
     }
 
@@ -211,12 +211,12 @@ void WriterOnline::PackMessage()
       sprintf(str, "trace");
       sis_map.push_back(json_spirit::Pair(str, arr));
       
-      sprintf(str, "sis_slow_%i", count++);
+      sprintf(str, "sis_3302_vec_%i", count++);
       json_map.push_back(json_spirit::Pair(str, sis_map));
     }
     
     count = 0;
-    for (auto &caen : data.caen_adc) {
+    for (auto &caen : data.caen_1785_vec) {
       
       json_spirit::Object caen_map;
       
@@ -235,12 +235,12 @@ void WriterOnline::PackMessage()
 			     &caen.value[0], 
 			     &caen.value[CAEN_1785_CH])));
 
-      sprintf(str, "caen_adc_%i", count++);
+      sprintf(str, "caen_1785_vec_%i", count++);
       json_map.push_back(json_spirit::Pair(str, caen_map));
     }
     
     count = 0;
-    for (auto &caen : data.caen_drs) {
+    for (auto &caen : data.caen_6742_vec) {
       
       json_spirit::Object caen_map;
       
@@ -264,12 +264,12 @@ void WriterOnline::PackMessage()
       sprintf(str, "trace");
       caen_map.push_back(json_spirit::Pair(str, arr));
       
-      sprintf(str, "caen_drs_%i", count++);
+      sprintf(str, "caen_6742_vec_%i", count++);
       json_map.push_back(json_spirit::Pair(str, caen_map));
     }
     
     count = 0;
-    for (auto &board : data.drs) {
+    for (auto &board : data.drs4_vec) {
       
       json_spirit::Object drs_map;
       
@@ -298,7 +298,7 @@ void WriterOnline::PackMessage()
 
   } else {    
     
-    for (auto &sis : data.sis_fast) {
+    for (auto &sis : data.sis_3350_vec) {
       
       json_spirit::Object sis_map;
       
@@ -321,12 +321,12 @@ void WriterOnline::PackMessage()
       sprintf(str, "trace");
       sis_map.push_back(json_spirit::Pair(str, arr));
       
-      sprintf(str, "sis_fast_%i", count++);
+      sprintf(str, "sis_3350_vec_%i", count++);
       json_map.push_back(json_spirit::Pair(str, sis_map));
     }
     
     count = 0;
-    for (auto &sis : data.sis_slow) {
+    for (auto &sis : data.sis_3302_vec) {
       
       json_spirit::Object sis_map;
       
@@ -349,12 +349,12 @@ void WriterOnline::PackMessage()
       sprintf(str, "trace");
       sis_map.push_back(json_spirit::Pair(str, arr));
       
-      sprintf(str, "sis_slow_%i", count++);
+      sprintf(str, "sis_3302_vec_%i", count++);
       json_map.push_back(json_spirit::Pair(str, sis_map));
     }
     
     count = 0;
-    for (auto &caen : data.caen_adc) {
+    for (auto &caen : data.caen_1785_vec) {
       
       json_spirit::Object caen_map;
       
@@ -373,12 +373,12 @@ void WriterOnline::PackMessage()
 			     &caen.value[0], 
 			     &caen.value[CAEN_1785_CH])));
 
-      sprintf(str, "caen_adc_%i", count++);
+      sprintf(str, "caen_1785_vec_%i", count++);
       json_map.push_back(json_spirit::Pair(str, caen_map));
     }
     
     count = 0;
-    for (auto &caen : data.caen_drs) {
+    for (auto &caen : data.caen_6742_vec) {
       
       json_spirit::Object caen_map;
       
@@ -402,12 +402,12 @@ void WriterOnline::PackMessage()
       sprintf(str, "trace");
       caen_map.push_back(json_spirit::Pair(str, arr));
       
-      sprintf(str, "caen_drs_%i", count++);
+      sprintf(str, "caen_6742_vec_%i", count++);
       json_map.push_back(json_spirit::Pair(str, caen_map));
     }
     
     count = 0;
-    for (auto &board : data.drs) {
+    for (auto &board : data.drs4_vec) {
       
       json_spirit::Object drs_map;
       

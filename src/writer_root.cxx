@@ -45,30 +45,30 @@ void WriterRoot::StartWriter()
   for (auto &v : conf.get_child("devices.fake")) {
     count++;
   }
-  root_data_.sis_fast.reserve(count + 1);
+  root_data_.sis_3350_vec.reserve(count + 1);
 
   count = 0;
   for (auto &v : conf.get_child("devices.sis_3350")) {
 
-    root_data_.sis_fast.resize(count + 1);
+    root_data_.sis_3350_vec.resize(count + 1);
 
     br_name = std::string(v.first);
     sprintf(br_vars, "system_clock/l:device_clock[%i]/l:trace[%i][%i]/s", 
       SIS_3350_CH, SIS_3350_CH, SIS_3350_LN);
 
-    pt_->Branch(br_name.c_str(), &root_data_.sis_fast[count++], br_vars);
+    pt_->Branch(br_name.c_str(), &root_data_.sis_3350_vec[count++], br_vars);
 
   }
 
   for (auto &v : conf.get_child("devices.fake")) {
 
-    root_data_.sis_fast.resize(count);
+    root_data_.sis_3350_vec.resize(count);
 
     br_name = std::string(v.first);
     sprintf(br_vars, "system_clock/l:device_clock[%i]/l:trace[%i][%i]/s", 
       SIS_3350_CH, SIS_3350_CH, SIS_3350_LN);
 
-    pt_->Branch(br_name.c_str(), &root_data_.sis_fast[count++], br_vars);
+    pt_->Branch(br_name.c_str(), &root_data_.sis_3350_vec[count++], br_vars);
 
   }
 
@@ -77,18 +77,18 @@ void WriterRoot::StartWriter()
   for (auto &v : conf.get_child("devices.sis_3302")) {
     count++;
   }
-  root_data_.sis_slow.reserve(count);
+  root_data_.sis_3302_vec.reserve(count);
 
   count = 0;
   for (auto &v : conf.get_child("devices.sis_3302")) {
 
-    root_data_.sis_slow.resize(count + 1);
+    root_data_.sis_3302_vec.resize(count + 1);
 
     br_name = std::string(v.first);
     sprintf(br_vars, "system_clock/l:device_clock[%i]/l:trace[%i][%i]/s", 
       SIS_3302_CH, SIS_3302_CH, SIS_3302_LN);
 
-    pt_->Branch(br_name.c_str(), &root_data_.sis_slow[count++], br_vars);
+    pt_->Branch(br_name.c_str(), &root_data_.sis_3302_vec[count++], br_vars);
 
   }
 
@@ -102,13 +102,13 @@ void WriterRoot::StartWriter()
   count = 0;
   for (auto &v : conf.get_child("devices.sis_3316")) {
 
-    root_data_.sis_slow.resize(count + 1);
+    root_data_.sis_3302_vec.resize(count + 1);
 
     br_name = std::string(v.first);
     sprintf(br_vars, "system_clock/l:device_clock[%i]/l:trace[%i][%i]/s", 
       SIS_3316_CH, SIS_3316_CH, SIS_3316_LN);
 
-    pt_->Branch(br_name.c_str(), &root_data_.sis_slow[count++], br_vars);
+    pt_->Branch(br_name.c_str(), &root_data_.sis_3302_vec[count++], br_vars);
 
   }
 
@@ -117,18 +117,18 @@ void WriterRoot::StartWriter()
   for (auto &v : conf.get_child("devices.caen_1785")) {
     count++;
   }
-  root_data_.caen_adc.reserve(count);
+  root_data_.caen_1785_vec.reserve(count);
 
   count = 0;
   for (auto &v : conf.get_child("devices.caen_1785")) {
 
-    root_data_.caen_adc.resize(count + 1);
+    root_data_.caen_1785_vec.resize(count + 1);
 
     br_name = std::string(v.first);
     sprintf(br_vars, "system_clock/l:device_clock[%i]/l:value[%i]/s", 
       CAEN_1785_CH, CAEN_1785_CH);
 
-    pt_->Branch(br_name.c_str(), &root_data_.caen_adc[count++], br_vars);
+    pt_->Branch(br_name.c_str(), &root_data_.caen_1785_vec[count++], br_vars);
 
   }
 
@@ -137,18 +137,18 @@ void WriterRoot::StartWriter()
   for (auto &v : conf.get_child("devices.caen_6742")) {
     count++;
   }
-  root_data_.caen_drs.reserve(count);
+  root_data_.caen_6742_vec.reserve(count);
 
   count = 0;
   for (auto &v : conf.get_child("devices.caen_6742")) {
 
-    root_data_.caen_drs.resize(count + 1);
+    root_data_.caen_6742_vec.resize(count + 1);
 
     br_name = std::string(v.first);
     sprintf(br_vars, "system_clock/l:device_clock[%i]/l:trace[%i][%i]/s", 
 	    CAEN_6742_CH, CAEN_6742_CH, CAEN_6742_LN);
 
-    pt_->Branch(br_name.c_str(), &root_data_.caen_drs[count++], br_vars);
+    pt_->Branch(br_name.c_str(), &root_data_.caen_6742_vec[count++], br_vars);
 
   }
 
@@ -157,18 +157,18 @@ void WriterRoot::StartWriter()
   for (auto &v : conf.get_child("devices.drs4")) {
     count++;
   }
-  root_data_.drs.reserve(count);
+  root_data_.drs4_vec.reserve(count);
 
   count = 0;
   for (auto &v : conf.get_child("devices.drs4")) {
 
-    root_data_.drs.resize(count + 1);
+    root_data_.drs4_vec.resize(count + 1);
 
     br_name = std::string(v.first);
     sprintf(br_vars, "system_clock/l:device_clock[%i]/l:trace[%i][%i]/s", 
 	    DRS4_CH, DRS4_CH, DRS4_LN);
 
-    pt_->Branch(br_name.c_str(), &root_data_.drs[count++], br_vars);
+    pt_->Branch(br_name.c_str(), &root_data_.drs4_vec[count++], br_vars);
 
   }
 
@@ -177,7 +177,7 @@ void WriterRoot::StartWriter()
   for (auto &v : conf.get_child("devices.caen_1742")) {
     count++;
   }
-  root_data_.caen_adc.reserve(count);
+  root_data_.caen_1785_vec.reserve(count);
 
   count = 0;
   for (auto &v : conf.get_child("devices.caen_1742")) {
@@ -216,23 +216,23 @@ void WriterRoot::PushData(const std::vector<event_data> &data_buffer)
   for (auto it = data_buffer.begin(); it != data_buffer.end(); ++it) {
 
     int count = 0;
-    for (auto &sis : (*it).sis_fast) {
-      root_data_.sis_fast[count++] = sis;
+    for (auto &sis : (*it).sis_3350_vec) {
+      root_data_.sis_3350_vec[count++] = sis;
     }
 
     count = 0;
-    for (auto &sis : (*it).sis_slow) {
-      root_data_.sis_slow[count++] = sis;
+    for (auto &sis : (*it).sis_3302_vec) {
+      root_data_.sis_3302_vec[count++] = sis;
     }
 
     count = 0;
-    for (auto &caen: (*it).caen_adc) {
-      root_data_.caen_adc[count++] = caen;
+    for (auto &caen: (*it).caen_1785_vec) {
+      root_data_.caen_1785_vec[count++] = caen;
     }
 
     count = 0;
-    for (auto &caen: (*it).caen_drs) {
-      root_data_.caen_drs[count++] = caen;
+    for (auto &caen: (*it).caen_6742_vec) {
+      root_data_.caen_6742_vec[count++] = caen;
     }
 
     count = 0;
@@ -241,8 +241,8 @@ void WriterRoot::PushData(const std::vector<event_data> &data_buffer)
     }
 
     count = 0;
-    for (auto &drs: (*it).drs) {
-      root_data_.drs[count++] = drs;
+    for (auto &drs: (*it).drs4_vec) {
+      root_data_.drs4_vec[count++] = drs;
     }
 
     pt_->Fill();

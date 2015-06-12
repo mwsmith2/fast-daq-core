@@ -342,8 +342,8 @@ void EventManagerTrgSeq::BuilderLoop()
                        std::string(", ch ") +
                        std::to_string(trace_idx));
 
-              auto trace = data.sis_slow[sis_idx].trace[trace_idx];
-              auto clock = data.sis_slow[sis_idx].device_clock[trace_idx];
+              auto trace = data.sis_3302_vec[sis_idx].trace[trace_idx];
+              auto clock = data.sis_3302_vec[sis_idx].device_clock[trace_idx];
 
               // Store index
               int idx = data_out_[pair].second;

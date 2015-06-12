@@ -77,13 +77,13 @@ int EventManagerBasic::ResizeEventData(event_data &data)
   for (auto &dev : conf.get_child("devices.sis_3302")) {
     count++;
   }
-  data.sis_slow.resize(count);
+  data.sis_3302_vec.resize(count);
 
   count = 0;
   for (auto &dev : conf.get_child("devices.sis_3350")) {
     count++;
   }
-  data.sis_fast.resize(count);
+  data.sis_3350_vec.resize(count);
 
   return 0;
 }

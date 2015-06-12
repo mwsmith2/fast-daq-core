@@ -31,7 +31,7 @@ public:
   // Read in the configuration from a json file.
   // example file:
   // {
-  // 	"name":"caen_drs_0",
+  // 	"name":"caen_6742_vec_0",
   // 	"device_id":0,
   //         "sampling_rate":1.0,
   //         "pretrigger_delay":50,

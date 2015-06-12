@@ -299,27 +299,27 @@ void WorkerList::GetEventData(event_data &bundle)
     if ((*it).which() == 0) {
 
       auto ptr = boost::get<WorkerBase<sis_3350> *>(*it);
-      bundle.sis_fast.push_back(ptr->PopEvent());
+      bundle.sis_3350_vec.push_back(ptr->PopEvent());
 
     } else if ((*it).which() == 1) {
 
       auto ptr = boost::get<WorkerBase<sis_3302> *>(*it);
-      bundle.sis_slow.push_back(ptr->PopEvent());
+      bundle.sis_3302_vec.push_back(ptr->PopEvent());
 
     } else if ((*it).which() == 2) {
 
       auto ptr = boost::get<WorkerBase<caen_1785> *>(*it);
-      bundle.caen_adc.push_back(ptr->PopEvent());
+      bundle.caen_1785_vec.push_back(ptr->PopEvent());
 
     } else if ((*it).which() == 3) {
 
       auto ptr = boost::get<WorkerBase<caen_6742> *>(*it);
-      bundle.caen_drs.push_back(ptr->PopEvent());
+      bundle.caen_6742_vec.push_back(ptr->PopEvent());
 
     } else if ((*it).which() == 4) {
 
       auto ptr = boost::get<WorkerBase<drs4> *>(*it);
-      bundle.drs.push_back(ptr->PopEvent());
+      bundle.drs4_vec.push_back(ptr->PopEvent());
 
     } else if ((*it).which() == 5) {
 

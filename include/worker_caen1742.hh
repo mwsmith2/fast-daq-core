@@ -34,7 +34,7 @@ class WorkerCaen1742 : public WorkerVme<caen_1742> {
   // Load parameters from a json file.
   // Example file:
   // {
-  //     "name":"caen_drs_0",
+  //     "name":"caen_6742_vec_0",
   //     "base_address": "0xD0000000",
   //     "sampling_rate":1.0,
   //     "pretrigger_delay":50,

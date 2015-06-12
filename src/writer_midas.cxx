@@ -142,9 +142,9 @@ void WriterMidas::SendDataMessage()
   // For each device send "<dev_name>:<dev_type>:<binary_data>".
   
   count = 0;
-  for (auto &sis : data.sis_fast) {
+  for (auto &sis : data.sis_3350_vec) {
     
-    sprintf(str, "sis_fast_%i:", count++);
+    sprintf(str, "sis_3350_vec_%i:", count++);
     data_str.append(std::string(str));
     data_str.append("sis_3350:");
     
@@ -159,9 +159,9 @@ void WriterMidas::SendDataMessage()
   }
   
   count = 0;
-  for (auto &sis : data.sis_slow) {
+  for (auto &sis : data.sis_3302_vec) {
 
-    sprintf(str, "sis_slow_%i:", count++);
+    sprintf(str, "sis_3302_vec_%i:", count++);
     data_str.append(std::string(str));
     data_str.append("sis_3302:");
     
@@ -193,9 +193,9 @@ void WriterMidas::SendDataMessage()
   }
 
   count = 0;
-  for (auto &caen : data.caen_adc) {
+  for (auto &caen : data.caen_1785_vec) {
 
-    sprintf(str, "caen_adc_%i:", count++);
+    sprintf(str, "caen_1785_vec_%i:", count++);
     data_str.append(std::string(str));
     data_str.append("caen_1785:");
     
@@ -210,9 +210,9 @@ void WriterMidas::SendDataMessage()
   }
 
   count = 0;
-  for (auto &caen : data.caen_drs) {
+  for (auto &caen : data.caen_6742_vec) {
 
-    sprintf(str, "caen_drs_%i:", count++);
+    sprintf(str, "caen_6742_vec_%i:", count++);
     data_str.append(std::string(str));
     data_str.append("caen_6742:");
     
