@@ -72,9 +72,9 @@ class CommonBase {
       logstream_ << logstr_ << std::endl;
       logstream_.close();
       log_mutex_.unlock();      
-      
-      return 0;
     }
+
+    return 0;
   };
   
   // Prints a simple string to the log file (for max verbosity).
@@ -96,8 +96,9 @@ class CommonBase {
       
       logstream_.close();
       log_mutex_.unlock();      
-      return 0;
     }
+
+    return 0;
   };
   
   // Printf style logging function (verbosity = 2).
@@ -124,9 +125,9 @@ class CommonBase {
       logstream_ << logstr_ << std::endl;
       logstream_.close();
       log_mutex_.unlock();      
-      
-      return 0;
     }
+
+    return 0;
   };
   
   // Prints string to log file (verbosity = 2).
@@ -148,8 +149,9 @@ class CommonBase {
       
       logstream_.close();
       log_mutex_.unlock();      
-      return 0;
     }
+
+    return 0;
   };
 
   // Printf style logging function (verbosity = 1).
@@ -177,8 +179,9 @@ class CommonBase {
       
       logstream_.close();
       log_mutex_.unlock();      
-      return 0;
     }
+
+    return 0;
   };
 
   // Prints string to log file (verbosity = 1).
@@ -200,8 +203,9 @@ class CommonBase {
       
       logstream_.close();
       log_mutex_.unlock();      
-      return 0;
     }
+
+    return 0;
   };
 
   // Printf style logging function (always).
@@ -228,6 +232,7 @@ class CommonBase {
   
     logstream_.close();
     log_mutex_.unlock();      
+
     return 0;
   };
 
@@ -249,6 +254,7 @@ class CommonBase {
     
     logstream_.close();
     log_mutex_.unlock();      
+
     return 0;
   };
 
