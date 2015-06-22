@@ -234,7 +234,7 @@ extern std::string conf_dir;
 // Set sleep times for data polling threads.
 const int short_sleep = 10;
 const int long_sleep = 100;
-const int sample_period = 0.1; // in microseconds
+const double sample_period = 0.1; // in microseconds
 
 // Set up a global zmq context
 extern zmq::context_t msg_context;
