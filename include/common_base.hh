@@ -41,7 +41,7 @@ class CommonBase {
   // These should be defined in common_extdef.hh
   static int logging_verbosity_; 
   static std::string logfile_;
-  static std::ofstream logstream_;
+  static std::fstream logstream_;
   static std::mutex log_mutex_;
 
   std::string name_; // given class(hardware) name
@@ -53,7 +53,10 @@ class CommonBase {
     
     if (logging_verbosity_ > 2) {
       log_mutex_.lock(); 
-      logstream_.open(logfile_, std::ios_base::app);      
+
+      while (!logstream_.is_open()) {
+        logstream_.open(logfile_, std::fstream::app | std::fstream::out);
+      }
 
       time(&timer_);
       auto t = localtime(&timer_);
@@ -82,7 +85,10 @@ class CommonBase {
     
     if (logging_verbosity_ > 2) {
       log_mutex_.lock(); 
-      logstream_.open(logfile_, std::ios_base::app);      
+
+      while (!logstream_.is_open()) {
+        logstream_.open(logfile_, std::fstream::app | std::fstream::out);
+      }
 
       time(&timer_);
       auto t = localtime(&timer_);
@@ -106,7 +112,10 @@ class CommonBase {
     
     if (logging_verbosity_ > 1) {
       log_mutex_.lock(); 
-      logstream_.open(logfile_, std::ios_base::app);      
+
+      while (!logstream_.is_open()) {
+        logstream_.open(logfile_, std::fstream::app | std::fstream::out);
+      }
 
       time(&timer_);
       auto t = localtime(&timer_);
@@ -135,7 +144,10 @@ class CommonBase {
     
     if (logging_verbosity_ > 1) {
       log_mutex_.lock(); 
-      logstream_.open(logfile_, std::ios_base::app);      
+
+      while (!logstream_.is_open()) {
+        logstream_.open(logfile_, std::fstream::app | std::fstream::out);
+      }
 
       time(&timer_);
       auto t = localtime(&timer_);
@@ -159,7 +171,10 @@ class CommonBase {
     
     if (logging_verbosity_ > 0) {
       log_mutex_.lock(); 
-      logstream_.open(logfile_, std::ios_base::app);      
+
+      while (!logstream_.is_open()) {
+        logstream_.open(logfile_, std::fstream::app | std::fstream::out);
+      }
 
       time(&timer_);
       auto t = localtime(&timer_);
@@ -189,7 +204,10 @@ class CommonBase {
     
     if (logging_verbosity_ > 0) {
       log_mutex_.lock(); 
-      logstream_.open(logfile_, std::ios_base::app);      
+
+      while (!logstream_.is_open()) {
+        logstream_.open(logfile_, std::fstream::app | std::fstream::out);
+      }
 
       time(&timer_);
       auto t = localtime(&timer_);
@@ -212,7 +230,10 @@ class CommonBase {
   inline int LogError(const char *format, ...) {
     
     log_mutex_.lock(); 
-    logstream_.open(logfile_, std::ios_base::app);      
+
+    while (!logstream_.is_open()) {
+      logstream_.open(logfile_, std::fstream::app | std::fstream::out);
+    }
     
     time(&timer_);
     auto t = localtime(&timer_);
@@ -240,7 +261,10 @@ class CommonBase {
   inline int LogError(const std::string& error) {
     
     log_mutex_.lock();
-    logstream_.open(logfile_, std::ios_base::app);
+
+    while (!logstream_.is_open()) {
+      logstream_.open(logfile_, std::fstream::app | std::fstream::out);
+    }
     
     time(&timer_);
     auto t = localtime(&timer_);
@@ -266,7 +290,7 @@ class CommonBase {
   };
 
 };
-  
+
 } // daq
 
 #endif
