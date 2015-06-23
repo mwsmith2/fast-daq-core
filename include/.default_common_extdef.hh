@@ -28,7 +28,7 @@ zmq::context_t msg_context(1);
 // Set the default logging behavior
 int CommonBase::logging_verbosity_ = 3;
 std::string CommonBase::logfile_("/var/log/lab-daq/fast-daq.log");
-std::ofstream CommonBase::logstream_(logfile_);
+std::fstream CommonBase::logstream_(logfile_);
 std::mutex CommonBase::log_mutex_;
 
 } // ::daq
