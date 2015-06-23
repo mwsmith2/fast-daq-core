@@ -268,13 +268,13 @@ void SyncTrigger::ClientLoop()
       if (!fix_num_clients_ && !client_reconnect) {
 
         ++num_clients_;
-        LogMessage("New client %s registered. [", 
+        LogMessage("New client %s registered. [%i]", 
                    client_name.c_str(), (int)num_clients_);
 
       } else {
         
         LogMessage("client-%s reconnected. [%i/%i]", 
-                   client_name.c_str(), client_time.size(), (int)num_clients_);
+                   client_name.c_str(), client_time.size()+1, (int)num_clients_);
       }
     }
 
