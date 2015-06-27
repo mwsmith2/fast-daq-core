@@ -287,7 +287,7 @@ void WriterOnline::PackMessage()
       json_spirit::Array arr2;
       for (int ch = 0; ch < CAEN_6742_GR; ++ch) {
   arr2.push_back(json_spirit::Array(
-      &caen.trigger[ch][0], &caen.triggger[ch][CAEN_6742_LN]));
+      &caen.trigger[ch][0], &caen.trigger[ch][CAEN_6742_LN]));
 
       }
       
