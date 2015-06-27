@@ -257,7 +257,6 @@ void WriterOnline::PackMessage()
       for (int ch = 0; ch < CAEN_6742_CH; ++ch) {
 	arr.push_back(json_spirit::Array(
 			&caen.trace[ch][0], &caen.trace[ch][CAEN_6742_LN]));
-
     }
 
     count = 0;
@@ -272,23 +271,21 @@ void WriterOnline::PackMessage()
       caen_map.push_back(json_spirit::Pair(str, 
          json_spirit::Array(
            (uint64_t *)&caen.device_clock[0], 
-           (uint64_t *)&caen.device_clock[CAEN_6742_CH])));
+           (uint64_t *)&caen.device_clock[CAEN_1742_CH])));
 
       json_spirit::Array arr;
-      for (int ch = 0; ch < CAEN_6742_CH; ++ch) {
+      for (int ch = 0; ch < CAEN_1742_CH; ++ch) {
   arr.push_back(json_spirit::Array(
-      &caen.trace[ch][0], &caen.trace[ch][CAEN_6742_LN]));
-
+      &caen.trace[ch][0], &caen.trace[ch][CAEN_1742_LN]));
       }
       
       sprintf(str, "trace");
       caen_map.push_back(json_spirit::Pair(str, arr));
       
       json_spirit::Array arr2;
-      for (int ch = 0; ch < CAEN_6742_GR; ++ch) {
+      for (int gr = 0; gr < CAEN_1742_GR; ++gr) {
   arr2.push_back(json_spirit::Array(
-      &caen.trigger[ch][0], &caen.trigger[ch][CAEN_6742_LN]));
-
+      &caen.trigger[gr][0], &caen.trigger[gr][CAEN_1742_LN]));
       }
       
       sprintf(str, "trigger");
