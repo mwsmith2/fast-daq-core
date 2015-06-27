@@ -259,6 +259,11 @@ void WriterOnline::PackMessage()
 			&caen.trace[ch][0], &caen.trace[ch][CAEN_6742_LN]));
     }
 
+    sprintf(str, "caen_6742_vec_%i", count++);
+    json_map.push_back(json_spirit::Pair(str, caen_map));
+  }
+
+
     count = 0;
     for (auto &caen : data.caen_1742_vec) {
       
@@ -341,7 +346,7 @@ void WriterOnline::PackMessage()
       
       json_spirit::Array arr;
       for (int ch = 0; ch < SIS_3350_CH; ++ch) {
-	arr.push_back(json_spirit::Array(
+	       arr.push_back(json_spirit::Array(
 			&sis.trace[ch][0], &sis.trace[ch][max_trace_length_]));
 	
       }
