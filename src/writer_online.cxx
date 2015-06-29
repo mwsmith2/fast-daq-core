@@ -257,8 +257,12 @@ void WriterOnline::PackMessage()
       for (int ch = 0; ch < CAEN_6742_CH; ++ch) {
 	arr.push_back(json_spirit::Array(
 			&caen.trace[ch][0], &caen.trace[ch][CAEN_6742_LN]));
-
     }
+
+    sprintf(str, "caen_6742_vec_%i", count++);
+    json_map.push_back(json_spirit::Pair(str, caen_map));
+  }
+
 
     count = 0;
     for (auto &caen : data.caen_1742_vec) {
@@ -272,23 +276,21 @@ void WriterOnline::PackMessage()
       caen_map.push_back(json_spirit::Pair(str, 
          json_spirit::Array(
            (uint64_t *)&caen.device_clock[0], 
-           (uint64_t *)&caen.device_clock[CAEN_6742_CH])));
+           (uint64_t *)&caen.device_clock[CAEN_1742_CH])));
 
       json_spirit::Array arr;
-      for (int ch = 0; ch < CAEN_6742_CH; ++ch) {
+      for (int ch = 0; ch < CAEN_1742_CH; ++ch) {
   arr.push_back(json_spirit::Array(
-      &caen.trace[ch][0], &caen.trace[ch][CAEN_6742_LN]));
-
+      &caen.trace[ch][0], &caen.trace[ch][CAEN_1742_LN]));
       }
       
       sprintf(str, "trace");
       caen_map.push_back(json_spirit::Pair(str, arr));
       
       json_spirit::Array arr2;
-      for (int ch = 0; ch < CAEN_6742_GR; ++ch) {
+      for (int gr = 0; gr < CAEN_1742_GR; ++gr) {
   arr2.push_back(json_spirit::Array(
-      &caen.trigger[ch][0], &caen.triggger[ch][CAEN_6742_LN]));
-
+      &caen.trigger[gr][0], &caen.trigger[gr][CAEN_1742_LN]));
       }
       
       sprintf(str, "trigger");
@@ -315,7 +317,7 @@ void WriterOnline::PackMessage()
 
       json_spirit::Array arr;
       for (int ch = 0; ch < DRS4_CH; ++ch) {
-	arr.push_back(json_spirit::Array(
+	      arr.push_back(json_spirit::Array(
 			&board.trace[ch][0], &board.trace[ch][DRS4_LN]));
 
       }
@@ -344,7 +346,7 @@ void WriterOnline::PackMessage()
       
       json_spirit::Array arr;
       for (int ch = 0; ch < SIS_3350_CH; ++ch) {
-	arr.push_back(json_spirit::Array(
+	       arr.push_back(json_spirit::Array(
 			&sis.trace[ch][0], &sis.trace[ch][max_trace_length_]));
 	
       }
@@ -437,6 +439,42 @@ void WriterOnline::PackMessage()
       json_map.push_back(json_spirit::Pair(str, caen_map));
     }
     
+    count = 0;
+    for (auto &caen : data.caen_1742_vec) {
+      
+      json_spirit::Object caen_map;
+      
+      sprintf(str, "system_clock");
+      caen_map.push_back(json_spirit::Pair(str, (uint64_t)caen.system_clock));
+      
+      sprintf(str, "device_clock");
+      caen_map.push_back(json_spirit::Pair(str, 
+         json_spirit::Array(
+           (uint64_t *)&caen.device_clock[0], 
+           (uint64_t *)&caen.device_clock[CAEN_1742_CH])));
+
+      json_spirit::Array arr;
+      for (int ch = 0; ch < CAEN_1742_CH; ++ch) {
+  arr.push_back(json_spirit::Array(
+      &caen.trace[ch][0], &caen.trace[ch][max_trace_length_]));
+      }
+      
+      sprintf(str, "trace");
+      caen_map.push_back(json_spirit::Pair(str, arr));
+      
+      json_spirit::Array arr2;
+      for (int gr = 0; gr < CAEN_1742_GR; ++gr) {
+  arr2.push_back(json_spirit::Array(
+      &caen.trigger[gr][0], &caen.trigger[gr][max_trace_length_]));
+      }
+      
+      sprintf(str, "trigger");
+      caen_map.push_back(json_spirit::Pair(str, arr2));
+
+
+      sprintf(str, "caen_1742_vec_%i", count++);
+      json_map.push_back(json_spirit::Pair(str, caen_map));
+    }    
     count = 0;
     for (auto &board : data.drs4_vec) {
       
