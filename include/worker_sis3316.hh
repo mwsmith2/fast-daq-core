@@ -63,7 +63,8 @@ class WorkerSis3316 : public WorkerVme<sis_3316> {
  private:
   
   std::chrono::high_resolution_clock::time_point t0_;
-  
+  std::atomic<bool> using_bank2;
+
   // Checks the device for a triggered event.
   bool EventAvailable();
 

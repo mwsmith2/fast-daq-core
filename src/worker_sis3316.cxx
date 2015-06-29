@@ -9,13 +9,14 @@ WorkerSis3316::WorkerSis3316(std::string name, std::string conf) :
 
   num_ch_ = SIS_3316_CH;
   read_trace_len_ = SIS_3316_LN / 2; // only for vme ReadTrace
+  using_bank2 = false;
 }
 
 void WorkerSis3316::LoadConfig()
 { 
   using std::string;
 
-  int ret;
+  int rc;
   uint msg = 0;
   char str[256];
 
@@ -27,39 +28,91 @@ void WorkerSis3316::LoadConfig()
   base_address_ = std::stoul(conf.get<string>("base_address"), nullptr, 0);
 
   // Read the base register.
-  Read(0x0, msg);
-  LogMessage("SIS3316 Found at 0x%08x", base_address_);
+  rc = Read(0x0, msg);
+
+  if (rc == 0) {
+
+    LogMessage("SIS3316 Found at 0x%08x", base_address_);
+
+  } else {
+
+    LogError("SIS3316 at 0x%08x could not be found.", base_address_);
+  }
 
   // Reset the device.
   msg = 1;
-  if ((ret = Write(0x400, msg)) != 0) {
-    LogError("Error writing sis3316 reset register");
+  rc = Write(0x400, msg);
+
+  if (rc != 0) {
+    LogError("error writing sis3316 reset register");
   }
 
   // Get device ID.
   msg = 0;
-  Read(0x4, msg);
+  rc = Read(0x4, msg);
 
-  LogMessage("ID: %04x, maj rev: %02x, min rev: %02x",
-	     msg >> 16, (msg >> 8) & 0xff, msg & 0xff);
+  if (rc == 0) {
+
+    LogMessage("ID: %04x, maj rev: %02x, min rev: %02x",
+	       msg >> 16, (msg >> 8) & 0xff, msg & 0xff);
+
+  } else {
+
+    LogError("failed to read device ID register");
+  }
+
+  // Get device hardware revision.
+  msg = 0;
+  rc = Read(0x1c, msg);
+
+  if (rc == 0) {
+
+    LogMessage("device hardware version %i", msg & 0xf);
+
+  } else {
+
+    LogError("failed to read device hardware revision");
+  }
+
+  // Check the board temperature
+  msg = 0;
+  rc = Read(0x20, msg);
+
+  if (rc == 0) {
+
+    LogMessage("device internal temperature is %0.2fC", (ushort)(msg) * 0.25);
+
+  } else {
+
+    LogError("failed to read device hardware revision");
+  }
 
   // Read control/status register.
   msg = 0;
+  if (conf.get<bool>("enable_ext_lemo")) {
+    msg |= (0x1 << 4); // enable external trigger
+  }
 
   if (conf.get<bool>("invert_ext_lemo")) {
-    msg |= 0x10; // invert EXT TRIG
+    msg |= (0x1 << 5); // invert external trigger
   }
-  
-  if (conf.get<bool>("user_led_on")) {
-    msg |= 0x1; // LED on
+
+  rc = Write(0x5c, msg);
+  if (rc != 0) {
+    LogError("failure to write control/status register");
   }
-  msg = ((~msg & 0xffff) << 16) | msg; // j/k
-  msg &= ~0xfffefffe; //reserved bits
-  Write(0x0, msg);
-  
-  msg = 0;
-  Read(0x0, msg);
-  LogMessage("User LED: %s", (msg & 0x1) ? "ON" : "OFF");
+
+  // Set the DAC offsets by groups of 4 channels
+  if (conf.get<bool>("set_voltage_offsets", false)) {
+
+    uint reg;
+
+    for (int ch = 0; ch < SIS_3316_GR; ++ch) {
+      
+      // todo
+      LogWarning("attempting to set voltage offset (not implemented)");
+    }
+  }
 
   // Set Acquisition register.
   msg = 0;
@@ -74,42 +127,114 @@ void WorkerSis3316::LoadConfig()
   msg = ((~msg & 0xffff) << 16) | msg; // j/k
   msg &= 0x7df07df0; // zero reserved bits / disable bits
 
-  Write(0x10, msg);
-  msg = 0;
-  Read(0x10, msg);
+  rc = Write(0x10, msg);
+  if (rc != 0) {
+    LogError("failed to set the acquisition register");
+  }
 
-  LogMessage("ACQ register set to: 0x%08x", msg);
+  msg = 0;
+  rc = Read(0x10, msg);
+
+  if (rc != 0) {
+
+    LogError("failed to read the acquisition register");
+
+  } else {
+    
+    LogMessage("acquisition register set to: 0x%08x", msg);
+  }
+
+  // Need to enable triggers per channel also, I think.
+  for (int ch = 0; ch < SIS_3316_GR; ++ch) {
+    
+    uint reg = 0x10 + 0x1000 * (ch + 1);
+
+    rc = Read(reg, msg);
+    if (rc != 0) {
+      LogError("failure reading event config for channel group %i", ch + 1);
+    }
+    
+    if (conf.get<bool>("enable_ext_lemo", true)) {
+      msg |= 0x1 << 3;
+      msg |= 0x1 << 11;
+      msg |= 0x1 << 19;
+      msg |= 0x1 << 27;
+    }
+
+    rc = Write(reg, msg);
+    if (rc != 0) {
+	LogError("failure writing event config for channel group %i", ch + 1);
+    }
+  }
 
   // Set the start delay.
   msg = conf.get<int>("start_delay", 0);
-  Write(0x14, msg);
+  rc = Write(0x14, msg);
+  
+  if (rc != 0) {
+    LogError("failure to set the start_delay");
+  }
 
   // Set the stop delay.
   msg = conf.get<int>("stop_delay", 0);
-  Write(0x18, msg);
+  rc = Write(0x18, msg);
+
+  if (rc != 0) {
+    LogError("failure to set the stop_delay");
+  }
 
   // Read event configure register.
   msg = 0;
-  Read(0x02000000, msg);
+  rc = Read(0x02000000, msg);
+  
+  if (rc != 0) {
+    LogError("failure to read event configuration register");
+  }
 
   // Set event configure register with changes
-
   if (conf.get<bool>("enable_event_length_stop", true))
     msg = 0x1 << 5; // enable event length stop trigger
 
-  Write(0x01000000, msg);
+  rc = Write(0x01000000, msg);
+
+  if (rc != 0) {
+    LogError("failed to enable event length stops");
+  }
   
-  // Event length register - odd setting method (see manual).
-  msg = (SIS_3316_LN - 4 + 512) & 0xfffffc; // @hack - sets number of samples
-  Write(0x01000004, msg);
+  // Set event length register per ADC.
+  msg = (SIS_3316_LN) & 0x1fffffe; 
+  for (int ch = 0; ch < SIS_3316_GR; ++ch) {
 
-  // Set the pre-trigger buffer length.
+    uint reg = 0x98 + 0x1000 * (ch + 1);
+
+    rc = Write(reg, msg);
+    
+    if (rc != 0) {
+      LogError("failed to set the extend raw buffer sample length.");
+    }
+  }
+
+  // Set the pre-trigger buffer length for each channel.
   msg = std::stoi(conf.get<string>("pretrigger_samples", "0x0"), nullptr, 0);
-  Write(0x01000060, msg);
 
-  // Memory page
-  msg = 0; //first 8MB chunk
-  Write(0x34, msg);
+  for (int ch = 0; ch < SIS_3316_GR; ++ch) {
+    
+    uint reg = 0x28 + 0x1000 * (ch + 1);
+    msg &= 0x1ffe;
+    
+    rc = Write(0x01000060, msg);
+    if (rc != 0) {
+      LogError("failure setting pre-trigger for channel group %i", ch + 1);
+    }
+  }
+
+  // Arm bank1 to start.
+  msg = 1;
+  rc = Write(0x420, msg);
+  
+  if (rc != 0) {
+    LogError("failed to arm logic on bank 1");
+  }
 } // LoadConfig
 
 void WorkerSis3316::WorkLoop()
@@ -188,7 +313,17 @@ bool WorkerSis3316::EventAvailable()
     count = 0;
     rc = 0;
     do {
-      rc = Write(0x410, armit);
+      if (using_bank2) {
+
+	rc = Write(0x420, armit);
+	using_bank2 = false;
+
+      } else {
+
+	rc = Write(0x424, armit);
+	using_bank2 = true;
+      }	
+
       ++count;
     } while ((rc < 0) && (count < 100));
 
@@ -201,11 +336,10 @@ bool WorkerSis3316::EventAvailable()
 void WorkerSis3316::GetEvent(sis_3316 &bundle)
 {
   using namespace std::chrono;
-  int ch, offset, ret, count = 0;
+  int ch, rc, count = 0;
+  uint trace_addr, offset;
 
   // Check how long the event is.
-  //expected SIS_3316_LN + 8
-  
   uint next_sample_address[SIS_3316_CH];
   static uint trace[SIS_3316_CH][SIS_3316_LN / 2];
   static uint timestamp[2];
@@ -219,30 +353,40 @@ void WorkerSis3316::GetEvent(sis_3316 &bundle)
     offset |= (ch & 0x1) << 2;
 
     count = 0;
-    ret = 0;
+    rc = 0;
     do {
-      ret = Read(offset, next_sample_address[ch]);
+      rc = Read(offset, next_sample_address[ch]);
       ++count;
-    } while ((ret < 0) && (count < 100));
+    } while ((rc < 0) && (count < 100));
   }
 
-  // Get the system time
+  // Get the system time.
   auto t1 = high_resolution_clock::now();
   auto dtn = t1.time_since_epoch() - t0_.time_since_epoch();
   bundle.system_clock = duration_cast<milliseconds>(dtn).count();  
 
-  
+  // Get the device timestamp.
   Read(0x10000, timestamp[0]);
   Read(0x10001, timestamp[1]);
+
+  // Now the traces.
   for (ch = 0; ch < SIS_3316_CH; ch++) {
-    offset = (0x8 + ch) << 23;
+    
+    offset = 0x1000 * ((ch / SIS_3316_GR) + 1);
+    offset += 0x110 + 0x4 * (ch % SIS_3316_GR);
+
+    rc = Read(offset, trace_addr);
+    if (rc != 0) {
+      LogError("couldn't read address of next trace");
+    }
 
     count = 0;
-    ret = 0;
+    rc = 0;
+    LogMessage("attempting to read trace at 0x%08x", trace_addr);
     do {
-      ret = ReadTrace(offset, trace[ch]);
+      rc = ReadTrace(trace_addr, trace[ch]);
       ++count;
-    } while ((ret < 0) && (count < 100));
+    } while ((rc < 0) && (count < 100));
   }
 
   //decode the event (little endian arch)
