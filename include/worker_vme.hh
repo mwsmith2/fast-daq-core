@@ -60,6 +60,7 @@ protected:
   int Write16(uint addr, ushort msg);    // A16D16
   int ReadTrace(uint addr, uint *trace); // 2eVME
   int ReadTraceMblt64(uint addr, uint *trace); // MBLT64
+  int ReadTraceMblt64Fifo(uint addr, uint *trace); // MBLT64FIFO
 
 };
 
@@ -247,6 +248,44 @@ int WorkerVme<T>::ReadTraceMblt64(uint addr, uint *trace)
                                         trace,
                                         read_trace_len_,
                                         &num_got));
+  close(device_);
+
+  if (status != 0) {
+    this->LogError("Error reading trace at 0x%08x", base_address_ + addr);
+  }
+
+  return retval;
+}
+
+// Reads a block of data from the specified address offset.  The total
+// number of bytes read depends on the read_trace_len_ variable. Uses MBLT64
+//
+// params:
+//   addr - address offset from base_addr_
+//   trace - pointer to data being read
+//
+// return:
+//   error code from vme read
+
+template<typename T>
+int WorkerVme<T>::ReadTraceMblt64Fifo(uint addr, uint *trace)
+{
+  std::lock_guard<std::mutex> lock(daq::vme_mutex);
+  static int retval, status;
+  static uint num_got;
+
+  this->LogDebug("read_mblt64fifo vme 0x%08x, register 0x%08x, samples %i", 
+		 base_address_, addr, read_trace_len_);
+
+  device_ = open(daq::vme_path.c_str(), O_RDWR);
+  if (device_ < 0) return device_;
+
+
+  status = (retval = vme_A32MBLT64FIFO_read(device_,
+					    base_address_ + addr,
+					    trace,
+					    read_trace_len_,
+					    &num_got));
   close(device_);
 
   if (status != 0) {

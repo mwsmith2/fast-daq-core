@@ -55,8 +55,9 @@ int EventManagerBasic::BeginOfRun()
   workers_.StartRun();
   
   // Pop stale events
-  while (!workers_.AnyWorkersHaveEvent());
-  workers_.FlushEventData();
+  while (workers_.AnyWorkersHaveEvent()) {
+    workers_.FlushEventData();
+  }
 }
 
 int EventManagerBasic::EndOfRun() 
