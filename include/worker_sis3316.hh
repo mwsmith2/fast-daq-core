@@ -61,9 +61,25 @@ class WorkerSis3316 : public WorkerVme<sis_3316> {
   sis_3316 PopEvent();
 
  private:
-  
+
+  // Registers
+  const static uint REG_DEV_BASE = 0x0;
+  const static uint REG_DEV_INFO = 0x4;
+  const static uint REG_DEV_HW_REV = 0x1c;
+  const static uint REG_DEV_TEMP = 0x20;
+  const static uint REG_ACQ_STATUS = 0x60;
+  const static uint REG_SPI_CTRL = 0x100c;
+
+  const static uint KEY_DEV_RESET = 0x400;
+  const static uint KEY_DEV_DISARM = 0x414;
+  const static uint KEY_INT_TRIGGER = 0x418;
+
+  const static uint ADC_GR_OFFSET = 0x1000;
+  const static uint ADC_CH_OFFSET = 0x4;
+
+  // Variables
   std::chrono::high_resolution_clock::time_point t0_;
-  std::atomic<bool> using_bank2;
+  std::atomic<bool> bank2_armed_flag;
 
   // Checks the device for a triggered event.
   bool EventAvailable();
@@ -78,6 +94,10 @@ class WorkerSis3316 : public WorkerVme<sis_3316> {
   int I2cWrite(int osc, unsigned char data, unsigned char &ack);
 
   int SetOscFreqHSN1(int osc, unsigned char hs, unsigned char n1);
+
+  // ADC SPI control commands
+  int AdcSpiRead(int gr, int chip, uint addr, uint &msg);
+  int AdcSpiWrite(int gr, int chip, uint addr, uint msg);
 };
 
 } // ::daq
