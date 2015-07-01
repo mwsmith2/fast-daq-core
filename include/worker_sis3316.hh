@@ -63,19 +63,26 @@ class WorkerSis3316 : public WorkerVme<sis_3316> {
  private:
 
   // Registers
-  const static uint REG_DEV_BASE = 0x0;
-  const static uint REG_DEV_INFO = 0x4;
-  const static uint REG_DEV_HW_REV = 0x1c;
-  const static uint REG_DEV_TEMP = 0x20;
-  const static uint REG_ACQ_STATUS = 0x60;
-  const static uint REG_SPI_CTRL = 0x100c;
+  const static uint kRegDevBase = 0x0000;
+  const static uint kRegDevInfo = 0x0004;
+  const static uint kRegDevHwRev = 0x001c;
+  const static uint kRegDevTemp = 0x0020;
+  const static uint kRegAcqStatus = 0x0060;
+  const static uint kRegTapDelay = 0x1000;
+  const static uint kRegDacOffset = 0x1008;
+  const static uint kRegSpiCtrl = 0x100c;
+  const static uint kRegAdcHeader = 0x1014;
 
-  const static uint KEY_DEV_RESET = 0x400;
-  const static uint KEY_DEV_DISARM = 0x414;
-  const static uint KEY_INT_TRIGGER = 0x418;
+  const static uint kKeyDevReset = 0x400;
+  const static uint kKeyDevDisarm = 0x414;
+  const static uint kKeyIntTrigger = 0x418;
 
-  const static uint ADC_GR_OFFSET = 0x1000;
-  const static uint ADC_CH_OFFSET = 0x4;
+  // Magic/useful constants
+  const static uint kAdcGroupOffset = 0x1000;
+  const static uint kAdcChanOffset = 0x4;
+  const static uint kAdcTapCalib = 0xf00;
+  const static uint kAdcEnableBit = 0x1 << 24;
+  const static uint kDacEnableRef = 0x88f00001;
 
   // Variables
   std::chrono::high_resolution_clock::time_point t0_;

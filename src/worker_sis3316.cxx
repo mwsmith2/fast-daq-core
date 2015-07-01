@@ -16,9 +16,8 @@ void WorkerSis3316::LoadConfig()
 { 
   using std::string;
 
-  int rc = 0;
-  uint msg = 0;
-  uint addr = 0;
+  int rc = 0, gr = 0;
+  uint msg = 0, addr = 0;
   
   // Open the configuration file.
   boost::property_tree::ptree conf;
@@ -28,7 +27,7 @@ void WorkerSis3316::LoadConfig()
   base_address_ = std::stoul(conf.get<string>("base_address"), nullptr, 0);
   
   // Read the base register.
-  rc = Read(REG_DEV_BASE, msg);
+  rc = Read(kRegDevBase, msg);
   if (rc == 0) {
 
     LogMessage("SIS3316 found at 0x%08x", base_address_);
@@ -39,7 +38,7 @@ void WorkerSis3316::LoadConfig()
   }
   
   // Check the initial ACQ register.
-  rc = Read(REG_ACQ_STATUS, msg);
+  rc = Read(kRegAcqStatus, msg);
   if (rc != 0) {
 
     LogError("failure to read acquisition control register");
@@ -50,7 +49,7 @@ void WorkerSis3316::LoadConfig()
   }
   
   // Get device ID.
-  rc = Read(REG_DEV_INFO, msg);
+  rc = Read(kRegDevInfo, msg);
   
   if (rc != 0) {
 
@@ -63,7 +62,7 @@ void WorkerSis3316::LoadConfig()
   }
   
   // Get device hardware revision.
-  rc = Read(REG_DEV_HW_REV, msg);
+  rc = Read(kRegDevHwRev, msg);
   
   if (rc == 0) {
     
@@ -75,7 +74,7 @@ void WorkerSis3316::LoadConfig()
   }
   
   // Check the board temperature
-  rc = Read(REG_DEV_TEMP, msg);
+  rc = Read(kRegDevTemp, msg);
   
   if (rc == 0) {
     
@@ -87,13 +86,13 @@ void WorkerSis3316::LoadConfig()
   }
   
   // Reset the device.
-  rc = Write(KEY_DEV_RESET, 0x1);
+  rc = Write(kKeyDevReset, 1);
   if (rc != 0) {
     LogError("failure to reset device");
   }
 
   // Disarm the device.
-  rc = Write(KEY_DEV_DISARM, 0x1);
+  rc = Write(kKeyDevDisarm, 1);
   if (rc != 0) {
     LogError("failure to disarm device");
   }
@@ -103,12 +102,12 @@ void WorkerSis3316::LoadConfig()
    		 conf.get<unsigned char>("clock_n1", 4));
 
   // Enable ADC chip outputs.
-  for (int gr = 0; gr < SIS_3316_GR; ++gr) {
+  for (gr = 0; gr < SIS_3316_GR; ++gr) {
     
-    // Set address to SPI_CTRL_REG
-    addr = REG_SPI_CTRL + ADC_GR_OFFSET * (gr + 1);
+    // Set address to SPI control register.
+    addr = kRegSpiCtrl + kAdcGroupOffset * gr;
 
-    rc = Write(addr, 0x01000000);
+    rc = Write(addr, kAdcEnableBit);
 
     if (rc != 0) {
       LogError("failure enabling ADC output");
@@ -116,12 +115,12 @@ void WorkerSis3316::LoadConfig()
   }
 
   // Calibrate IOB delay logic.
-  for (int gr = 0; gr < SIS_3316_GR; ++gr) {
+  for (gr = 0; gr < SIS_3316_GR; ++gr) {
 
-    // Set address to INPUT_TAP_DELAY_REG
-    addr = ADC_GR_OFFSET * (gr + 1);
+    // Set address to ADC tap delay register.
+    addr = kRegTapDelay + kAdcGroupOffset * gr;
     
-    rc = Write(addr, 0xf00);
+    rc = Write(addr, kAdcTapCalib);
 
     if (rc != 0) {
       LogError("failure calibrating IOB tap delay logic");
@@ -129,12 +128,13 @@ void WorkerSis3316::LoadConfig()
   }
   usleep(100);
 
-  for (int gr = 0; gr < SIS_3316_GR; ++gr) {
+  for (gr = 0; gr < SIS_3316_GR; ++gr) {
 
-    // Set address to INPUT_TAP_DELAY_REG
-    addr = ADC_GR_OFFSET * (gr + 1);
+    // Set address to ADC tap delay register.
+    addr = kRegTapDelay + kAdcGroupOffset * gr;
     
-    rc = Write(addr, 0x300 + 0x1020);
+    //    rc = Write(addr, 0x300 + 0x1020);
+    rc = Write(addr, 0x300 + 0x7f);
 
     if (rc != 0) {
       LogError("failure setting IOB tap delay logic");
@@ -143,9 +143,9 @@ void WorkerSis3316::LoadConfig()
   usleep(100);
     
   // Write to the channel header registers.
-  for (int gr = 0; gr < SIS_3316_GR; ++gr) {
+  for (gr = 0; gr < SIS_3316_GR; ++gr) {
 
-    addr = 0x14 + ADC_GR_OFFSET * (gr + 1);
+    addr = kRegAdcHeader + kAdcGroupOffset * gr;
     msg = 0x400000 * gr;
 
     rc = Write(addr, msg);
@@ -156,18 +156,18 @@ void WorkerSis3316::LoadConfig()
   }
 
   // Set the DAC offsets by groups of 4 channels
-  if (true) { //conf.get<bool>("set_voltage_offsets", true)) {
+  if (conf.get<bool>("set_dac_offsets", true)) {
     
-    for (int gr = 0; gr < SIS_3316_GR; ++gr) {
+    for (gr = 0; gr < SIS_3316_GR; ++gr) {
       
-      uint addr = 0x8 + ADC_GR_OFFSET * (gr + 1);
+      uint addr = kRegDacOffset + kAdcGroupOffset * gr;
       
       // Enable the internal reference.
-      rc = Write(addr, 0x88f00001);
+      rc = Write(addr, kDacEnableRef);
       if (rc != 0) {
 	LogError("failed to enable the internal reference for group %i", gr+1);
       }
-      usleep(1000);  // Update takes up to 23 us
+      usleep(1000);  // Update takes some time
 
       // Set the voltage offset and write it for all channels.
       msg = 0;
@@ -196,10 +196,9 @@ void WorkerSis3316::LoadConfig()
   }
 
   // Check the DAC offset readback registers.
-  for (uint gr = 0; gr < SIS_3316_GR; ++gr) {
-    uint addr = 0x108 + ADC_GR_OFFSET * (gr + 1);
-    msg = 0;
+  for (gr = 0; gr < SIS_3316_GR; ++gr) {
 
+    addr = 0x1108 + kAdcGroupOffset * gr;
     rc = Read(addr, msg);
     if (rc != 0) {
 
@@ -212,10 +211,10 @@ void WorkerSis3316::LoadConfig()
   }
 
   // Set the trigger gate window and raw data buffer length.
-  for (int gr = 0; gr < SIS_3316_GR; ++gr) {
+  for (gr = 0; gr < SIS_3316_GR; ++gr) {
 
     // First the trigger gate length
-    addr = 0x1c + ADC_GR_OFFSET * (gr + 1);
+    addr = 0x1c + kAdcGroupOffset * (gr + 1);
     msg = (SIS_3316_LN - 2) & 0xffff;
     
     rc = Write(addr, msg);
@@ -225,7 +224,7 @@ void WorkerSis3316::LoadConfig()
     }
 
     // Now the number of raw data samples
-    addr = 0x20 + ADC_GR_OFFSET * (gr + 1);
+    addr = 0x20 + kAdcGroupOffset * (gr + 1);
     msg = (SIS_3316_LN << 16) | (0 & 0xffff);
     
     rc = Write(addr, msg);
@@ -238,9 +237,9 @@ void WorkerSis3316::LoadConfig()
   // Set the pre-trigger buffer length for each channel.
   msg = std::stoi(conf.get<string>("pretrigger_samples", "0x0"), nullptr, 0);
 
-  for (int gr = 0; gr < SIS_3316_GR; ++gr) {
+  for (gr = 0; gr < SIS_3316_GR; ++gr) {
     
-    uint reg = 0x28 + ADC_GR_OFFSET * (gr + 1);
+    uint reg = 0x28 + kAdcGroupOffset * (gr + 1);
     msg &= 0x1ffe;
     
     rc = Write(reg, msg);
@@ -265,9 +264,9 @@ void WorkerSis3316::LoadConfig()
   }
 
   // Need to enable triggers per channel also, I think.
-  for (int gr = 0; gr < SIS_3316_GR; ++gr) {
+  for (gr = 0; gr < SIS_3316_GR; ++gr) {
     
-    uint reg = 0x10 + ADC_GR_OFFSET * (gr + 1);
+    uint reg = 0x10 + kAdcGroupOffset * (gr + 1);
 
     rc = Read(reg, msg);
     if (rc != 0) {
@@ -295,10 +294,10 @@ void WorkerSis3316::LoadConfig()
   }
 
   // Set the data format and address thresholds.
-  for (int gr = 0; gr < SIS_3316_GR; ++gr) {
+  for (gr = 0; gr < SIS_3316_GR; ++gr) {
     
     // Data format
-    addr = 0x1030 + ADC_GR_OFFSET * gr;
+    addr = 0x1030 + kAdcGroupOffset * gr;
     
     rc = Write(addr, 0x0);
     
@@ -307,7 +306,7 @@ void WorkerSis3316::LoadConfig()
     }
 
     // Address threshold
-    addr = 0x1018 + ADC_GR_OFFSET * gr;
+    addr = 0x1018 + kAdcGroupOffset * gr;
     read_trace_len_ = 1 * (3 + SIS_3316_LN / 2);
     rc = Write(addr, read_trace_len_ - 1);
 
@@ -329,7 +328,7 @@ void WorkerSis3316::LoadConfig()
 
   msg |= 0x400; // Enable external timestamp clear.
 
-  rc = Write(REG_ACQ_STATUS, msg);
+  rc = Write(kRegAcqStatus, msg);
   if (rc != 0) {
     LogError("failure to write acquisition control register");
   }
@@ -411,7 +410,7 @@ bool WorkerSis3316::EventAvailable()
   count = 0;
   rc = 0;
   do {
-    rc = Read(REG_ACQ_STATUS, msg);
+    rc = Read(kRegAcqStatus, msg);
     ++count;
   } while ((rc < 0) && (count < 100));
  
@@ -459,32 +458,12 @@ void WorkerSis3316::GetEvent(sis_3316 &bundle)
   auto dtn = t1.time_since_epoch() - t0_.time_since_epoch();
   bundle.system_clock = duration_cast<milliseconds>(dtn).count();  
 
-  // for (ch = 0; ch < SIS_3316_CH; ch++) {
-
-  //   next_sample_address[ch] = 0;
-
-  //   offset = 0x02000010;
-  //   offset |= (ch >> 1) << 24;
-  //   offset |= (ch & 0x1) << 2;
-
-  //   count = 0;
-  //   rc = 0;
-  //   do {
-  //     rc = Read(offset, next_sample_address[ch]);
-  //     ++count;
-  //   } while ((rc < 0) && (count < 100));
-  // }
-
-  // // Get the device timestamp.
-  // Read(0x10000, timestamp[0]);
-  // Read(0x10001, timestamp[1]);
-
   // Now the traces.
   for (ch = 0; ch < SIS_3316_CH; ch++) {
 
     // Calculate the register for previous address.
-    offset = ADC_GR_OFFSET * ((ch / SIS_3316_GR) + 1);
-    offset += 0x120 + 0x4 * (ch % SIS_3316_GR);
+    offset = 0x1120 + kAdcGroupOffset * (ch / SIS_3316_GR);
+    offset += 0x4 * (ch % SIS_3316_GR);
 
     // Read out the previous address.
     count = 0;
