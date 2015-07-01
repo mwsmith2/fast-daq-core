@@ -37,18 +37,7 @@ void WorkerSis3316::LoadConfig()
     
     LogError("SIS3316 at 0x%08x could not be found", base_address_);
   }
-  
-  // Check the initial ACQ register.
-  rc = Read(0x60, msg);
-  if (rc != 0) {
-
-    LogError("failure to read acquisition control register");
-
-  } else {
     
-    LogMessage("acquisition register reads 0x%08x", msg);
-  }
-  
   // Get device ID.
   rc = Read(0x4, msg);
   
@@ -72,6 +61,21 @@ void WorkerSis3316::LoadConfig()
   } else {
 
     LogError("failed to read device hardware revision");
+  }
+
+  // Get ADC fpga firmware revision.
+  
+  for (int gr = 0; gr < SIS_3316_GR; ++gr) {
+
+    addr = 0x1100 + kAdcRegOffset * gr;
+
+    rc = Read(addr, msg);
+  
+    if (rc != 0) {
+      LogError("failed to read device hardware revision");
+    }
+
+    LogMessage("ADC%i fpga firmware version 0x%08x", gr, msg);
   }
   
   // Check the board temperature
@@ -97,10 +101,86 @@ void WorkerSis3316::LoadConfig()
   if (rc != 0) {
     LogError("failure to disarm device");
   }
+  
+  // SPI setup here. First disable ADC chip outputs.
+  for (int gr = 0; gr < SIS_3316_GR; ++gr) {
+    
+    // Set address to ADC's SPI_CTRL_REG.
+    addr = 0x100c + kAdcRegOffset * gr;
+    rc = Write(addr, 0x0);
+
+    if (rc != 0) {
+      LogError("failure disabling ADC output");
+    }
+  }
+
+  // Soft reset the ADC.
+  for (int gr = 0; gr < SIS_3316_GR; ++gr) {
+    rc = AdcSpiWrite(gr, 0, 0x0, 0x24);
+    rc &= AdcSpiWrite(gr, 1, 0x0, 0x24);
+    
+    if (rc != 0) {
+      LogError("failure to reset ADCs");
+    }
+  }
+
+  // Set reference voltage.
+  for (int gr = 0; gr < SIS_3316_GR; ++gr) {
+    rc = AdcSpiWrite(gr, 0, 0x14, 0x40);
+    rc &= AdcSpiWrite(gr, 1, 0x14, 0x40);
+
+    if (rc != 0) {
+      LogError("failure to set ADC reference voltage (2.0V)");
+    }
+  }
+
+  // Select output mode.
+  for (int gr = 0; gr < SIS_3316_GR; ++gr) {
+    rc = AdcSpiWrite(gr, 0, 0x18, 0xc0);
+    rc &= AdcSpiWrite(gr, 1, 0x18, 0xc0);
+
+    if (rc != 0) {
+      LogError("failure to select ADC output mode");
+    }
+  }
+
+  // Register update.
+  for (int gr = 0; gr < SIS_3316_GR; ++gr) {
+    rc = AdcSpiWrite(gr, 0, 0xff, 0x1);
+    rc &= AdcSpiWrite(gr, 1, 0xff, 0x1);
+
+    if (rc != 0) {
+      LogError("failure to update ADCs");
+    }
+  }
+
+  // Enable output again.
+  for (int gr = 0; gr < SIS_3316_GR; ++gr) {
+    
+    // Set address to ADC's SPI_CTRL_REG.
+    addr = 0x100c + kAdcRegOffset * gr;
+    rc = Write(addr, 0x01000000);
+
+    if (rc != 0) {
+      LogError("failure enabling ADC output");
+    }
+  }
+
+  // Reset the device again.
+  rc = Write(0x400, 0x1);
+  if (rc != 0) {
+    LogError("failure to reset device");
+  }
+
+  // Disarm the device.
+  rc = Write(0x414, 0x1);
+  if (rc != 0) {
+    LogError("failure to disarm device");
+  }
 
   SetOscFreqHSN1(conf.get<int>("oscillator_num", 0),
-   		 conf.get<unsigned char>("clock_hs", 5),
-   		 conf.get<unsigned char>("clock_n1", 4));
+     		 conf.get<unsigned char>("oscillator_hs", 5),
+     		 conf.get<unsigned char>("oscillator_n1", 8));
 
   // Enable ADC chip outputs.
   for (int gr = 0; gr < SIS_3316_GR; ++gr) {
@@ -133,14 +213,17 @@ void WorkerSis3316::LoadConfig()
 
     // Set address to ADC's INPUT_TAP_DELAY_REG
     addr = 0x1000 + kAdcRegOffset * gr;
+    string hex_tap_delay = conf.get<string>("iob_tap_delay", "0x1020");
+    int iob_tap_delay = std::stoi(hex_tap_delay, nullptr, 0);
     
-    // Set value (specific to fpga).
+    // Set value specific to fpga and clock frequency.
+    // A few examples (see more on manual page 116):
     // 125 MHz: fpga_0003 = 0x7f 
     // 125 MHz: fpga_0004 = 0x1020 
     // 250 MHz: fpga_0003 = 0x48 
     // 250 MHz: fpga_0004 = 0x1008
     // (+ 0x300) is to select all channels.
-    rc = Write(addr, 0x300 + 0x1020);
+    rc = Write(addr, 0x300 + iob_tap_delay);
     if (rc != 0) {
       LogError("failure setting IOB tap delay logic");
     }
@@ -467,27 +550,7 @@ void WorkerSis3316::GetEvent(sis_3316 &bundle)
   auto dtn = t1.time_since_epoch() - t0_.time_since_epoch();
   bundle.system_clock = duration_cast<milliseconds>(dtn).count();  
 
-  // for (ch = 0; ch < SIS_3316_CH; ch++) {
-
-  //   next_sample_address[ch] = 0;
-
-  //   offset = 0x02000010;
-  //   offset |= (ch >> 1) << 24;
-  //   offset |= (ch & 0x1) << 2;
-
-  //   count = 0;
-  //   rc = 0;
-  //   do {
-  //     rc = Read(offset, next_sample_address[ch]);
-  //     ++count;
-  //   } while ((rc < 0) && (count < 100));
-  // }
-
-  // // Get the device timestamp.
-  // Read(0x10000, timestamp[0]);
-  // Read(0x10001, timestamp[1]);
-
-  // Now the traces.
+  // Now get the raw data (timestamp and waveform).
   for (ch = 0; ch < SIS_3316_CH; ch++) {
 
     // Calculate the register for previous address.
@@ -906,6 +969,50 @@ int WorkerSis3316::SetOscFreqHSN1(int osc, unsigned char hs, unsigned char n1)
   usleep(5000);
 
 return 0;
+}
+
+int WorkerSis3316::AdcSpiWrite(int gr, int chip, uint spi_addr, uint msg)
+{
+  int rc;
+  uint data = 0, adc_mux = 0, addr = 0, count = 0, maxcount = 1000;
+
+  if ((gr > 4) || ((chip > 2) || (spi_addr > 0xffff))) {
+    return -1;
+  }
+
+  if (chip == 0) {
+    adc_mux = 0;
+  } else {
+    adc_mux = 0x1 << 22;
+  }
+
+  // Set to appropriate SPI_CTRL register.
+  addr = 0x100c + gr * 0x1000;
+
+  if (Read(addr, data) != 0) {
+    return -1;
+  }
+  
+  // Preserve the enable bit and add command bit and mux bit.
+  data &= (0x1 << 24);
+  data += 0x80000000 + adc_mux + (spi_addr << 8) + (msg & 0xff);
+
+  if (Write(addr, data) != 0) {
+    return -1;
+  }
+
+  // Check busy register, bit 31 to make sure it finishes before returning.
+  addr = 0xa4;
+  
+  do {
+    rc = Read(addr, data);
+  } while ((rc != 0) && (count++ < maxcount));
+  
+  if (count >= maxcount) {
+    return -2;
+  }
+  
+  return rc;
 }
 
 } // ::daq

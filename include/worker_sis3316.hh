@@ -84,8 +84,8 @@ class WorkerSis3316 : public WorkerVme<sis_3316> {
   int SetOscFreqHSN1(int osc, unsigned char hs, unsigned char n1);
 
   // ADC SPI control commands
-  //  int AdcSpiRead(int gr, int chip, uint addr, uint &msg);
-  //  int AdcSpiWrite(int gr, int chip, uint addr, uint msg);
+  // int AdcSpiRead(int gr, int chip, uint addr, uint &msg);
+  int AdcSpiWrite(int gr, int chip, uint addr, uint msg);
 };
 
 } // ::daq
