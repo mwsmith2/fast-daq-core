@@ -8,7 +8,7 @@ WorkerSis3316::WorkerSis3316(std::string name, std::string conf) :
   LoadConfig();
 
   num_ch_ = SIS_3316_CH;
-  read_trace_len_ = SIS_3316_LN / 2; // only for vme ReadTrace
+  //read_trace_len_ = SIS_3316_LN / 2; // only for vme ReadTrace
   using_bank2 = false;
 }
 
@@ -32,25 +32,13 @@ void WorkerSis3316::LoadConfig()
   
   if (rc == 0) {
 
-    LogMessage("SIS3316 Found at 0x%08x", base_address_);
+    LogMessage("SIS3316 found at 0x%08x", base_address_);
     
   } else {
     
-    LogError("SIS3316 at 0x%08x could not be found.", base_address_);
+    LogError("SIS3316 at 0x%08x could not be found", base_address_);
   }
   
-  // Reset the device.
-  rc = Write(0x400, 0x1);
-  if (rc != 0) {
-    LogError("failure to reset device");
-  }
-
-  // Disarm the device.
-  rc = Write(0x414, 0x1);
-  if (rc != 0) {
-    LogError("failure to disarm device");
-  }
-
   // Check the initial ACQ register.
   rc = Read(0x60, msg);
   if (rc != 0) {
@@ -98,189 +86,22 @@ void WorkerSis3316::LoadConfig()
     
     LogError("failed to read device temperature");
   }
-
-  // Set the sample clock
-  int osc = conf.get<int>("oscillator_num", 0);
-  unsigned char hs = conf.get<unsigned char>("clock_hs", 5);
-  unsigned char n1 = conf.get<unsigned char>("clock_n1", 4);
-  unsigned char ack;
-  unsigned char freq_high_speed_rd[6];
-  unsigned char freq_high_speed_wr[6];
-
-  // Test start.
-  rc = I2cStart(osc);
-
-  // Test stop.
-  rc = I2cStop(osc);
-
-  // Set address.
-  rc = I2cWrite(osc, 0x55 << 1, ack);
-  if ((rc != 0) || (!ack)) {
-    LogError("failure writing I2C byte");
-    I2cStop(osc);
-  }
-
-  // Register offset.
-  rc = I2cWrite(osc, 0x0d, ack);
-  if ((rc != 0) || (!ack)) {
-    LogError("failure writing I2C byte");
-    I2cStop(osc);
-  }
-
-  // Test start.
-  rc = I2cStart(osc);
-
-  // Test stop.
-  rc = I2cStop(osc);
-
-  // Set address + 1.
-  rc = I2cWrite(osc, (0x55 << 1) + 1, ack);
-  if ((rc != 0) || (!ack)) {
-    LogError("failure writing I2C byte");
-    I2cStop(osc);
-  }
-
-  // Now readout the 6 bytes currently in there.
-  for (int i = 0; i < 6; ++i) {
-    
-    if (i == 5) {
-      ack = 0;
-    } else {
-      ack = 1;
-    }
-
-    rc = I2cRead(osc, freq_high_speed_rd[i], ack);
-    if (rc != 0) {
-      LogError("failed to write READ/ACK to I2C 0 register");
-      I2cStop(osc);
-    }
-  }
-
-  // Now set the clock write bits
-  freq_high_speed_wr[0] = ((hs & 0x7) << 5) + ((n1 & 0x7c) >> 2);
-  freq_high_speed_wr[1] = ((n1 & 0x3) << 6) + freq_high_speed_rd[1] & 0x3f;
-  freq_high_speed_wr[2] = freq_high_speed_rd[2];
-  freq_high_speed_wr[3] = freq_high_speed_rd[3];
-  freq_high_speed_wr[4] = freq_high_speed_rd[4];
-  freq_high_speed_wr[5] = freq_high_speed_rd[5];
-
-  // Si570FreezeDCO
-  rc = I2cStart(osc);
-  rc = I2cStop(osc);
-
-  // Set Address.
-  rc = I2cWrite(osc, 0x55 << 1, ack);
-  if ((rc != 0) || (!ack)) {
-    LogError("failure writing I2C byte");
-    I2cStop(osc);
-  }
   
-  // Set Offset.
-  rc = I2cWrite(osc, 0x89, ack);
-  if ((rc != 0) || (!ack)) {
-    LogError("failure writing I2C byte");
-    I2cStop(osc);
-  }
-
-  // Write data.
-  rc = I2cWrite(osc, 0x10, ack);
-  if ((rc != 0) || (!ack)) {
-    LogError("failure writing I2C byte");
-    I2cStop(osc);
-  }  
-
-  // And stop
-  rc = I2cStop(osc);
-
-  // Si570Divider
-  rc = I2cStart(osc);
-  rc = I2cStop(osc);
-
-  // Set Address.
-  rc = I2cWrite(osc, 0x55 << 1, ack);
-  if ((rc != 0) || (!ack)) {
-    LogError("failure writing I2C byte");
-    I2cStop(osc);
-  }
-  
-  // Set Offset.
-  rc = I2cWrite(osc, 0x0d, ack);
-  if ((rc != 0) || (!ack)) {
-    LogError("failure writing I2C byte");
-    I2cStop(osc);
-  }
-
-  // Write data.
-  for (int i = 0; i < 6; ++i) {
-    rc = I2cWrite(osc, freq_high_speed_wr[i], ack);
-    if ((rc != 0) || (!ack)) {
-      LogError("failure writing I2C byte");
-      I2cStop(osc);
-    }  
-  }
-
-  // Si570UnfreezeDCO
-  rc = I2cStart(osc);
-  rc = I2cStop(osc);
-
-  // Set Address.
-  rc = I2cWrite(osc, 0x55 << 1, ack);
-  if ((rc != 0) || (!ack)) {
-    LogError("failure writing I2C byte");
-    I2cStop(osc);
-  }
-  
-  // Set Offset.
-  rc = I2cWrite(osc, 0x89, ack);
-  if ((rc != 0) || (!ack)) {
-    LogError("failure writing I2C byte");
-    I2cStop(osc);
-  }
-
-  // Write data.
-  rc = I2cWrite(osc, 0x00, ack);
-  if ((rc != 0) || (!ack)) {
-    LogError("failure writing I2C byte");
-    I2cStop(osc);
-  }  
-
-  // And stop
-  rc = I2cStop(osc);
-
-  // si570NewFreq
-  rc = I2cStart(osc);
-  rc = I2cStop(osc);
-
-  // Set Address.
-  rc = I2cWrite(osc, 0x55 << 1, ack);
-  if ((rc != 0) || (!ack)) {
-    LogError("failure writing I2C byte");
-    I2cStop(osc);
-  }
-  
-  // Set Offset.
-  rc = I2cWrite(osc, 0x87, ack);
-  if ((rc != 0) || (!ack)) {
-    LogError("failure writing I2C byte");
-    I2cStop(osc);
-  }
-
-  // Write data.
-  rc = I2cWrite(osc, 0x40, ack);
-  if ((rc != 0) || (!ack)) {
-    LogError("failure writing I2C byte");
-    I2cStop(osc);
-  }  
-
-  // And stop.
-  rc = I2cStop(osc);
-  
-  // Wait, then reset the DCM.
-  usleep(150000);
-  rc = Write(0x438, 0x0);
+  // Reset the device.
+  rc = Write(0x400, 0x1);
   if (rc != 0) {
-    LogError("failed to reset the DCM");
+    LogError("failure to reset device");
   }
+
+  // Disarm the device.
+  rc = Write(0x414, 0x1);
+  if (rc != 0) {
+    LogError("failure to disarm device");
+  }
+
+  SetOscFreqHSN1(conf.get<int>("oscillator_num", 0),
+		 conf.get<unsigned char>("clock_hs", 5),
+		 conf.get<unsigned char>("clock_n1", 4));
 
   // Enable ADC chip outputs.
   for (int ch = 0; ch < SIS_3316_GR; ++ch) {
@@ -335,6 +156,62 @@ void WorkerSis3316::LoadConfig()
     }
   }
 
+  // Set the DAC offsets by groups of 4 channels
+  if (true) { //conf.get<bool>("set_voltage_offsets", true)) {
+    
+    for (int ch = 0; ch < SIS_3316_GR; ++ch) {
+      
+      uint addr = 0x8 + 0x1000 * (ch + 1);
+      
+      // Enable the internal reference.
+      rc = Write(addr, 0x88f00001);
+      if (rc != 0) {
+	LogError("failed to enable the internal reference for group %i", ch+1);
+      }
+      usleep(1000);  // Update takes up to 23 us
+
+      // Set the voltage offset and write it for all channels.
+      msg = 0;
+      msg |= (0x8 << 28);
+      msg |= (0x2 << 24);
+      msg |= (0xf << 20);
+      msg |= (0x8000 << 4);
+
+      LogWarning("attempting to set voltage offset to default of 0x8000");
+
+      rc = Write(addr, msg);
+      if (rc != 0) {
+	LogError("failure to write offset for DAC %i", ch+1);
+      }
+
+      // Tell the DAC to load the values.
+      msg = 0;
+      msg |= 0xc0000000;
+
+      rc = Write(addr, msg);
+      if (rc != 0) {
+	LogError("failure to load offset for DAC %i", ch+1);
+      }
+      usleep(1000);
+    }
+  }
+
+  // Check the DAC offset readback registers.
+  for (uint ch = 0; ch < SIS_3316_GR; ++ch) {
+    uint addr = 0x108 + 0x1000 * (ch + 1);
+    msg = 0;
+
+    rc = Read(addr, msg);
+    if (rc != 0) {
+
+      LogError("failure checking DAC offset readback register");
+
+    } else {
+
+      LogMessage("DAC offset readback register is 0x%08x", msg);
+    }
+  }
+
   // Set the trigger gate window and raw data buffer length.
   for (int ch = 0; ch < SIS_3316_GR; ++ch) {
 
@@ -370,62 +247,6 @@ void WorkerSis3316::LoadConfig()
     rc = Write(reg, msg);
     if (rc != 0) {
       LogError("failure setting pre-trigger for channel group %i", ch + 1);
-    }
-  }
-
-  // Set the DAC offsets by groups of 4 channels
-  if (true) { //conf.get<bool>("set_voltage_offsets", true)) {
-    
-    for (int ch = 0; ch < SIS_3316_GR; ++ch) {
-      
-      uint addr = 0x8 + 0x1000 * (ch + 1);
-      
-      // Enable the internal reference.
-      rc = Write(addr, 0x88f00001);
-      if (rc != 0) {
-	LogError("failed to enable the internal reference for group %i", ch+1);
-      }
-      usleep(100);  // Update takes up to 23 us
-
-      // Set the voltage offset and write it for all channels.
-      msg = 0;
-      msg |= (0x8 << 28);
-      msg |= (0x2 << 24);
-      msg |= (0xf << 20);
-      msg |= (0x8000 << 4);
-
-      LogWarning("attempting to set voltage offset to default of 0x8000");
-
-      rc = Write(addr, msg);
-      if (rc != 0) {
-	LogError("failure to write offset for DAC %i", ch+1);
-      }
-
-      // Tell the DAC to load the values.
-      msg = 0;
-      msg |= 0xc0000000;
-
-      rc = Write(addr, msg);
-      if (rc != 0) {
-	LogError("failure to load offset for DAC %i", ch+1);
-      }
-      usleep(100);
-    }
-  }
-
-  // Check the DAC offset readback registers.
-  for (uint ch = 0; ch < SIS_3316_GR; ++ch) {
-    uint addr = 0x108 + 0x1000 * (ch + 1);
-    msg = 0;
-
-    rc = Read(addr, msg);
-    if (rc != 0) {
-
-      LogError("failure checking DAC offset readback register");
-
-    } else {
-
-      LogMessage("DAC offset readback register is 0x%08x", msg);
     }
   }
 
@@ -474,6 +295,28 @@ void WorkerSis3316::LoadConfig()
     }
   }
 
+  // Set the data format and address thresholds.
+  for (int ch = 0; ch < SIS_3316_GR; ++ch) {
+    
+    // Data format
+    addr = 0x1030 + 0x1000 * ch;
+    
+    rc = Write(addr, 0x0);
+    
+    if (rc != 0) {
+      LogError("failed to set data format for ADC %i", ch);
+    }
+
+    // Address threshold
+    addr = 0x1018 + 0x1000 * ch;
+    read_trace_len_ = 1 * (3 + SIS_3316_LN / 2);
+    rc = Write(addr, read_trace_len_ - 1);
+
+    if (rc != 0) {
+      LogError("failed to set address threshold for ADC %i", ch);
+    }
+  }
+
   // Enable trigger on acqusition control
   msg = 0;
   if (conf.get<bool>("enable_ext_trigger", true)) {
@@ -490,28 +333,6 @@ void WorkerSis3316::LoadConfig()
   rc = Write(0x60, msg);
   if (rc != 0) {
     LogError("failure to write acquisition control register");
-  }
-
-  // Set the data format and address thresholds.
-  for (int ch = 0; ch < SIS_3316_GR; ++ch) {
-    
-    // Data format
-    addr = 0x30 + 0x1000 * (ch + 1);
-    
-    rc = Write(addr, 0x0);
-    
-    if (rc != 0) {
-      LogError("failed to set data format for ADC %i", ch);
-    }
-
-    // Address threshold
-    addr = 0x18 + 0x1000 * (ch + 1);
-    
-    rc = Write(addr, 3 + 25000);
-
-    if (rc != 0) {
-      LogError("failed to set address threshold for ADC %i", ch);
-    }
   }
 
   // Trigger a timestamp clear.
@@ -634,8 +455,7 @@ void WorkerSis3316::GetEvent(sis_3316 &bundle)
 
   // Check how long the event is.
   uint next_sample_address[SIS_3316_CH];
-  static uint trace[SIS_3316_CH][SIS_3316_LN / 2];
-  static uint timestamp[2];
+  static uint data[SIS_3316_CH][3 + SIS_3316_LN / 2];
 
   // Get the system time.
   auto t1 = high_resolution_clock::now();
@@ -692,7 +512,7 @@ void WorkerSis3316::GetEvent(sis_3316 &bundle)
     }
     
     // Specify the channel's fifo address
-    msg = 0;
+    msg = 0x80000000;
     if (!using_bank2) msg += 0x01000000; // Bank 2 offset
     if ((ch & 0x1) == 0x1) msg += 0x02000000; // ch 2, 4, 6, ...
     if ((ch & 0x2) == 0x2) msg += 0x10000000; // ch 2, 3, 6, 7, ...
@@ -710,13 +530,12 @@ void WorkerSis3316::GetEvent(sis_3316 &bundle)
     trace_addr = 0x100000 * (ch / SIS_3316_GR + 1);
     LogMessage("attempting to read trace at 0x%08x", trace_addr);
     do {
-      rc = ReadTraceMblt64Fifo(trace_addr, trace[ch]);
+      rc = ReadTraceMblt64Fifo(trace_addr, data[ch]);
       ++count;
     } while ((rc < 0) && (count < 100));
     
     // Reset the FSM
     rc = Write(addr, 0x0);
-    rc = Write(addr, msg);
     if (rc != 0) {
       LogError("failed reset data tranfer for channel %i", ch);
     }
@@ -726,13 +545,12 @@ void WorkerSis3316::GetEvent(sis_3316 &bundle)
   for (ch = 0; ch < SIS_3316_CH; ch++) {
 
     bundle.device_clock[ch] = 0;
-    bundle.device_clock[ch] = timestamp[1] & 0xfff;
-    bundle.device_clock[ch] |= (timestamp[1] & 0xfff0000) >> 4;
-    bundle.device_clock[ch] |= (timestamp[0] & 0xfffULL) << 24;
-    bundle.device_clock[ch] |= (timestamp[0] & 0xfff0000ULL) << 20;
+    bundle.device_clock[ch] = data[ch][1] & 0xffff;
+    bundle.device_clock[ch] |= data[ch][1] & (0xffff << 16);
+    bundle.device_clock[ch] |= (data[ch][0] & 0xffffULL << 16) << 32;
 
-    std::copy((ushort *)trace[ch],
-    	      (ushort *)trace[ch] + SIS_3316_LN,
+    std::copy((ushort *)(data[ch]+3),
+	      (ushort *)(data[ch]+3) + SIS_3316_LN,
     	      bundle.trace[ch]);
   }
 }
@@ -800,7 +618,7 @@ int WorkerSis3316::I2cRead(int osc, unsigned char &data, unsigned char ack)
   msg |= ack ? (1 << 8) : 0;
   
   if (Write(addr, msg) != 0) {
-    LogError("failed to request READ from I2C");
+    LogError("failed to request READ from I2C address");
   }
 
   do {
@@ -830,7 +648,7 @@ int WorkerSis3316::I2cWrite(int osc, unsigned char data, unsigned char &ack)
   uint msg = 0, count = 0;
   
   if (Write(addr, (0x1 << 12) ^ data) != 0) {
-    LogError("failed to request READ from I2C");
+    LogError("failed to request WRITE to I2C address");
   }
 
   do {
@@ -844,11 +662,219 @@ int WorkerSis3316::I2cWrite(int osc, unsigned char data, unsigned char &ack)
     return 2;
   }
 
-  if (ack) {
-    ack = msg & (0x1 << 8) ? 1 : 0;
-  }
+  ack = (msg >> 8) & 0x1;
 
   return 0;
+}
+
+int WorkerSis3316::SetOscFreqHSN1(int osc, unsigned char hs, unsigned char n1)
+{
+  // Set the sample clock
+  int rc;
+  unsigned char ack;
+  unsigned char freq_high_speed_rd[6];
+  unsigned char freq_high_speed_wr[6];
+
+  // Start.
+  rc = I2cStart(osc);
+  if (rc != 0) {
+    LogError("failed to start I2C");
+    rc = I2cStop(osc);
+  }
+
+  // Set address.
+  rc = I2cWrite(osc, (0x55 << 1), ack);
+  if ((rc != 0) || (!ack)) {
+    LogError("failure writing I2C byte");
+    I2cStop(osc);
+  }
+
+  // Register offset.
+  rc = I2cWrite(osc, 0x0d, ack);
+  if ((rc != 0) || (!ack)) {
+    LogError("failure writing I2C byte");
+    I2cStop(osc);
+  }
+
+  // Test start.
+  rc = I2cStart(osc);
+  if (rc != 0) {
+    LogError("failed to start I2C");
+    rc = I2cStop(osc);
+  }
+
+  // Set address + 1.
+  rc = I2cWrite(osc, (0x55 << 1) + 1, ack);
+  if ((rc != 0) || (!ack)) {
+    LogError("failure writing I2C byte");
+    I2cStop(osc);
+  }
+
+  // Now readout the 6 bytes currently in there.
+  for (int i = 0; i < 6; ++i) {
+    
+    if (i == 5) {
+      ack = 0;
+    } else {
+      ack = 1;
+    }
+
+    rc = I2cRead(osc, freq_high_speed_rd[i], ack);
+    if (rc != 0) {
+      LogError("failed to write READ/ACK to I2C 0 register");
+      I2cStop(osc);
+    }
+  }
+
+  rc = I2cStop(osc);
+  if (rc != 0) {
+    LogError("failed stopping I2C command");
+  }
+
+  // Now set the clock write bits as done in STRUCK source code.
+  freq_high_speed_wr[0] = ((hs & 0x7) << 5) + ((n1 & 0x7c) >> 2);
+  freq_high_speed_wr[1] = ((n1 & 0x3) << 6) + freq_high_speed_rd[1] & 0x3f;
+  freq_high_speed_wr[2] = freq_high_speed_rd[2];
+  freq_high_speed_wr[3] = freq_high_speed_rd[3];
+  freq_high_speed_wr[4] = freq_high_speed_rd[4];
+  freq_high_speed_wr[5] = freq_high_speed_rd[5];
+
+  // Si570FreezeDCO
+  rc = I2cStart(osc);
+  if (rc != 0) {
+    LogError("failure starting I2C command");
+    rc = I2cStop(osc);
+  }
+
+  // Set Address.
+  rc = I2cWrite(osc, 0x55 << 1, ack);
+  if ((rc != 0) || (!ack)) {
+    LogError("failure writing I2C address byte");
+    I2cStop(osc);
+  }
+  
+  // Set Offset.
+  rc = I2cWrite(osc, 0x89, ack);
+  if ((rc != 0) || (!ack)) {
+    LogError("failure writing I2C offset byte");
+    I2cStop(osc);
+  }
+
+  // Write data.
+  rc = I2cWrite(osc, 0x10, ack);
+  if ((rc != 0) || (!ack)) {
+    LogError("failure writing I2C data byte");
+    I2cStop(osc);
+  }  
+
+  // And stop command.
+  rc = I2cStop(osc);
+
+  // Si570Divider
+  rc = I2cStart(osc);
+  if (rc != 0) {
+    LogError("failure starting I2C command");
+    rc = I2cStop(osc);
+  }
+
+  // Set Address.
+  rc = I2cWrite(osc, 0x55 << 1, ack);
+  if ((rc != 0) || (!ack)) {
+    LogError("failure writing I2C byte");
+    I2cStop(osc);
+  }
+  
+  // Set Offset.
+  rc = I2cWrite(osc, 0x0d, ack);
+  if ((rc != 0) || (!ack)) {
+    LogError("failure writing I2C byte");
+    I2cStop(osc);
+  }
+
+  // Write data.
+  for (int i = 0; i < 6; ++i) {
+    rc = I2cWrite(osc, freq_high_speed_wr[i], ack);
+    if ((rc != 0) || (!ack)) {
+      LogError("failure writing I2C byte");
+      I2cStop(osc);
+    }  
+  }
+
+  // And stop command.
+  rc = I2cStop(osc);
+
+  // Si570UnfreezeDCO
+  rc = I2cStart(osc);
+  if (rc != 0) {
+    LogError("failure starting I2C command");
+    rc = I2cStop(osc);
+  }
+
+  // Set Address.
+  rc = I2cWrite(osc, 0x55 << 1, ack);
+  if ((rc != 0) || (!ack)) {
+    LogError("failure writing I2C byte");
+    I2cStop(osc);
+  }
+  
+  // Set Offset.
+  rc = I2cWrite(osc, 0x89, ack);
+  if ((rc != 0) || (!ack)) {
+    LogError("failure writing I2C byte");
+    I2cStop(osc);
+  }
+
+  // Write data.
+  rc = I2cWrite(osc, 0x00, ack);
+  if ((rc != 0) || (!ack)) {
+    LogError("failure writing I2C byte");
+    I2cStop(osc);
+  }  
+
+  // And stop command.
+  rc = I2cStop(osc);
+
+  // si570NewFreq
+  rc = I2cStart(osc);
+  if (rc != 0) {
+    LogError("failure starting I2C command");
+    rc = I2cStop(osc);
+  }
+
+  // Set Address.
+  rc = I2cWrite(osc, 0x55 << 1, ack);
+  if ((rc != 0) || (!ack)) {
+    LogError("failure writing I2C byte");
+    I2cStop(osc);
+  }
+  
+  // Set Offset.
+  rc = I2cWrite(osc, 0x87, ack);
+  if ((rc != 0) || (!ack)) {
+    LogError("failure writing I2C byte");
+    I2cStop(osc);
+  }
+
+  // Write data.
+  rc = I2cWrite(osc, 0x40, ack);
+  if ((rc != 0) || (!ack)) {
+    LogError("failure writing I2C byte");
+    I2cStop(osc);
+  }  
+
+  // And stop command.
+  rc = I2cStop(osc);
+  
+  // Wait, then reset the DCM.
+  usleep(15000);
+  rc = Write(0x438, 0x0);
+  if (rc != 0) {
+    LogError("failed to reset the DCM");
+  }
+  // And wait for reset.
+  usleep(5000);
+
+return 0;
 }
 
 } // ::daq

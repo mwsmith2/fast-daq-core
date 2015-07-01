@@ -71,10 +71,13 @@ class WorkerSis3316 : public WorkerVme<sis_3316> {
   // Reads the data from the device with vme calls.
   void GetEvent(sis_3316 &bundle);
 
+  // Oscillator control commands
   int I2cStart(int osc);
   int I2cStop(int osc);
   int I2cRead(int osc, unsigned char &data, unsigned char ack);
   int I2cWrite(int osc, unsigned char data, unsigned char &ack);
+
+  int SetOscFreqHSN1(int osc, unsigned char hs, unsigned char n1);
 };
 
 } // ::daq
