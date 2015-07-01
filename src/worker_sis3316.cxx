@@ -119,7 +119,6 @@ void WorkerSis3316::LoadConfig()
 
     // Set address to ADC tap delay register.
     addr = kRegTapDelay + kAdcGroupOffset * gr;
-    
     rc = Write(addr, kAdcTapCalib);
 
     if (rc != 0) {
@@ -132,9 +131,7 @@ void WorkerSis3316::LoadConfig()
 
     // Set address to ADC tap delay register.
     addr = kRegTapDelay + kAdcGroupOffset * gr;
-    
-    //    rc = Write(addr, 0x300 + 0x1020);
-    rc = Write(addr, 0x300 + 0x7f);
+    rc = Write(addr, kAdcTapValue);
 
     if (rc != 0) {
       LogError("failure setting IOB tap delay logic");
@@ -180,16 +177,13 @@ void WorkerSis3316::LoadConfig()
 
       rc = Write(addr, msg);
       if (rc != 0) {
-	LogError("failure to write offset for DAC %i", gr+1);
+	LogError("failure to write offset for DAC %i", gr + 1);
       }
 
       // Tell the DAC to load the values.
-      msg = 0;
-      msg |= 0xc0000000;
-
-      rc = Write(addr, msg);
+      rc = Write(addr, kDacLoadInput);
       if (rc != 0) {
-	LogError("failure to load offset for DAC %i", gr+1);
+	LogError("failure to load offset for DAC %i", gr + 1);
       }
       usleep(1000);
     }
@@ -198,7 +192,7 @@ void WorkerSis3316::LoadConfig()
   // Check the DAC offset readback registers.
   for (gr = 0; gr < SIS_3316_GR; ++gr) {
 
-    addr = 0x1108 + kAdcGroupOffset * gr;
+    addr = kRegDacReadback + kAdcGroupOffset * gr;
     rc = Read(addr, msg);
     if (rc != 0) {
 
@@ -214,7 +208,7 @@ void WorkerSis3316::LoadConfig()
   for (gr = 0; gr < SIS_3316_GR; ++gr) {
 
     // First the trigger gate length
-    addr = 0x1c + kAdcGroupOffset * (gr + 1);
+    addr = kRegTriggerGate + kAdcGroupOffset * gr;
     msg = (SIS_3316_LN - 2) & 0xffff;
     
     rc = Write(addr, msg);
@@ -224,7 +218,7 @@ void WorkerSis3316::LoadConfig()
     }
 
     // Now the number of raw data samples
-    addr = 0x20 + kAdcGroupOffset * (gr + 1);
+    addr = kRegDataLength + kAdcGroupOffset * gr;
     msg = (SIS_3316_LN << 16) | (0 & 0xffff);
     
     rc = Write(addr, msg);
@@ -239,10 +233,10 @@ void WorkerSis3316::LoadConfig()
 
   for (gr = 0; gr < SIS_3316_GR; ++gr) {
     
-    uint reg = 0x28 + kAdcGroupOffset * (gr + 1);
+    addr = kRegPreTrigger + kAdcGroupOffset * gr;
     msg &= 0x1ffe;
     
-    rc = Write(reg, msg);
+    rc = Write(addr, msg);
     if (rc != 0) {
       LogError("failure setting pre-trigger for channel group %i", gr + 1);
     }
@@ -266,9 +260,9 @@ void WorkerSis3316::LoadConfig()
   // Need to enable triggers per channel also, I think.
   for (gr = 0; gr < SIS_3316_GR; ++gr) {
     
-    uint reg = 0x10 + kAdcGroupOffset * (gr + 1);
+    addr = kRegAdcEvent + kAdcGroupOffset * gr;
 
-    rc = Read(reg, msg);
+    rc = Read(addr, msg);
     if (rc != 0) {
       LogError("failure reading event config for channel group %i", gr + 1);
     }
@@ -287,7 +281,7 @@ void WorkerSis3316::LoadConfig()
       msg |= 0x1 << 26;
     }
 
-    rc = Write(reg, msg);
+    rc = Write(addr, msg);
     if (rc != 0) {
 	LogError("failure writing event config for channel group %i", gr + 1);
     }
@@ -296,18 +290,21 @@ void WorkerSis3316::LoadConfig()
   // Set the data format and address thresholds.
   for (gr = 0; gr < SIS_3316_GR; ++gr) {
     
-    // Data format
-    addr = 0x1030 + kAdcGroupOffset * gr;
-    
+    // Set data format.
+    addr = kRegDataFormat + kAdcGroupOffset * gr;
     rc = Write(addr, 0x0);
-    
+
     if (rc != 0) {
       LogError("failed to set data format for ADC %i", gr);
     }
 
     // Address threshold
-    addr = 0x1018 + kAdcGroupOffset * gr;
-    read_trace_len_ = 1 * (3 + SIS_3316_LN / 2);
+    addr = kRegEndAddress + kAdcGroupOffset * gr;
+
+    // Set vme read trace length (3 for header, 1/2 ushort->uint).
+    read_trace_len_ = 1 * (3 + SIS_3316_LN / 2); 
+
+    // Set the memory address endpoint to event length.
     rc = Write(addr, read_trace_len_ - 1);
 
     if (rc != 0) {
@@ -319,14 +316,14 @@ void WorkerSis3316::LoadConfig()
   msg = 0;
   if (conf.get<bool>("enable_ext_trigger", true)) {
     //   msg |= 0x1 << 15; // external trigger disable with internal busy
-     msg |= 0x1 << 8;
+    msg |= kAcqExtTrigger;
   }
 
   if (conf.get<bool>("enable_int_trigger", false)) {
-     msg |= 0x1 << 14;
+    msg |= kAcqIntTrigger;
   }
 
-  msg |= 0x400; // Enable external timestamp clear.
+  msg |= kAcqExtClearTime; // Enable external timestamp clear.
 
   rc = Write(kRegAcqStatus, msg);
   if (rc != 0) {
@@ -334,13 +331,13 @@ void WorkerSis3316::LoadConfig()
   }
 
   // Trigger a timestamp clear.
-  rc = Write(0x41c, 0x1);
+  rc = Write(kKeyClearTime, 0x1);
   if (rc != 0) {
     LogError("failed to clear timestamp");
   }
 
   // Arm bank1 to start.
-  rc = Write(0x420, 0x1);
+  rc = Write(kKeyArmBank1, 0x1);
   
   if (rc != 0) {
     LogError("failed to arm logic on bank 1");
@@ -403,39 +400,42 @@ sis_3316 WorkerSis3316::PopEvent()
 bool WorkerSis3316::EventAvailable()
 {
   // Check acq reg.
-  static uint msg = 0;
   static bool is_event;
   static int count, rc;
+  static uint msg;
 
   count = 0;
-  rc = 0;
+  msg = 0;
   do {
     rc = Read(kRegAcqStatus, msg);
     ++count;
-  } while ((rc < 0) && (count < 100));
+  } while ((rc != 0) && (count < 100));
  
-  is_event = msg & 0x80000;
+  is_event = msg & kAcqBankFull;
 
+  // Switch banks and rearm the logic.
   if (is_event && go_time_) {
-    // rearm the logic
-    uint armit = 1;
 
     count = 0;
     rc = 0;
-    do {
-      if (bank2_armed_flag) {
 
-	rc = Write(0x420, armit);
+    if (bank2_armed_flag) {
+
+      do {
+	rc = Write(kKeyArmBank1, 1);
 	bank2_armed_flag = false;
+    
+      } while ((rc != 0) && (count++ < 100));
 
-      } else {
+    } else {
 
-	rc = Write(0x424, armit);
+      do {
+	rc = Write(kKeyArmBank2, 1);
 	bank2_armed_flag = true;
-      }	
+    
+      } while ((rc != 0) && (count++ < 100));
 
-      ++count;
-    } while ((rc < 0) && (count < 100));
+    }
 
     return is_event;
   }
@@ -462,8 +462,8 @@ void WorkerSis3316::GetEvent(sis_3316 &bundle)
   for (ch = 0; ch < SIS_3316_CH; ch++) {
 
     // Calculate the register for previous address.
-    offset = 0x1120 + kAdcGroupOffset * (ch / SIS_3316_GR);
-    offset += 0x4 * (ch % SIS_3316_GR);
+    offset = kRegEventAddress + kAdcGroupOffset * (ch / SIS_3316_GR);
+    offset += kAdcChanOffset * (ch % SIS_3316_GR);
 
     // Read out the previous address.
     count = 0;
@@ -480,7 +480,7 @@ void WorkerSis3316::GetEvent(sis_3316 &bundle)
 	return;
       }
 
-    } while ((msg & 0x1000000) != (!bank2_armed_flag << 24));
+    } while ((msg & kEventBankBit) != (!bank2_armed_flag << kEventBankShift));
 
     if ((msg & 0xffffff) == 0) {
       LogError("no data received");
