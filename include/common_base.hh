@@ -65,7 +65,7 @@ class CommonBase {
       tm_str[strlen(tm_str) - 1] = '\0';
 
       logstream_ << std::left << std::setw(name_width_) << name_;
-      logstream_ << " [" << tm_str << "]: *DEBUG* ";
+      logstream_ << " [" << tm_str << "]:   *DEBUG*   ";
       
       va_list args;
       va_start(args, format);
@@ -97,7 +97,7 @@ class CommonBase {
       tm_str[strlen(tm_str) - 1] = '\0';
 
       logstream_ << std::left << std::setw(name_width_) << name_;
-      logstream_ << " [" << tm_str << "]: *DEBUG* ";
+      logstream_ << " [" << tm_str << "]:   *DEBUG*   ";
       logstream_ << message << std::endl;
       
       logstream_.close();
@@ -124,7 +124,7 @@ class CommonBase {
       tm_str[strlen(tm_str) - 1] = '\0';
 
       logstream_ << std::left << std::setw(name_width_) << name_;
-      logstream_ << " [" << tm_str << "]: ";
+      logstream_ << " [" << tm_str << "]:   MESSAGE   ";
       
       va_list args;
       va_start(args, format);
@@ -156,7 +156,7 @@ class CommonBase {
       tm_str[strlen(tm_str) - 1] = '\0';
 
       logstream_ << std::left << std::setw(name_width_) << name_;
-      logstream_ << " [" << tm_str << "]: ";
+      logstream_ << " [" << tm_str << "]:   MESSAGE   ";
       logstream_ << message << std::endl;
       
       logstream_.close();
