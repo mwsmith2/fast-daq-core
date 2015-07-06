@@ -9,6 +9,7 @@ WorkerSis3316::WorkerSis3316(std::string name, std::string conf) :
 
   num_ch_ = SIS_3316_CH;
   read_trace_len_ = 3 + SIS_3316_LN / 2; // only for vme ReadTrace
+  read_trace_len_ += (read_trace_len_ % 2); // needs to be even
   bank2_armed_flag = false;
 }
 
@@ -301,7 +302,7 @@ void WorkerSis3316::LoadConfig()
   // Set the trigger gate window and raw data buffer length.
   for (int gr = 0; gr < SIS_3316_GR; ++gr) {
 
-    // First the trigger gate length
+    // First the trigger gate length, doesn't effect output trace length.
     addr = 0x101c + kAdcRegOffset * gr;
     msg = (SIS_3316_LN - 2) & 0xffff;
 
@@ -311,14 +312,26 @@ void WorkerSis3316::LoadConfig()
       LogError("failure to set the trigger gate window");
     }
 
-    // Now the number of raw data samples
+    // Now the number of samples per trace.
     addr = 0x1020 + kAdcRegOffset * gr;
     msg = (SIS_3316_LN << 16) | (0 & 0xffff); // 0 is start address in ADC
-    
+      
     rc = Write(addr, msg);
 
     if (rc != 0) {
       LogError("failure to set the raw data buffer length");
+    }
+
+    // Write to the extended length register if the trace is too long.
+    if (SIS_3316_LN > 0xffff) {
+      addr = 0x1098 + kAdcRegOffset * gr;
+      msg = SIS_3316_LN & 0x1ffffff; // 25 bits total.
+
+      rc = Write(addr, msg);
+      
+      if (rc != 0) {
+        LogError("failure to set the raw data buffer length");
+      }
     }
   }
 
