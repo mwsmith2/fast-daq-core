@@ -20,6 +20,7 @@ about:  Contains the data structures for several hardware devices in a single
 #define SIS_3302_LN 100000
 
 #define SIS_3316_CH 16
+#define SIS_3316_GR 4
 #define SIS_3316_LN 100000
 
 #define CAEN_1785_CH 8
