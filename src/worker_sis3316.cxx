@@ -163,21 +163,95 @@ void WorkerSis3316::LoadConfig()
     }
   }
 
-  // Reset the device again.
-  //  rc = Write(0x400, 0x1);
-  //  if (rc != 0) {
-  //    LogError("failure to reset device");
-  //  }
-
-  // Disarm the device.
-  rc = Write(0x414, 0x1);
-  if (rc != 0) {
-    LogError("failure to disarm device");
+  // Enable external LEMO trigger.
+  msg = 0;
+  if (conf.get<bool>("enable_ext_trg", true)) {
+    msg |= (0x1 << 4); // enable external trigger bit
+  }
+  
+  if (conf.get<bool>("invert_ext_trg", false)) {
+    msg |= (0x1 << 5); // invert external trigger bit
   }
 
-  SetOscFreqHSN1(conf.get<int>("oscillator_num", 0),
-     		 conf.get<unsigned char>("oscillator_hs", 5),
-     		 conf.get<unsigned char>("oscillator_n1", 8));
+  if (conf.get<bool>("enable_ext_clk", false)) {
+    msg |= (0x1 << 0); // enable external clock
+  }  
+
+  // Write to NIM_INPUT_CTRL
+  rc = Write(0x5c, msg);
+
+  if (rc != 0) {
+    LogError("failure to write NIM input control register");
+  }
+
+  if (conf.get<bool>("enable_ext_clk", false)) {
+
+    // Reset the device again.
+    rc = Write(0x400, 0x1);
+    if (rc != 0) {
+      LogError("failure to reset device");
+    }
+    
+    // Disarm the device.
+    rc = Write(0x414, 0x1);
+    if (rc != 0) {
+      LogError("failure to disarm device");
+    }
+    
+    // Set the ADC clock distribution.
+    if (Write(0x50, 0x3) != 0) {
+      LogError("failure to set ADC clock mux");      
+    }
+
+    // Reset the Si5325.
+    if (Si5325Write(0x88, 0x80) != 0) {
+      LogError("failure to reset the Si5325");
+    }
+    usleep(12000);
+
+    // Program the clock multiplier
+    if (Si5325Write(0x0, 0x2) != 0) {
+      LogError("failure to select address for clock multipler spi register");
+    }
+
+    // Power down clk2.
+    if (Si5325Write(0xb, 0x2) != 0) {
+      LogError("failure to power down clk2");
+    }
+
+    // Trigger an internal calibration
+    if (Si5325Write(0x88, 0x40) != 0) {
+      LogError("failure to trigger internal calibration on Si5325");
+    }
+
+    usleep(500000);
+
+    // Issue a DCM/PLL reset.
+    if (Write(0x438, msg) != 0) {
+        LogError("failure to reset DCM/PLL");
+    }
+
+    // Give it a bit to finish.
+    usleep(5000);
+
+  } else {
+
+    // Reset the device again.
+    rc = Write(0x400, 0x1);
+    if (rc != 0) {
+      LogError("failure to reset device");
+    }
+    
+    // Disarm the device.
+    rc = Write(0x414, 0x1);
+    if (rc != 0) {
+      LogError("failure to disarm device");
+    }
+
+    SetOscFreqHSN1(conf.get<int>("oscillator_num", 0),
+                   conf.get<unsigned char>("oscillator_hs", 5),
+                   conf.get<unsigned char>("oscillator_n1", 8));
+  }
 
   // Enable ADC chip outputs.
   for (gr = 0; gr < SIS_3316_GR; ++gr) {
@@ -344,23 +418,6 @@ void WorkerSis3316::LoadConfig()
     }
   }
 
-  // Enable external LEMO trigger.
-  msg = 0;
-  if (conf.get<bool>("enable_ext_lemo", true)) {
-    msg |= (0x1 << 4); // enable external trigger bit
-  }
-  
-  if (conf.get<bool>("invert_ext_lemo", false)) {
-    msg |= (0x1 << 5); // invert external trigger bit
-  }
-  
-  // Write to NIM_INPUT_CTRL
-  rc = Write(0x5c, msg);
-
-  if (rc != 0) {
-    LogError("failure to write NIM input control register");
-  }
-
   // Need to enable triggers per channel also, I think.
   for (gr = 0; gr < SIS_3316_GR; ++gr) {
     
@@ -371,14 +428,14 @@ void WorkerSis3316::LoadConfig()
       LogError("failure reading event config for channel group %i", gr + 1);
     }
     
-    if (conf.get<bool>("enable_ext_trigger", true)) {
+    if (conf.get<bool>("enable_ext_trg", true)) {
       msg |= 0x1 << 3;
       msg |= 0x1 << 11;
       msg |= 0x1 << 19;
       msg |= 0x1 << 27;
     }
 
-    if (conf.get<bool>("enable_int_trigger", false)) {
+    if (conf.get<bool>("enable_int_trg", false)) {
       msg |= 0x1 << 2;
       msg |= 0x1 << 10;
       msg |= 0x1 << 18;
@@ -413,21 +470,34 @@ void WorkerSis3316::LoadConfig()
   }
 
   // Enable trigger on acqusition control
-  msg = 0;
-  if (conf.get<bool>("enable_ext_trigger", true)) {
-    msg |= 0x8;
-  }
+  // msg = 0;
+  // if (conf.get<bool>("enable_ext_trg", true)) {
+  //   //   msg |= 0x1 << 15; // external trigger disable with internal busy
+  //    msg |= 0x1 << 8;
+  // }
 
-//   if (conf.get<bool>("enable_int_trigger", false)) {
-//    msg |= 
-//   }
+  // if (conf.get<bool>("enable_int_trg", false)) {
+  //    msg |= 0x1 << 14;
+  // }
 
-  msg |= 0x10; // Enable external timestamp clear.
+  // Enable external timestamp clear.
+  msg |= 0x10; 
   rc = Write(0x60, msg);
 
   if (rc != 0) {
     LogError("failure to write acquisition control register");
   }
+
+  // Enable clock output
+  //  if (conf.get<bool>("enable_ext_clk", false) {
+  if (true) {
+    rc = Write(0x70, 0x1);
+
+    if (rc != 0) {
+      LogError("failure to enable CO clock out");
+    }
+  }
+  
 
   // Trigger a timestamp clear.
   rc = Write(0x41c, 0x1);
@@ -1026,6 +1096,51 @@ int WorkerSis3316::AdcSpiWrite(int gr, int chip, uint spi_addr, uint msg)
   }
   
   return rc;
+}
+
+int WorkerSis3316::Si5325Write(uint addr, uint msg)
+{
+  uint count = 0, maxpoll = 100, tmp = 0;
+
+  // Select the address for writing.
+  if (Write(0x54, addr & 0xff) != 0) {
+    LogError("failure to select address for clock multipler spi register");
+  }
+  
+  // Wait for the SPI to finish.
+  do {
+    if (Read(0x54, tmp) != 0) {
+      LogError("SI5235 SPI write failed");
+      return -1;
+    } 
+  } while (((0x80000000 & tmp) == 0x80000000) && (count++ < maxpoll));
+
+  if (count >= maxpoll) {
+    LogError("SI5235 SPI busy polling timed out");
+    return -2;
+  }
+
+  // Write the data (0xff) and instructions (0xff00).
+  if (Write(0x54, 0x4000 + (msg & 0xff)) != 0) {
+    LogError("SI5235 SPI write failed");
+    return -1;
+  }
+
+  // Wait for the SPI command to finish again.
+  count = 0;
+  do {
+    if (Read(0x54, tmp) != 0) {
+      LogError("SI5235 SPI busy poll failed");
+      return -1;
+    }
+  } while (((0x80000000 & tmp) == 0x80000000) && (count++ < maxpoll));
+
+  if (count >= maxpoll) {
+    LogError("SI5235 SPI busy polling timed out");
+    return -2;
+  }
+
+  return 0;
 }
 
 } // ::daq

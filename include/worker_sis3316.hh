@@ -86,6 +86,9 @@ class WorkerSis3316 : public WorkerVme<sis_3316> {
   // ADC SPI control commands
   // int AdcSpiRead(int gr, int chip, uint addr, uint &msg);
   int AdcSpiWrite(int gr, int chip, uint addr, uint msg);
+
+  // External clock multiplier SPI.
+  int Si5325Write(uint addr, uint msg);
 };
 
 } // ::daq
