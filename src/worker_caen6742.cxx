@@ -33,27 +33,43 @@ void WorkerCaen6742::LoadConfig()
   boost::property_tree::ptree conf;
   boost::property_tree::read_json(conf_file_, conf);
 
-  int ret;
+  int rc;
   uint msg = 0;
 
   int device_id = conf.get<int>("device_id");
 
   // Reset the device.
-  ret = CAEN_DGTZ_Reset(device_);
+  rc = CAEN_DGTZ_Reset(device_);
+  if (rc != 0) {
+    LogError("failed to reset device");
+  }
 
   // Get the board info.
-  ret = CAEN_DGTZ_GetInfo(device_, &board_info_);
-  LogMessage("Found caen %s.", board_info_.ModelName);
-  LogMessage("Serial Number: %i.", board_info_.SerialNumber);
-  LogMessage("ROC FPGA Release is %s", board_info_.ROC_FirmwareRel);
-  LogMessage("AMC FPGA Release is %s", board_info_.AMC_FirmwareRel);
+  rc = CAEN_DGTZ_GetInfo(device_, &board_info_);
+  if (rc != 0) {
+
+    LogError("failed to get device info");
+
+  } else {
+
+    LogMessage("Found caen %s.", board_info_.ModelName);
+    LogMessage("Serial Number: %i.", board_info_.SerialNumber);
+    LogMessage("ROC FPGA Release is %s", board_info_.ROC_FirmwareRel);
+    LogMessage("AMC FPGA Release is %s", board_info_.AMC_FirmwareRel);
+  }
   
   // Set the trace length.
-  ret = CAEN_DGTZ_SetRecordLength(device_, CAEN_6742_LN);
+  rc = CAEN_DGTZ_SetRecordLength(device_, CAEN_6742_LN);
+  if (rc != 0) {
+    LogError("failed to set trace length");
+  }
 
   // Set "pretrigger".
   int pretrigger_delay = conf.get<int>("pretrigger_delay", 35);
-  ret = CAEN_DGTZ_SetPostTriggerSize(device_, pretrigger_delay);
+  rc = CAEN_DGTZ_SetPostTriggerSize(device_, pretrigger_delay);
+  if (rc != 0) {
+    LogError("failed to set pretrigger buffer");
+  }
 
   // Set the sampling rate.
   CAEN_DGTZ_DRS4Frequency_t rate;
@@ -75,16 +91,30 @@ void WorkerCaen6742::LoadConfig()
     rate = CAEN_DGTZ_DRS4_1GHz;
   }  
 
-  ret = CAEN_DGTZ_SetDRS4SamplingFrequency(device_, rate);
+  rc = CAEN_DGTZ_SetDRS4SamplingFrequency(device_, rate);
+  if (rc != 0) {
+    LogError("failed to set sampling frequency");
+  }
 
+  // Load and enable DRS4 corrections.
   if (conf.get<bool>("use_drs4_corrections")) {
-    // Load and enable DRS4 corrections.
-    ret = CAEN_DGTZ_LoadDRS4CorrectionData(device_, rate);
-    ret = CAEN_DGTZ_EnableDRS4Correction(device_);
+  
+    rc = CAEN_DGTZ_LoadDRS4CorrectionData(device_, rate);
+    if (rc != 0) {
+      LogError("failed to load DRS4 correction data");
+    }
+
+    rc = CAEN_DGTZ_EnableDRS4Correction(device_);
+    if (rc != 0) {
+      LogError("failed to enable DRS4 corrections");
+    }
   }
 
   // Set the channel enable mask.
-  ret = CAEN_DGTZ_SetGroupEnableMask(device_, 0x3); // all on
+  rc = CAEN_DGTZ_SetGroupEnableMask(device_, 0x3); // all on 
+  if (rc != 0) {
+    LogError("failed to set group enable mask");
+  }
 
   uint ch = 0;
   //DAC offsets
@@ -96,45 +126,87 @@ void WorkerCaen6742::LoadConfig()
     if (dac < 0x0) dac = 0;
     if (dac > 0xffff) dac = 0xffff;
     
-    CAEN_DGTZ_SetChannelDCOffset(device_, ch++, dac);
+    rc = CAEN_DGTZ_SetChannelDCOffset(device_, ch++, dac);
+    if (rc != 0) {
+      LogError("failed to set DC offset for channel %i", ch-1);
+    }
   }    
 
   // Enable external trigger.
-  //  ret = CAEN_DGTZ_SetExtTriggerInputMode(device_, CAEN_DGTZ_TRGMODE_ACQ_ONLY);
+  //  rc = CAEN_DGTZ_SetExtTriggerInputMode(device_, CAEN_DGTZ_TRGMODE_ACQ_ONLY);
   // Enable fast trigger - NIM
-  ret = CAEN_DGTZ_SetFastTriggerMode(device_, CAEN_DGTZ_TRGMODE_ACQ_ONLY);
-  ret = CAEN_DGTZ_SetGroupFastTriggerDCOffset(device_, 0x10DC, 0x8000);
-  ret = CAEN_DGTZ_SetGroupFastTriggerThreshold(device_, 0x10D4, 0x51C6);
+  rc = CAEN_DGTZ_SetFastTriggerMode(device_, CAEN_DGTZ_TRGMODE_ACQ_ONLY);
+  if (rc != 0) {
+    LogError("failed to set trigger mode to acquire only");
+  }
+
+  rc = CAEN_DGTZ_SetGroupFastTriggerDCOffset(device_, 0x10DC, 0x8000);
+  if (rc != 0) {
+    LogError("failed to set fast trigger DC offset");
+  }
+
+  rc = CAEN_DGTZ_SetGroupFastTriggerThreshold(device_, 0x10D4, 0x51C6);
+  if (rc != 0) {
+    LogError("failed to adjust fast trigger threshold");
+  }
 
   // Digitize the fast trigger.
-  ret = CAEN_DGTZ_SetFastTriggerDigitizing(device_, CAEN_DGTZ_ENABLE);
+  rc = CAEN_DGTZ_SetFastTriggerDigitizing(device_, CAEN_DGTZ_ENABLE);
+  if (rc != 0) {
+    LogError("failed to enable digitization of the fast trigger");
+  }
 
   // Disable self trigger.
-  ret = CAEN_DGTZ_SetChannelSelfTrigger(device_, 
+  rc = CAEN_DGTZ_SetChannelSelfTrigger(device_, 
 					CAEN_DGTZ_TRGMODE_DISABLED, 
 					0xffff);
+  if (rc != 0) {
+    LogError("failed to disable self-triggering");
+  }
   
   // Channel pulse polarity
   for (int ch; ch < CAEN_6742_CH; ++ch) {
-    ret = CAEN_DGTZ_SetChannelPulsePolarity(device_, ch, 
+    rc = CAEN_DGTZ_SetChannelPulsePolarity(device_, ch, 
 					    CAEN_DGTZ_PulsePolarityPositive);
+    if (rc != 0) {
+      LogError("failed to set pulse polarity for channel %i", ch);
+    }
   }
 
   // Set the acquisition mode.
-  ret = CAEN_DGTZ_SetAcquisitionMode(device_, CAEN_DGTZ_SW_CONTROLLED);
+  rc = CAEN_DGTZ_SetAcquisitionMode(device_, CAEN_DGTZ_SW_CONTROLLED);
+  if (rc != 0) {
+    LogError("failed to set acquisition mode to software controlled");
+  }
 
   // Set max events to 1 our purposes.
-  ret = CAEN_DGTZ_SetMaxNumEventsBLT(device_, 1);
+  rc = CAEN_DGTZ_SetMaxNumEventsBLT(device_, 1);
+  if (rc != 0) {
+    LogError("failed to set max number of events to 1");
+  }
   
   // Allocated the readout buffer.
-  ret = CAEN_DGTZ_MallocReadoutBuffer(device_, &buffer_, &size_);
+  rc = CAEN_DGTZ_MallocReadoutBuffer(device_, &buffer_, &size_);
+  if (rc != 0) {
+    LogError("failed to allocate readout buffer");
+  }
   
 } // LoadConfig
 
 void WorkerCaen6742::WorkLoop()
 {
-  int ret = CAEN_DGTZ_AllocateEvent(device_, (void **)&event_);
-  ret = CAEN_DGTZ_SWStartAcquisition(device_);
+  int rc = 0;
+  
+  rc = CAEN_DGTZ_AllocateEvent(device_, (void **)&event_);
+  if (rc != 0) {
+    LogError("failed to allocate event buffer");
+  }
+    
+  rc = CAEN_DGTZ_SWStartAcquisition(device_);
+  if (rc != 0) {
+    LogError("failed to begin software data acquisition");
+  }
+
   t0_ = std::chrono::high_resolution_clock::now();
 
   while (thread_live_) {
@@ -162,8 +234,15 @@ void WorkerCaen6742::WorkLoop()
     usleep(daq::long_sleep);
   }
 
-  ret = CAEN_DGTZ_SWStopAcquisition(device_);
-  ret = CAEN_DGTZ_FreeEvent(device_, (void **)&event_);
+  rc = CAEN_DGTZ_SWStopAcquisition(device_);
+  if (rc != 0) {
+    LogError("failed to end software data acquisition");
+  }
+
+  rc = CAEN_DGTZ_FreeEvent(device_, (void **)&event_);
+  if (rc != 0) {
+    LogError("failed to free event buffer");
+  }
 }
 
 caen_6742 WorkerCaen6742::PopEvent()
@@ -195,11 +274,21 @@ caen_6742 WorkerCaen6742::PopEvent()
 bool WorkerCaen6742::EventAvailable()
 {
   // Check acq reg.
-  uint num_events = 0;
+  uint num_events = 0, rc = 0;
 
-  CAEN_DGTZ_ReadData(device_, CAEN_DGTZ_SLAVE_TERMINATED_READOUT_MBLT, buffer_, &bsize_);
+  rc = CAEN_DGTZ_ReadData(device_, 
+                          CAEN_DGTZ_SLAVE_TERMINATED_READOUT_MBLT, 
+                          buffer_, 
+                          &bsize_);
+  if (rc != 0) {
+    LogError("failed to readout data");
+  }
 
-  CAEN_DGTZ_GetNumEvents(device_, buffer_, bsize_, &num_events);
+  rc = CAEN_DGTZ_GetNumEvents(device_, buffer_, bsize_, &num_events);
+
+  if (rc != 0) {
+    LogError("failed to read number of events in data buffer");
+  }
 
   if (num_events > 0) {
     return true;
@@ -213,7 +302,7 @@ bool WorkerCaen6742::EventAvailable()
 void WorkerCaen6742::GetEvent(caen_6742 &bundle)
 {
   using namespace std::chrono;
-  int ch, offset, ret = 0;
+  int ch, offset, rc = 0;
   char *evtptr = nullptr;
 
   // Get the system time
@@ -222,8 +311,20 @@ void WorkerCaen6742::GetEvent(caen_6742 &bundle)
   bundle.system_clock = duration_cast<milliseconds>(dtn).count();  
 
   // Get the event data
-  ret = CAEN_DGTZ_GetEventInfo(device_, buffer_, bsize_, 0, &event_info_, &evtptr);
-  ret = CAEN_DGTZ_DecodeEvent(device_, evtptr, (void **)&event_);
+  rc = CAEN_DGTZ_GetEventInfo(device_, 
+                              buffer_, 
+                              bsize_, 
+                              0, 
+                              &event_info_, 
+                              &evtptr);
+  if (rc != 0) {
+    LogError("failed to retrieve event info");
+  }
+
+  rc = CAEN_DGTZ_DecodeEvent(device_, evtptr, (void **)&event_);
+  if (rc != 0) {
+    LogError("failed to decode event");
+  }
 
   int gr, idx, ch_idx, len;
   for (gr = 0; gr < CAEN_6742_GR; ++gr) {
