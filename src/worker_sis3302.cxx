@@ -15,7 +15,7 @@ void WorkerSis3302::LoadConfig()
 { 
   using std::string;
 
-  int ret;
+  int rc;
   uint msg = 0;
   char str[256];
 
@@ -27,25 +27,36 @@ void WorkerSis3302::LoadConfig()
   base_address_ = std::stoul(conf.get<string>("base_address"), nullptr, 0);
 
   // Read the base register.
-  Read(0x0, msg);
-  LogMessage("SIS3302 Found at 0x%08x", base_address_);
+  rc = Read(0x0, msg);
+  if (rc != 0) {
+
+    LogError("could not find SIS3302 device at 0x%08x", base_address_);
+
+  } else {
+   
+    LogMessage("SIS3302 Found at 0x%08x", base_address_);
+  }
 
   // Reset the device.
-  msg = 1;
-  if ((ret = Write(0x400, msg)) != 0) {
-    LogError("Error writing sis3302 reset register");
+  rc = Write(0x400, 0x1);
+  if (rc != 0) {
+    LogError("failure writing sis3302 reset register");
   }
 
   // Get device ID.
-  msg = 0;
-  Read(0x4, msg);
+  rc = Read(0x4, msg);
+  if (rc != 0) {
 
-  LogMessage("ID: %04x, maj rev: %02x, min rev: %02x",
-	     msg >> 16, (msg >> 8) & 0xff, msg & 0xff);
+    LogError("failed reading device ID");
+
+  } else {
+
+    LogMessage("ID: %04x, maj rev: %02x, min rev: %02x",
+               msg >> 16, (msg >> 8) & 0xff, msg & 0xff);
+  }
 
   // Read control/status register.
   msg = 0;
-
   if (conf.get<bool>("invert_ext_lemo")) {
     msg |= 0x10; // invert EXT TRIG
   }
@@ -53,13 +64,25 @@ void WorkerSis3302::LoadConfig()
   if (conf.get<bool>("user_led_on")) {
     msg |= 0x1; // LED on
   }
+
+  // Toggle reserved bits
   msg = ((~msg & 0xffff) << 16) | msg; // j/k
-  msg &= ~0xfffefffe; //reserved bits
-  Write(0x0, msg);
+  msg &= ~0xfffefffe;
+
+  rc = Write(0x0, msg);
+  if (rc != 0) {
+    LogError("failed setting the control register");
+  }
   
-  msg = 0;
-  Read(0x0, msg);
-  LogMessage("User LED: %s", (msg & 0x1) ? "ON" : "OFF");
+  rc = Read(0x0, msg);
+  if (rc != 0) {
+
+    LogError("failed reading status/control register");
+
+  } else {
+
+    LogMessage("User LED: %s", (msg & 0x1) ? "ON" : "OFF");
+  }
 
   // Set Acquisition register.
   msg = 0;
@@ -74,42 +97,72 @@ void WorkerSis3302::LoadConfig()
   msg = ((~msg & 0xffff) << 16) | msg; // j/k
   msg &= 0x7df07df0; // zero reserved bits / disable bits
 
-  Write(0x10, msg);
-  msg = 0;
-  Read(0x10, msg);
+  rc = Write(0x10, msg);
+  if (rc != 0) {
+    LogError("failed writing acquisition register");
+  }
 
-  LogMessage("ACQ register set to: 0x%08x", msg);
+  rc = Read(0x10, msg);
+  if (rc != 0) {
+
+    LogError("failed reading acquisition register");
+
+  } else {
+
+    LogDebug("acquisition register set to: 0x%08x", msg);
+  }
 
   // Set the start delay.
   msg = conf.get<int>("start_delay", 0);
-  Write(0x14, msg);
+
+  rc = Write(0x14, msg);
+  if (rc != 0) {
+    LogError("failed to set start delay");
+  }
 
   // Set the stop delay.
   msg = conf.get<int>("stop_delay", 0);
-  Write(0x18, msg);
+  rc = Write(0x18, msg);
+  if (rc != 0) {
+    LogError("failed to set stop delay");
+  }
 
-  // Read event configure register.
-  msg = 0;
-  Read(0x02000000, msg);
+  // Read event configuration register.
+  rc = Read(0x02000000, msg);
+  if (rc != 0) {
+    LogError("failed to read event configuration register");
+  }
 
   // Set event configure register with changes
+  if (conf.get<bool>("enable_event_length_stop", true)) {
+    msg = 0x1 << 5; 
+  }
 
-  if (conf.get<bool>("enable_event_length_stop", true))
-    msg = 0x1 << 5; // enable event length stop trigger
-
-  Write(0x01000000, msg);
+  rc = Write(0x01000000, msg);
+  if (rc != 0) {
+    LogError("failed to set event configuration register");
+  }
   
   // Event length register - odd setting method (see manual).
   msg = (SIS_3302_LN - 4 + 512) & 0xfffffc; // @hack - sets number of samples
-  Write(0x01000004, msg);
+  rc = Write(0x01000004, msg);
+  if (rc != 0) {
+    LogError("failed to set event length");
+  }
 
   // Set the pre-trigger buffer length.
   msg = std::stoi(conf.get<string>("pretrigger_samples", "0x0"), nullptr, 0);
-  Write(0x01000060, msg);
+  rc = Write(0x01000060, msg);
+  if (rc != 0) {
+    LogError("failed to set pre-trigger buffer");
+  }
 
   // Memory page
   msg = 0; //first 8MB chunk
-  Write(0x34, msg);
+  rc = Write(0x34, msg);
+  if (rc != 0) {
+    LogError("failed to set memory page");
+  }
 } // LoadConfig
 
 void WorkerSis3302::WorkLoop()
@@ -175,9 +228,12 @@ bool WorkerSis3302::EventAvailable()
   count = 0;
   rc = 0;
   do {
+
     rc = Read(0x10, msg);
-    ++count;
-  } while ((rc < 0) && (count < 100));
+    if (rc != 0) {
+      LogError("failed to read event status register");
+    }
+  } while ((rc != 0) && (count++ < 100));
  
   is_event = !(msg & 0x10000);
 
@@ -188,9 +244,12 @@ bool WorkerSis3302::EventAvailable()
     count = 0;
     rc = 0;
     do {
+
       rc = Write(0x410, armit);
-      ++count;
-    } while ((rc < 0) && (count < 100));
+      if (rc != 0) {
+        LogError("failed to rearm sampling logic");
+      }
+    } while ((rc != 0) && (count++ < 100));
 
     return is_event;
   }
@@ -201,7 +260,7 @@ bool WorkerSis3302::EventAvailable()
 void WorkerSis3302::GetEvent(sis_3302 &bundle)
 {
   using namespace std::chrono;
-  int ch, offset, ret, count = 0;
+  int ch, offset, rc, count = 0;
 
   // Check how long the event is.
   //expected SIS_3302_LN + 8
@@ -219,11 +278,11 @@ void WorkerSis3302::GetEvent(sis_3302 &bundle)
     offset |= (ch & 0x1) << 2;
 
     count = 0;
-    ret = 0;
+    rc = 0;
     do {
-      ret = Read(offset, next_sample_address[ch]);
+      rc = Read(offset, next_sample_address[ch]);
       ++count;
-    } while ((ret < 0) && (count < 100));
+    } while ((rc < 0) && (count < 100));
   }
 
   // Get the system time
@@ -232,17 +291,28 @@ void WorkerSis3302::GetEvent(sis_3302 &bundle)
   bundle.system_clock = duration_cast<milliseconds>(dtn).count();  
 
   
-  Read(0x10000, timestamp[0]);
-  Read(0x10001, timestamp[1]);
-  for (ch = 0; ch < SIS_3302_CH; ch++) {
-    offset = (0x8 + ch) << 23;
+  rc = Read(0x10000, timestamp[0]);
+  if (rc != 0) {
+    LogError("failed to read first byte of the device timestamp");
+  }
 
+  rc = Read(0x10001, timestamp[1]);
+  if (rc != 0) {
+    LogError("failed to read second byte of the device timestamp");
+  }
+
+  for (ch = 0; ch < SIS_3302_CH; ch++) {
+
+    offset = (0x8 + ch) << 23;
     count = 0;
-    ret = 0;
+
     do {
-      ret = ReadTrace(offset, trace[ch]);
-      ++count;
-    } while ((ret < 0) && (count < 100));
+
+      rc = ReadTrace(offset, trace[ch]);
+      if (rc != 0) {
+        LogError("failed reading trace for channel %i", ch);
+      }
+    } while ((rc < 0) && (count++ < 100));
   }
 
   //decode the event (little endian arch)
