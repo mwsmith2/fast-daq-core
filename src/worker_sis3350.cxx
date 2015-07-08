@@ -23,32 +23,37 @@ void WorkerSis3350::LoadConfig()
   // Get the device filestream.  If it isn't open, open it.
   std::string dev_path = conf.get<std::string>("device");
 
-  LogMessage("Starting initialization");
-
   // Get the base address.  Needs to be converted from hex.
   base_address_ = std::stoul(conf.get<std::string>("base_address"), nullptr, 0);
 
   // Check for device.
   rc = Read(0x0, msg);
-  if (rc >= 0) {
+  if (rc != 0) {
 
-    LogMessage("Found at vme address: 0x%08x", base_address_);
+    LogError("failed to communicate with SIS3350 module.");
 
   } else {
 
-    LogError("Failed to communicate with VME device.");
+    LogMessage("found SIS3350 module at: 0x%08x", base_address_);
   }
 
   // Reset device.
-  msg = 1;
-  Write(0x400, msg);
+  rc = Write(0x400, 0x1);
+  if (rc != 0) {
+    LogError("failed to reset device");
+  }
 
   // Get and print device ID.
-  msg = 0;
-  Read(0x4, msg);
+  rc = Read(0x4, msg);
+  if (rc != 0) {
+
+    LogError("failed to read device ID register");
+
+  } else {
   
-  LogMessage("ID: %04x, maj rev: %02x, min rev: %02x",
-	     msg >> 16, (msg >> 8) & 0xff, msg & 0xff);
+    LogMessage("ID: %04x, maj rev: %02x, min rev: %02x",
+               msg >> 16, (msg >> 8) & 0xff, msg & 0xff);
+  }
 
   // Set and check the control/status register.
   msg = 0;
@@ -63,104 +68,148 @@ void WorkerSis3350::LoadConfig()
 
   msg = ((~msg & 0xffff) << 16) | msg; // j/k
   msg &= 0x00110011; // zero reserved bits
-  Write(0x0, msg);
 
-  msg = 0;
-  Read(0x0, msg);
+  rc = Write(0x0, msg);
+  if (rc != 0) {
+    LogError("failed to set control/status register");
+  }
 
-  LogMessage("EXT LEMO: %s", ((msg & 0x10) == 0x10) ? "NIM" : "TTL");
-  LogMessage("User LED: %s", (msg & 0x1) ? "ON" : "OFF");
+  rc = Read(0x0, msg);
+  if (rc != 0) {
+    LogError("failed to readback control/status register");
+  }
+
+  LogMessage("external trigger: %s", ((msg & 0x10) == 0x10) ? "NIM" : "TTL");
+  LogMessage("user LED: %s", (msg & 0x1) ? "ON" : "OFF");
 
   // Set to the acquisition register.
-  msg = 0;
-  msg |= 0x1; //sync ring buffer mode
-  //msg |= 0x1 << 5; //enable multi mode
-  //msg |= 0x1 << 6; //enable internal (channel) triggers
+  msg = 0x1;//sync ring buffer mode
 
   if (conf.get<bool>("enable_ext_lemo")) {
     msg |= 0x1 << 8; //enable EXT LEMO
   }
 
-  //msg |= 0x1 << 9; //enable EXT LVDS
-  //msg |= 0x0 << 12; // clock source: synthesizer
-
   msg = ((~msg & 0xffff) << 16) | msg; // j/k
   msg &= ~0xcc98cc98; //reserved bits
 
-  Write(0x10, msg);
+  rc = Write(0x10, msg);
+  if (rc != 0) {
+    LogError("failed to set acquisition register");
+  }
 
-  msg = 0;
-  Read(0x10, msg);
-  LogMessage("ACQ register set to: 0x%08x", msg);
+  rc = Read(0x10, msg);
+  if (rc != 0) {
+
+    LogError("failed to readback acquisition register");
+
+  } else {
+
+    LogMessage("ACQ register set to: 0x%08x", msg);
+  }
 
   // Set the synthesizer register.
   msg = 0x14; //500 MHz
-  Write(0x1c, msg);
+  rc = Write(0x1c, msg);
+  if (rc != 0) {
+    LogError("failed to set synthesizer register");
+  }
 
   // Set the memory page.
   msg = 0; //first 8MB chunk
-  Write(0x34, msg);
+  rc = Write(0x34, msg);
+  if (rc != 0) {
+    LogError("failed to set memory page");
+  }
 
   // Set the trigger output.
-  msg = 0;
-  msg |= 0x1; // LEMO IN -> LEMO OUT
-  Write(0x38, msg);
+  msg = 0x1;// LEMO IN -> LEMO OUT
+  rc = Write(0x38, msg);
+  if (rc != 0) {
+    LogError("failed to enable lemo trigger output");
+  }
 
   // Set ext trigger threshold.
   //first load data, then clock in, then ramp
   msg = 35000; // +1.45V TTL
-  Write(0x54, msg);
+  rc = Write(0x54, msg);
+  if (rc != 0) {
+    LogError("failed to set trigger threshold on DAC");
+  }
 
   msg = 0;
   msg |= 0x1 << 4; //TRG threshold
   msg |= 0x1; //load shift register DAC
-  Write(0x50, msg);
 
-  uint timeout_max = 1000;
-  uint timeout_cnt = 0;
+  rc = Write(0x50, msg);
+  if (rc != 0) {
+    LogError("failed to start loading threshold into DAC");
+  }
+
+  uint pollmax = 1000;
+  uint count = 0;
   do {
 
     msg = 0;
-    Read(0x50, msg);
-    timeout_cnt++;
+    rc = Read(0x50, msg);
+    if (rc != 0) {
+      LogError("failure to read DAC status register");
+    }
+      
+  } while (((msg & 0x8000) == 0x8000) && (count++ < pollmax));
 
-  } while (((msg & 0x8000) == 0x8000) && (timeout_cnt < timeout_max));
-
-  if (timeout_cnt == timeout_max) {
-    LogError("Failure loading ext trg shift register");
+  if (count >= pollmax) {
+    LogError("Failure loading external trigger shift register");
   }
 
   msg = 0;
   msg |= 0x1 << 4; //TRG threshold
   msg |= 0x2; //load DAC
-  Write(0x50, msg);
+  rc = Write(0x50, msg);
+  if (rc != 0) {
+    LogError("failure to start loading DAC");
+  }
 
-  timeout_cnt = 0;
+  count = 0;
   do {
 
     msg = 0;
-    Read(0x50, msg);
-    timeout_cnt++;
+    rc = Read(0x50, msg);
+    if (rc != 0) {
+      LogError("failure to read DAC status register");
+    }
+    
+  } while (((msg & 0x8000) == 0x8000) && (count++ < pollmax));
 
-  } while (((msg & 0x8000) == 0x8000) && (timeout_cnt < timeout_max));
-
-  if (timeout_cnt == timeout_max) {
-    LogError("Failure loading ext trg DAC");
+  if (count >= pollmax) {
+    LogError("Failure loading external trigger to DAC");
   }
 
   //board temperature
   msg = 0;
 
-  Read(0x70, msg);
-  LogMessage("Board temperature: %.2f degC", (float)msg / 4.0);
+  rc = Read(0x70, msg);
+  if (rc != 0) {
+
+    LogError("failed to read temperature for board");
+
+  } else {
+
+    LogMessage("board temperature: %.2f degC", (float)msg / 4.0);
+  }
   
   //ring buffer sample length
   msg = SIS_3350_LN;
-  Write(0x01000020, msg);
+  rc = Write(0x01000020, msg);
+  if (rc != 0) {
+    LogError("failed to set ring buffer trace length");
+  }
 
   //ring buffer pre-trigger sample length
   msg = std::stoi(conf.get<std::string>("pretrigger_samples"), nullptr, 0);
-  Write(0x01000024, msg);
+  rc = Write(0x01000024, msg);
+  if (rc != 0) {
+    LogError("failed to set ring buffer pre-trigger buffer");
+  }
 
   //range -1.5 to +0.3 V
   uint ch = 0;
@@ -172,39 +221,52 @@ void WorkerSis3350::LoadConfig()
 
     float volts = val.second.get_value<float>();
     msg = (int)(33000 + 3377.77 * volts + 0.5);
-    Write(offset | 4, msg);
+    rc = Write(offset | 4, msg);
+    if (rc != 0) {
+      LogError("failed to write into DAC register");
+    }
 
     msg = 0;
     msg |= (ch % 2) << 4;
     msg |= 0x1; //load shift register DAC
-    Write(offset, msg);
+    rc = Write(offset, msg);
+    if (rc != 0) {
+      LogError("failed to start load to DAC shift register");
+    }
 
-    timeout_max = 1000;
-    timeout_cnt = 0;
+    pollmax = 1000;
+    count = 0;
 
     do {
-      msg = 0;
-      Read(offset, msg);
-      timeout_cnt++;
-    } while (((msg & 0x8000) == 0x8000) && (timeout_cnt < timeout_max));
 
-    if (timeout_cnt == timeout_max) {
+      rc = Read(offset, msg);
+      if (rc != 0) {
+        LogError("failed to read DAC busy status");
+      }
+    } while (((msg & 0x8000) == 0x8000) && (count++ < pollmax));
+
+    if (count == pollmax) {
       LogError("Failure loading ext trg shift reg");
     }
 
     msg = 0;
     msg |= (ch % 2) << 4;
     msg |= 0x2; //load DAC
-    Write(offset, msg);
+    rc = Write(offset, msg);
+    if (rc != 0) {
+      LogError("failed to start load to DAC shift register");
+    }
 
-    timeout_cnt = 0;
+    count = 0;
     do {
-      msg = 0;
-      Read(offset, msg);
-      timeout_cnt++;
-    } while (((msg & 0x8000) == 0x8000) && (timeout_cnt < timeout_max));
 
-    if (timeout_cnt == timeout_max) {
+      Read(offset, msg);
+      if (rc != 0) {
+        LogError("failed to read DAC busy status");
+      }
+    } while (((msg & 0x8000) == 0x8000) && (count++ < pollmax));
+
+    if (count == pollmax) {
       LogError("Failure loading adc dac");
     }
 
@@ -222,7 +284,10 @@ void WorkerSis3350::LoadConfig()
     int offset = 0x02000048;
     offset |= (ch >> 1) << 24;
     offset |= (ch % 2) << 2;
-    Write(offset, msg);
+    rc = Write(offset, msg);
+    if (rc != 0) {
+      LogError("failed to set gain for channel %i", ch);
+    }
     
     LogMessage("ADC %d gain %d", ch, msg);
 
@@ -232,6 +297,9 @@ void WorkerSis3350::LoadConfig()
 
   uint armit = 1;
   rc = Write(0x410, armit);
+  if (rc != 0) {
+    LogError("failure to arm acquisition logic");
+  }
 } // LoadConfig
 
 void WorkerSis3350::WorkLoop()
@@ -298,27 +366,28 @@ bool WorkerSis3350::EventAvailable()
   // Check acq reg.
   static uint msg = 0;
   static bool is_event;
-  static int count, rc;
+  uint count = 0, rc = 0;
 
-  count = 0;
-  rc = 0;
   do {
+
     rc = Read(0x10, msg);
-    ++count;
-  } while ((rc < 0) && (count < 100));
+    if (rc != 0) {
+      LogError("failure to read acquisition status register");
+    }
+  } while ((rc != 0) && (count++ < 100));
  
   is_event = !(msg & 0x10000);
 
+  // rearm the logic
   if (is_event) {
-    // rearm the logic
-    uint armit = 1;
 
     count = 0;
-    rc = 0;
     do {
-      rc = Write(0x410, armit);
-      ++count;
-    } while ((rc < 0) && (count < 100));
+      rc = Write(0x410, 0x1);
+      if (rc != 0) {
+        LogError("failure to rearm acquisition logic");
+      }
+    } while ((rc != 0) && (count++ < 100));
 
     return is_event;
 
@@ -347,7 +416,10 @@ void WorkerSis3350::GetEvent(sis_3350 &bundle)
     offset |= (ch >> 1) << 24;
     offset |= (ch & 0x1) << 2;
 
-    Read(offset, next_sample_address[ch]);
+    rc = Read(offset, next_sample_address[ch]);
+    if (rc != 0) {
+      LogError("failure to get next address for channel %i", ch);
+    }
   }
 
   // Get the system time.
@@ -359,8 +431,13 @@ void WorkerSis3350::GetEvent(sis_3350 &bundle)
   uint trace[4][SIS_3350_LN / 2 + 4];
 
   for (ch = 0; ch < SIS_3350_CH; ch++) {
+
     offset = (0x4 + ch) << 24;
-    ReadTrace(offset, trace[ch]);
+
+    rc = ReadTrace(offset, trace[ch]);
+    if (rc != 0) {
+      LogError("failed to read trace for channel %i", ch);
+    }
   }
 
   //decode the event (little endian arch)
