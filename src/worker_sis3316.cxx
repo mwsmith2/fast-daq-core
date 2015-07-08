@@ -80,7 +80,8 @@ void WorkerSis3316::LoadConfig()
   rc = Read(0x20, msg);
   if (rc == 0) {
     
-    LogMessage("device internal temperature is %0.2fC", (ushort)(msg) * 0.25);
+    short temp = (short)msg &0xffff;
+    LogMessage("device internal temperature is %0.2fC", temp * 0.25);
     
   } else {
     
@@ -203,6 +204,27 @@ void WorkerSis3316::LoadConfig()
       LogError("failure to set ADC clock mux");      
     }
 
+    // Enable external LEMO trigger.
+    msg = 0;
+    if (conf.get<bool>("enable_ext_trg", true)) {
+      msg |= (0x1 << 4); // enable external trigger bit
+    }
+  
+    if (conf.get<bool>("invert_ext_trg", false)) {
+      msg |= (0x1 << 5); // invert external trigger bit
+    }
+
+    if (conf.get<bool>("enable_ext_clk", false)) {
+      msg |= (0x1 << 0); // enable external clock
+    }  
+
+    // Write to NIM_INPUT_CTRL
+    rc = Write(0x5c, msg);
+
+    if (rc != 0) {
+      LogError("failure to write NIM input control register");
+    }
+
     // Reset the Si5325.
     if (Si5325Write(0x88, 0x80) != 0) {
       LogError("failure to reset the Si5325");
@@ -285,7 +307,13 @@ void WorkerSis3316::LoadConfig()
     // Set address to ADC's INPUT_TAP_DELAY_REG
     addr = 0x1000 + kAdcRegOffset * gr;
     string hex_tap_delay = conf.get<string>("iob_tap_delay", "0x1020");
-    int iob_tap_delay = std::stoi(hex_tap_delay, nullptr, 0);
+    uint iob_tap_delay = std::stoi(hex_tap_delay, nullptr, 0);
+
+    if (iob_tap_delay & 0xffff0000 != 0) {
+      iob_tap_delay &= 0xffff;
+
+      LogWarning("iob_tap_delay truncated to 2 bytes");
+    }
     
     // Set value specific to fpga and clock frequency.
     // A few examples (see more on manual page 116):
@@ -329,14 +357,21 @@ void WorkerSis3316::LoadConfig()
       }
       usleep(1000);  // update takes time
 
+      string dac_offset_hex = conf.get<string>("dac_offset", "0x8000");
+      uint offset = std::stoi(dac_offset_hex, nullptr, 0);
+      
+      if ((offset & 0xffff0000) != 0) {
+        offset &= 0xffff;
+        
+        LogWarning("truncating DAC offset value to 2 bytes");
+      }
+
       // Set the voltage offset and write it for all channels.
       msg = 0;
       msg |= (0x8 << 28);
       msg |= (0x2 << 24);
       msg |= (0xf << 20);
-      msg |= (0x8000 << 4);
-
-      LogWarning("attempting to set voltage offset to default of 0x8000");
+      msg |= (offset << 4);
 
       rc = Write(addr, msg);
       if (rc != 0) {
@@ -353,7 +388,7 @@ void WorkerSis3316::LoadConfig()
   }
 
   // Check the DAC offset readback registers.
-  for (uint gr = 0; gr < SIS_3316_GR; ++gr) {
+  for (gr = 0; gr < SIS_3316_GR; ++gr) {
     
     addr = 0x1108 + kAdcRegOffset * gr;
 
@@ -393,6 +428,11 @@ void WorkerSis3316::LoadConfig()
     // Write to the extended length register if the trace is too long.
     if (SIS_3316_LN > 0xffff) {
       addr = 0x1098 + kAdcRegOffset * gr;
+
+      if ((SIS_3316_LN & 0xffe) != 0) {
+        LogWarning("event length truncated to maximum value, 0x1ffffff");
+      }
+
       msg = SIS_3316_LN & 0x1ffffff; // 25 bits total.
 
       rc = Write(addr, msg);
@@ -405,7 +445,12 @@ void WorkerSis3316::LoadConfig()
 
   // Set the pre-trigger buffer length for each channel.
   msg = std::stoi(conf.get<string>("pretrigger_samples", "0x0"), nullptr, 0);
-  msg &= 0x1ffe; // max of 2042 and bit 0 = 0
+  
+  if ((msg & 0xffffc) != 0) {
+    LogWarning("pre-trigger delay truncated to max of 0x1ffe");
+  }
+
+  msg &= 0x3fff; // max of 2042 and bit 0 = 0
 
   for (gr = 0; gr < SIS_3316_GR; ++gr) {
     
@@ -469,17 +514,6 @@ void WorkerSis3316::LoadConfig()
     }
   }
 
-  // Enable trigger on acqusition control
-  // msg = 0;
-  // if (conf.get<bool>("enable_ext_trg", true)) {
-  //   //   msg |= 0x1 << 15; // external trigger disable with internal busy
-  //    msg |= 0x1 << 8;
-  // }
-
-  // if (conf.get<bool>("enable_int_trg", false)) {
-  //    msg |= 0x1 << 14;
-  // }
-
   // Enable external timestamp clear.
   msg |= 0x10; 
   rc = Write(0x60, msg);
@@ -497,7 +531,6 @@ void WorkerSis3316::LoadConfig()
       LogError("failure to enable CO clock out");
     }
   }
-  
 
   // Trigger a timestamp clear.
   rc = Write(0x41c, 0x1);
