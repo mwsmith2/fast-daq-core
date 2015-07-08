@@ -39,38 +39,39 @@ void WorkerCaen1742::LoadConfig()
   tmp = conf.get<std::string>("base_address");
   base_address_ = std::stoul(tmp, nullptr, 0);
 
-  // Software board reset.
-  rc = Write(0xef24, msg);
-  usleep(300000);
-
-  // Make certain we aren't running
-  rc = Read(0x8104, msg);
-  if (msg & (0x1 << 2)) {
-    LogMessage("Unit was already running on init");
-    rc = Read(0x8100, msg);
-    msg &= ~(0x1 << 2);
-    rc = Write(0x8100, msg);
-  }
-
   // Get the board info.
   rc = Read(0xf034, msg);
+  if (rc != 0) {
+
+    LogError("could not find device");
+
+  }
 
   // Board type
   if ((msg & 0xff) == 0x00) {
-
+    
     LogMessage("Found caen v1742");
-
+    
   } else if ((msg & 0xff) == 0x01) {
-
+      
     LogMessage("Found caen vx1742");
   }
 
   // Check the serial number 
   int sn = 0;
+
   rc = Read(0xf080, msg);
+  if (rc != 0) {
+    LogError("failed to read high byte of serial number");
+  }
+  
   sn += (msg & 0xff) << 2;
   
   rc = Read(0xf084, msg);
+  if (rc != 0) {
+    LogError("failed to read lower byte of serial number");
+  }
+
   sn += (msg & 0xff);
   LogMessage("Serial Number: %i", sn);
   
@@ -78,7 +79,12 @@ void WorkerCaen1742::LoadConfig()
   uint rev[4];
   
   for (int i = 0; i < 4; ++i) {
+
     rc = Read(0xf040 + 4*i, msg);
+    if (rc != 0) {
+      LogError("failed to read hardware revision byte %i", i);
+    }
+
     rev[i] = msg;
   }
 
@@ -89,27 +95,88 @@ void WorkerCaen1742::LoadConfig()
   for (int i = 0; i < 4; ++i) {
 
     rc = Read(0x1088 + i*0x100, msg);
+    if (rc != 0) {
+      LogError("failed to read status of DRS4 chip %i", i);
+    }
 
     if (msg & ((0x1 << 2) | (0x1 << 8)))
-      LogMessage("Unit %i is busy", i);
+      LogMessage("unit %i is busy", i);
 
     rc = Read(0x10A0 + i*0x100, msg);
-    LogMessage("DRS4 Chip %i at temperature %i C", i, msg & 0xff);
+    if (rc != 0) {
+      LogError("failed to read temperature of DRS4 chip %i", i);
+    }
+
+    LogMessage("DRS4 chip %i at temperature %i C", i, msg & 0xff);
+  }
+
+  // Software board reset.
+  rc = Write(0xef24, msg);
+  if (rc != 0) {
+    LogError("failure attempt device reset");
+  }
+
+  // Reset needs time to finish, data drive number.
+  usleep(300000);
+
+  // Make certain we aren't running
+  rc = Read(0x8104, msg);
+  if (rc != 0) {
+    LogError("failed to check device status");
+  }
+  
+  if (msg & (0x1 << 2)) {
+
+    LogWarning("Unit was already running on init");
+
+    rc = Read(0x8100, msg);
+    if (rc != 0) {
+      LogError("failure reading register 0x8100");
+    }
+
+    // Preserve all bits but one.
+    msg &= ~(0x1 << 2);
+
+    rc = Write(0x8100, msg);
+    if (rc != 0) {
+      LogError("failure writing register 0x8100");
+    }
   }
     
-  // Set the group enable mask.
+  // Set the group enable mask to all groups.
   rc = Read(0x8120, msg);
+  if (rc != 0) {
+    LogError("failed to read group enable mask");
+  }
+
   rc = Write(0x8120, msg | 0xf);
+  if (rc != 0) {
+    LogError("failed to set group enable mask to 0xf");
+  }
 
   // Enable digitization of the triggers using config bit enable register.
   rc = Write(0x8004, 0x1 << 11);
+  if (rc != 0) {
+    LogError("failed to enable digitization of triggers");
+  }
 
   rc = Read(0x8120, msg);
-  LogMessage("Group enable mask reads: %08x", msg);
+  if (rc != 0) {
+    LogError("failed to read group enable mask");
+  } else {
+    LogMessage("group enable mask reads: %08x", msg);
+  }
 
   // Set the trace length.
   rc = Read(0x8020, msg);
+  if (rc != 0) {
+    LogError("failed to read device configuration");
+  }
+  
   rc = Write(0x8020, msg & 0xfffffffc); // 1024
+  if (rc != 0) {
+    LogError("failed to write device configuration for trace length");
+  }
 
   // Set the sampling rate.
   double sampling_rate = conf.get<double>("sampling_rate", 1.0);
@@ -118,36 +185,39 @@ void WorkerCaen1742::LoadConfig()
   if (sampling_rate < 1.75) {
 
     sampling_setting_ |= 0x2; // 1.0 Gsps
-    LogMessage("Sampling rate set to 1.0 Gsps");
+    LogMessage("sampling rate set to 1.0 Gsps");
 
   } else if (sampling_rate >= 1.75 && sampling_rate < 3.75) {
 
     sampling_setting_ |= 0x1; // 2.5 Gsps
-    LogMessage("Sampling rate set to 2.5 Gsps");
+    LogMessage("sampling rate set to 2.5 Gsps");
     
   } else if (sampling_rate >= 3.75) {
 
     sampling_setting_ |= 0x0; // 5.0 Gsps
-    LogMessage("Sampling rate set to 5.0 Gsps");
+    LogMessage("sampling rate set to 5.0 Gsps");
   }
 
   // Write the sampling rate.
   rc = Write(0x80d8, sampling_setting_);
+  if (rc != 0) {
+    LogError("failed to write the sampling rate");
+  }
 
   // Set "pretrigger" buffer.
   rc = Read(0x8114, msg);
+  if (rc != 0) {
+    LogError("failed to read the pre-trigger buffer register");
+  }
+
   int pretrigger_delay = conf.get<int>("pretrigger_delay", 35);
   msg &= 0xfffffe00;
   msg |= (uint)(pretrigger_delay / 100.0 * 0x3ff);
 
   rc = Write(0x8114, msg);
-
-  // if (conf.get<bool>("use_drs4_corrections")) {
-  //   // Load and enable DRS4 corrections.
-  //   ret = CAEN_DGTZ_LoadDRS4CorrectionData(device_, rate);
-  //   ret = CAEN_DGTZ_EnableDRS4Correction(device_);
-  // }
-
+  if (rc != 0) {
+    LogError("failed to set the pre-trigger buffer");
+  }
 
   //DAC offsets
   uint ch = 0;
@@ -168,59 +238,83 @@ void WorkerCaen1742::LoadConfig()
     // Make sure the board isn't busy
     int count = 0;
     while (true) {
+
       rc = Read(0x1088 + 0x100*group_idx, msg);
-      
-      if ((rc < 0) || !(msg & 0x84) || (++count > 100)) {
+      if (rc != 0) {
+        
+        LogError("failed to read boad status while setting DAC");
 	break;
+
+      } else if (count++ > 100) {
+        
+        LogError("timed out polling busy after setting DAC");
+
+      } else if (!(msg & 0x84)) {
+
+        // This is what should happen
+        break;
       }
     }
     
     ch_idx = (ch++) % group_size;
+
     rc = Write(0x1098 + 0x100*group_idx, dac | (ch_idx << 16));
+    if (rc != 0) {
+      LogError("failed to select next DAC");
+    }
   }    
 
-  // ret = CAEN_DGTZ_SetGroupFastTriggerDCOffset(device_, 0x10DC, 0x8000);
-  // ret = CAEN_DGTZ_SetGroupFastTriggerThreshold(device_, 0x10D4, 0x51C6);
-
-  // // Digitize the fast trigger.
-  // ret = CAEN_DGTZ_SetFastTriggerDigitizing(device_, CAEN_DGTZ_ENABLE);
-
-  // // Disable self trigger.
-  // ret = CAEN_DGTZ_SetChannelSelfTrigger(device_, 
-  // 					CAEN_DGTZ_TRGMODE_DISABLED, 
-  // 					0xffff);
-  
-  // // Channel pulse polarity
-  // for (int ch; ch < CAEN_1742_CH; ++ch) {
-  //   ret = CAEN_DGTZ_SetChannelPulsePolarity(device_, ch, 
-  // 					    CAEN_DGTZ_PulsePolarityPositive);
-  // }
-
-  //  WriteCorrectionDataCsv();
+  if (conf.get<bool>("write_correction_data_csv", false)) {
+    WriteCorrectionDataCsv();
+  }
 
   // Enable external/software triggers.
   rc = Read(0x810c, msg);
-  rc = Write(0x810c, msg | (0x3 << 30));
+  if (rc != 0) {
+    LogError("failed to read trigger register");
+  }
 
+  rc = Write(0x810c, msg | (0x3 << 30));
+  if (rc != 0) {
+    LogError("failed to enable external/software triggers");
+  }
+  
   // Start acquiring events.
   int count = 0;
   do {
-    usleep(100);
+
     rc = Read(0x8104, msg);
-    ++count;
-    LogMessage("Checking if board is ready to acquire");
-  } while ((count < 100) && !(msg & 0x100));
+    if (rc != 0) {
+      LogError("failed to read board acquiring status");
+    }
+
+    usleep(100);
+
+  } while ((count++ < 100) && !(msg & 0x100));
+
+  LogMessage("board is ready to acquire events");
 
   rc = Read(0x8100, msg);
+  if (rc != 0) {
+    LogError("failed to read register 0x8100");
+  }
+
   msg |= (0x1 << 2);
   rc = Write(0x8100, msg);
+  if (rc != 0) {
+    LogError("failed to write register 0x8100");
+  }
 
   usleep(1000);
+
   // Send a test software trigger and read it out.
   rc = Write(0x8108, msg);
+  if (rc != 0) {
+    LogError("failed to send test software trigger");
+  }
 
   // Read initial empty event.
-  LogMessage("Eating first empty event");
+  LogMessage("eating first empty event");
   if (EventAvailable()) {
     caen_1742 bundle;
     GetEvent(bundle);
@@ -262,8 +356,15 @@ void WorkerCaen1742::WorkLoop()
   // Stop acquiring events.
   uint rc, msg;
   rc = Read(0x8100, msg);
+  if (rc != 0) {
+    LogError("failed to read register 0x8100");
+  }
+
   msg &= ~(0x1 << 2);
   rc = Write(0x8100, msg);
+  if (rc != 0) {
+    LogError("failed to write register 0x8100");
+  }
 }
 
 caen_1742 WorkerCaen1742::PopEvent()
@@ -296,9 +397,14 @@ bool WorkerCaen1742::EventAvailable()
 {
   // Check acquisition status regsiter.
   uint msg, rc;
+
   rc = Read(0x8104, msg);
+  if (rc != 0) {
+    LogError("failed to read acqusition status register");
+  }
 
   if (msg & (0x1 << 3)) {
+
     return true;
 
   } else {
@@ -328,21 +434,33 @@ void WorkerCaen1742::GetEvent(caen_1742 &bundle)
 
   // Get the size of the next event data
   rc = Read(0x814c, msg);
+  if (rc != 0) {
+    LogError("failed to attain size of next event");
+    return;
+  }
   
   buffer.resize(msg);
   read_trace_len_ = msg;
-  LogMessage("Reading trace length: %i", msg);
-  //  ReadTraceMblt64(0x0, trace);
+  LogMessage("reading event length: %i", msg);
   
   // Try reading out word by word
   for (int i = 0; i < read_trace_len_; ++i) {
+
     rc = Read(0x0, msg);
+    if (rc != 0) {
+      LogError("failed to read data byte %i of %i", i, read_trace_len_);
+    }
+
     buffer[i] = msg;
   }
 
-  LogMessage("First element of event is %08x", buffer[0]);
+  LogMessage("first element of event is %08x", buffer[0]);
   // Get the number of current events buffered.
   rc = Read(0x812c, msg);
+  if (rc != 0) {
+    LogError("failed to read current number of buffered events");
+  }
+
   LogMessage("%i events in memory", msg);
 
   // Make sure we aren't getting empty events
@@ -698,6 +816,7 @@ int WorkerCaen1742::TimeCorrection(caen_1742 &data,
 int WorkerCaen1742::GetChannelCorrectionData(uint ch, drs_correction &table)
 {
   int rc = 0;
+  int count = 0;
   uint32_t d32 = 0;
   uint16_t d16 = 0;
 
@@ -721,7 +840,14 @@ int WorkerCaen1742::GetChannelCorrectionData(uint ch, drs_correction &table)
   // Get the cell corrections
   for (int i = 0; i < 4; ++i) {
 
-    ReadFlashPage(group, pagenum, vec);
+    do {
+      rc = ReadFlashPage(group, pagenum, vec);
+      
+    } while ((rc != 0) && (count++ < 100));
+    
+    if (rc != 0) {
+      LogError("failed to load cell correction data for channel %u", i);
+    }
 
     // Peak correction if needed.
     last = chunk;
@@ -768,7 +894,14 @@ int WorkerCaen1742::GetChannelCorrectionData(uint ch, drs_correction &table)
 
   for (int i = 0; i < 4; ++i) {
 
-    ReadFlashPage(group, pagenum, vec);
+    do {
+      rc = ReadFlashPage(group, pagenum, vec);
+      
+    } while ((rc != 0) && (count++ < 100));
+    
+    if (rc != 0) {
+      LogError("failed to load nsample correction data for channel %u", i);
+    }
     
     for (int j = start; j < start + chunk; ++j) {
       
@@ -791,7 +924,14 @@ int WorkerCaen1742::GetChannelCorrectionData(uint ch, drs_correction &table)
 
     for (int i = 0; i < 16; ++i) {
       
-      rc = ReadFlashPage(group, pagenum, vec);
+      do {
+        rc = ReadFlashPage(group, pagenum, vec);
+      
+      } while ((rc != 0) && (count++ < 100));
+    
+      if (rc != 0) {
+        LogError("failed to load time correction data for channel %u", i);
+      }
 
       std::copy((float *)&vec[0], 
 		(float *)&vec[chunk], 
@@ -824,25 +964,67 @@ int WorkerCaen1742::ReadFlashPage(uint32_t group,
   page.resize(264); // magic resize
 
   rc = Read16(gr_status, d16);
+  if (rc != 0) {
+    return rc;
+  }
+
   LogMessage("group %i status is 0x%04x", group, d16);
 
   // Enable the flash memory and tell it to read the main memory page.
   rc = Write16(gr_sel_flash, 0x1);
+  if (rc != 0) {
+    return rc;
+  }
+  
   rc = Write16(gr_flash, 0xd2);
-  rc = Write16(gr_flash, (flash_addr >> 16) & 0xff);
-  rc = Write16(gr_flash, (flash_addr >> 8) & 0xff);
-  rc = Write16(gr_flash, (flash_addr) & 0xff);
+  if (rc != 0) {
+    return rc;
+  }
 
-  // Requires for more writes for no apparent reason.
+  rc = Write16(gr_flash, (flash_addr >> 16) & 0xff);
+  if (rc != 0) {
+    return rc;
+  }
+
+  rc = Write16(gr_flash, (flash_addr >> 8) & 0xff);
+  if (rc != 0) {
+    return rc;
+  }
+
+  rc = Write16(gr_flash, (flash_addr) & 0xff);
+  if (rc != 0) {
+    return rc;
+  }
+
+  // Requires four more writes for no apparent reason.
   rc = Write16(gr_flash, 0x0);
+  if (rc != 0) {
+    return rc;
+  }
+
   rc = Write16(gr_flash, 0x0);
+  if (rc != 0) {
+    return rc;
+  }
+
   rc = Write16(gr_flash, 0x0);
+  if (rc != 0) {
+    return rc;
+  }
+
   rc = Write16(gr_flash, 0x0);
+  if (rc != 0) {
+    return rc;
+  }
 
   // Now read the data into the output vector.
   for (int i = 0; i < 264; ++i) {
 
     rc = Read(gr_flash, d32);
+    if (rc != 0) {
+      return rc;
+    }
+
     page[i] = (int8_t)(d32 & 0xff);
 
     if (i == 0) {
@@ -850,10 +1032,16 @@ int WorkerCaen1742::ReadFlashPage(uint32_t group,
     }
 
     rc = Read(gr_status, d32);
+    if (rc != 0) {
+      return rc;
+    }
   }
 
   // Disable the flash memory
   rc = Write16(gr_sel_flash, 0x0);
+  if (rc != 0) {
+    return rc;
+  }
 
   return 0;
 }
