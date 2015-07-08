@@ -21,19 +21,40 @@ void WorkerCaen1785::LoadConfig()
   // Get the base address for the device.  Convert from hex.
   base_address_ = std::stoi(conf.get<std::string>("base_address"), nullptr, 0);
   
-  int ret;
+  int rc;
   uint msg = 0;
   ushort msg_16 = 0;
 
-  Read(0x0, msg);
-  LogMessage("CAEN 1785 found at 0x%08x", base_address_);
+  rc = Read(0x0, msg);
+  if (rc != 0) {
+
+    LogError("could not find module");
+
+  } else {
+
+    LogMessage("CAEN 1785 found at 0x%08x", base_address_);
+  }
 
   // Reset the device.
-  Write16(0x1006, 0x80); // J
-  Write16(0x1008, 0x80); // and K
+  rc = Write16(0x1006, 0x80); // J
+  if (rc != 0) {
+    LogError("failed to reset device, j register");
+  }
 
-  Read16(0x1000, msg_16);
-  LogMessage("Firmware Revision: %i.%i", (msg_16 >> 8) & 0xff, msg_16& 0xff); 
+  rc = Write16(0x1008, 0x80); // and K
+  if (rc != 0) {
+    LogError("failed to reset device, k register");
+  }
+
+  rc = Read16(0x1000, msg_16);
+  if (rc != 0) {
+
+    LogError("failed to read firmware revision");
+
+  } else {
+
+    LogMessage("Firmware Revision: %i.%i", (msg_16 >> 8) & 0xff, msg_16& 0xff); 
+  }
 
   // Disable suppressors.
   //  Write16(0x1032, 0x18);
@@ -103,16 +124,24 @@ caen_1785 WorkerCaen1785::PopEvent()
 bool WorkerCaen1785::EventAvailable()
 {
   // Check acq reg.
-  static ushort msg_ushort= 0;
-  static uint msg;
+  static ushort msg_16= 0;
+  static uint msg, rc;
   static bool is_event;
 
   // Check if the device has data.
-  Read16(0x100E, msg_ushort);
-  is_event = (msg_ushort & 0x1);
+  rc = Read16(0x100E, msg_16);
+  if (rc != 0) {
+    LogError("failed checking device status");
+  }
+
+  is_event = (msg_16 & 0x1);
   
   // Check to make sure the buffer isn't empty.
-  Read16(0x1022, msg_ushort);
+  rc = Read16(0x1022, msg_16);
+  if (rc != 0) {
+    LogError("failed checking for empty buffer");
+  }
+
   is_event &= !(msg & 0x2);
 
   return is_event;
@@ -122,8 +151,7 @@ void WorkerCaen1785::GetEvent(caen_1785 &bundle)
 {
   using namespace std::chrono;
   int offset = 0x0;
-  uint ch = 0;
-  uint data = 0;
+  uint rc = 0, ch = 0, data = 0;
 
   // Get the system time
   auto t1 = high_resolution_clock::now();
@@ -135,7 +163,11 @@ void WorkerCaen1785::GetEvent(caen_1785 &bundle)
 
     if (offset >= 0x1000) break;
 
-    Read(offset, data);
+    rc = Read(offset, data);
+    if (rc != 0) {
+      LogError("failed reading event data at addr: 0x%08x", offset);
+    }
+
     offset += 4;
 
     if (((data >> 24) & 0x7) == 0x0) {
@@ -156,7 +188,11 @@ void WorkerCaen1785::GetEvent(caen_1785 &bundle)
 
       if (ch == 7) {
 	// Increment event register and exit.
-	Write16(0x1028, 0x0);
+	rc = Write16(0x1028, 0x0);
+        if (rc != 0) {
+          LogError("failure incrementing event register");
+        }
+
 	break;
       }
 
