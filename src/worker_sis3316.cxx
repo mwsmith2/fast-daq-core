@@ -28,7 +28,7 @@ void WorkerSis3316::LoadConfig()
   base_address_ = std::stoul(conf.get<string>("base_address"), nullptr, 0);
   
   // Read the base register.
-  rc = Read(0x0, msg);
+  rc = Read(CONTROL_STATUS, msg);
   if (rc == 0) {
 
     LogMessage("SIS3316 found at 0x%08x", base_address_);
@@ -39,7 +39,7 @@ void WorkerSis3316::LoadConfig()
   }
 
   // Get device ID.
-  rc = Read(0x4, msg);
+  rc = Read(MODID, msg);
   if (rc != 0) {
 
     LogError("failed to read device ID register");
@@ -51,7 +51,7 @@ void WorkerSis3316::LoadConfig()
   }
   
   // Get device hardware revision.
-  rc = Read(0x1c, msg);
+  rc = Read(HARDWARE_VERSION, msg);
   if (rc == 0) {
     
     LogMessage("device hardware version %i", msg & 0xf);
@@ -65,7 +65,7 @@ void WorkerSis3316::LoadConfig()
   
   for (int gr = 0; gr < SIS_3316_GR; ++gr) {
 
-    addr = 0x1100 + kAdcRegOffset * gr;
+    addr = CH1_4_FIRMWARE + kAdcRegOffset * gr;
 
     rc = Read(addr, msg);
   
@@ -77,7 +77,7 @@ void WorkerSis3316::LoadConfig()
   }
   
   // Check the board temperature
-  rc = Read(0x20, msg);
+  rc = Read(INTERNAL_TEMPERATURE, msg);
   if (rc == 0) {
     
     short temp = (short)msg &0xffff;
@@ -89,13 +89,13 @@ void WorkerSis3316::LoadConfig()
   }
   
   // Reset the device.
-  rc = Write(0x400, 0x1);
+  rc = Write(KEY_RESET, 0x1);
   if (rc != 0) {
     LogError("failure to reset device");
   }
 
   // Disarm the device.
-  rc = Write(0x414, 0x1);
+  rc = Write(KEY_DISARM, 0x1);
   if (rc != 0) {
     LogError("failure to disarm device");
   }
@@ -104,7 +104,7 @@ void WorkerSis3316::LoadConfig()
   for (int gr = 0; gr < SIS_3316_GR; ++gr) {
     
     // Set address to ADC's SPI_CTRL_REG.
-    addr = 0x100c + kAdcRegOffset * gr;
+    addr = CH1_4_SPI_CTRL + kAdcRegOffset * gr;
     rc = Write(addr, 0x0);
 
     if (rc != 0) {
@@ -156,7 +156,7 @@ void WorkerSis3316::LoadConfig()
   for (int gr = 0; gr < SIS_3316_GR; ++gr) {
     
     // Set address to ADC's SPI_CTRL_REG.
-    addr = 0x100c + kAdcRegOffset * gr;
+    addr = CH1_4_SPI_CTRL + kAdcRegOffset * gr;
     rc = Write(addr, 0x01000000);
 
     if (rc != 0) {
@@ -179,7 +179,7 @@ void WorkerSis3316::LoadConfig()
   }  
 
   // Write to NIM_INPUT_CTRL
-  rc = Write(0x5c, msg);
+  rc = Write(NIM_INPUT_CONTROL, msg);
 
   if (rc != 0) {
     LogError("failure to write NIM input control register");
@@ -188,19 +188,19 @@ void WorkerSis3316::LoadConfig()
   if (conf.get<bool>("enable_ext_clk", false)) {
 
     // Reset the device again.
-    rc = Write(0x400, 0x1);
+    rc = Write(KEY_RESET, 0x1);
     if (rc != 0) {
       LogError("failure to reset device");
     }
     
     // Disarm the device.
-    rc = Write(0x414, 0x1);
+    rc = Write(KEY_DISARM, 0x1);
     if (rc != 0) {
       LogError("failure to disarm device");
     }
     
     // Set the ADC clock distribution.
-    if (Write(0x50, 0x3) != 0) {
+    if (Write(SAMPLE_CLOCK_DISTRIBUTION_CONTROL, 0x3) != 0) {
       LogError("failure to set ADC clock mux");      
     }
 
@@ -219,7 +219,7 @@ void WorkerSis3316::LoadConfig()
     }  
 
     // Write to NIM_INPUT_CTRL
-    rc = Write(0x5c, msg);
+    rc = Write(NIM_INPUT_CONTROL, msg);
 
     if (rc != 0) {
       LogError("failure to write NIM input control register");
@@ -249,7 +249,7 @@ void WorkerSis3316::LoadConfig()
     usleep(500000);
 
     // Issue a DCM/PLL reset.
-    if (Write(0x438, msg) != 0) {
+    if (Write(KEY_ADC_CLOCK_DCM_RESET, msg) != 0) {
         LogError("failure to reset DCM/PLL");
     }
 
@@ -259,13 +259,13 @@ void WorkerSis3316::LoadConfig()
   } else {
 
     // Reset the device again.
-    rc = Write(0x400, 0x1);
+    rc = Write(KEY_RESET, 0x1);
     if (rc != 0) {
       LogError("failure to reset device");
     }
     
     // Disarm the device.
-    rc = Write(0x414, 0x1);
+    rc = Write(KEY_DISARM, 0x1);
     if (rc != 0) {
       LogError("failure to disarm device");
     }
@@ -279,7 +279,7 @@ void WorkerSis3316::LoadConfig()
   for (gr = 0; gr < SIS_3316_GR; ++gr) {
     
     // Set address to ADC's SPI_CTRL_REG.
-    addr = 0x100c + kAdcRegOffset * gr;
+    addr = CH1_4_SPI_CTRL + kAdcRegOffset * gr;
     rc = Write(addr, 0x01000000);
 
     if (rc != 0) {
@@ -291,7 +291,7 @@ void WorkerSis3316::LoadConfig()
   for (gr = 0; gr < SIS_3316_GR; ++gr) {
 
     // Set address to ADC's INPUT_TAP_DELAY_REG.
-    addr = 0x1000 + kAdcRegOffset * gr;
+    addr = CH1_4_INPUT_TAP_DELAY + kAdcRegOffset * gr;
 
     // Calibrate all channels.
     rc = Write(addr, 0xf00); 
@@ -305,7 +305,7 @@ void WorkerSis3316::LoadConfig()
   for (gr = 0; gr < SIS_3316_GR; ++gr) {
 
     // Set address to ADC's INPUT_TAP_DELAY_REG
-    addr = 0x1000 + kAdcRegOffset * gr;
+    addr = CH1_4_INPUT_TAP_DELAY + kAdcRegOffset * gr;
     string hex_tap_delay = conf.get<string>("iob_tap_delay", "0x1020");
     uint iob_tap_delay = std::stoi(hex_tap_delay, nullptr, 0);
 
@@ -333,7 +333,7 @@ void WorkerSis3316::LoadConfig()
   // Write to the channel header registers.
   for (gr = 0; gr < SIS_3316_GR; ++gr) {
 
-    addr = 0x1014 + kAdcRegOffset * gr;
+    addr = CH1_4_CHANNEL_HEADER + kAdcRegOffset * gr;
     msg = 0x400000 * gr;
     rc = Write(addr, msg);
 
@@ -343,11 +343,11 @@ void WorkerSis3316::LoadConfig()
   }
 
   // Set the DAC offsets by groups of 4 channels
-  if (conf.get<bool>("set_voltage_offsets", true)) {
+  if (conf.get<bool>("set_voltage_offset", true)) {
 
     for (gr = 0; gr < SIS_3316_GR; ++gr) {
       
-      addr = 0x1008 + kAdcRegOffset * gr;
+      addr = CH1_4_DAC_OFFSET_CTRL + kAdcRegOffset * gr;
       
       // Enable the internal reference.
       rc = Write(addr, 0x88f00001); // Magic constant found in Struck source.
@@ -357,7 +357,7 @@ void WorkerSis3316::LoadConfig()
       }
       usleep(1000);  // update takes time
 
-      string dac_offset_hex = conf.get<string>("dac_offset", "0x8000");
+      string dac_offset_hex = conf.get<string>("dac_voltage_offset", "0x8000");
       uint offset = std::stoi(dac_offset_hex, nullptr, 0);
       
       if ((offset & 0xffff0000) != 0) {
@@ -390,7 +390,7 @@ void WorkerSis3316::LoadConfig()
   // Check the DAC offset readback registers.
   for (gr = 0; gr < SIS_3316_GR; ++gr) {
     
-    addr = 0x1108 + kAdcRegOffset * gr;
+    addr = CH1_4_DAC_OFFSET_READBACK + kAdcRegOffset * gr;
 
     rc = Read(addr, msg);
     if (rc != 0) {
@@ -407,7 +407,7 @@ void WorkerSis3316::LoadConfig()
   for (gr = 0; gr < SIS_3316_GR; ++gr) {
 
     // First the trigger gate length, doesn't effect output trace length.
-    addr = 0x101c + kAdcRegOffset * gr;
+    addr = CH1_4_TRIGGER_GATE_WINDOW_LENGTH + kAdcRegOffset * gr;
     msg = (SIS_3316_LN - 2) & 0xffff;
 
     rc = Write(addr, msg);
@@ -427,14 +427,13 @@ void WorkerSis3316::LoadConfig()
 
     // Write to the extended length register if the trace is too long.
     if (SIS_3316_LN > 0xffff) {
-      addr = 0x1098 + kAdcRegOffset * gr;
+      addr = CH1_4_EXTENDED_RAW_DATA_BUFFER_CONFIG + kAdcRegOffset * gr;
 
-      if ((SIS_3316_LN & 0xffe) != 0) {
+      if ((SIS_3316_LN & 0x1ffffff) != 0) {
         LogWarning("event length truncated to maximum value, 0x1ffffff");
       }
 
       msg = SIS_3316_LN & 0x1ffffff; // 25 bits total.
-
       rc = Write(addr, msg);
       
       if (rc != 0) {
@@ -455,7 +454,7 @@ void WorkerSis3316::LoadConfig()
   for (gr = 0; gr < SIS_3316_GR; ++gr) {
     
     // Set the to address of ADC's pre-trigger configuration.
-    addr = 0x1028 + kAdcRegOffset * gr;
+    addr = CH1_4_PRE_TRIGGER_DELAY + kAdcRegOffset * gr;
     rc = Write(addr, msg);
 
     if (rc != 0) {
@@ -466,7 +465,7 @@ void WorkerSis3316::LoadConfig()
   // Need to enable triggers per channel also, I think.
   for (gr = 0; gr < SIS_3316_GR; ++gr) {
     
-    addr = 0x1010 + kAdcRegOffset * gr;
+    addr = CH1_4_EVENT_CONFIG + kAdcRegOffset * gr;
 
     rc = Read(addr, msg);
     if (rc != 0) {
@@ -497,7 +496,7 @@ void WorkerSis3316::LoadConfig()
   for (int gr = 0; gr < SIS_3316_GR; ++gr) {
     
     // Data format
-    addr = 0x1030 + kAdcRegOffset * gr;
+    addr = CH1_4_DATAFORMAT_CONFIG + kAdcRegOffset * gr;
     rc = Write(addr, 0x0);
 
     if (rc != 0) {
@@ -505,7 +504,7 @@ void WorkerSis3316::LoadConfig()
     }
 
     // Address threshold
-    addr = 0x1018 + kAdcRegOffset * gr;
+    addr = CH1_4_ADDRESS_THRESHOLD + kAdcRegOffset * gr;
     read_trace_len_ = 1 * (3 + SIS_3316_LN / 2);
     rc = Write(addr, read_trace_len_ - 1);
 
@@ -516,30 +515,26 @@ void WorkerSis3316::LoadConfig()
 
   // Enable external timestamp clear.
   msg |= 0x10; 
-  rc = Write(0x60, msg);
+  rc = Write(ACQUISITION_CONTROL, msg);
 
   if (rc != 0) {
     LogError("failure to write acquisition control register");
   }
 
   // Enable clock output
-  //  if (conf.get<bool>("enable_ext_clk", false) {
-  if (true) {
-    rc = Write(0x70, 0x1);
-
-    if (rc != 0) {
-      LogError("failure to enable CO clock out");
-    }
+  rc = Write(LEMO_OUT_CO_SELECT, 0x1);
+  if (rc != 0) {
+    LogError("failure to enable CO clock out");
   }
 
   // Trigger a timestamp clear.
-  rc = Write(0x41c, 0x1);
+  rc = Write(KEY_TIMESTAMP_CLR, 0x1);
   if (rc != 0) {
     LogError("failed to clear timestamp");
   }
 
   // Arm bank1 to start.
-  rc = Write(0x420, 0x1);
+  rc = Write(KEY_DISARM_AND_ARM_BANK2, 0x1);
   
   if (rc != 0) {
     LogError("failed to arm logic on bank 1");
@@ -609,8 +604,8 @@ bool WorkerSis3316::EventAvailable()
   count = 0;
   msg = 0;
   do {
-    rc = Read(0x60, msg);
-  } while ((rc != 0) && (count++ < 100));
+    rc = Read(ACQUISITION_CONTROL, msg);
+  } while ((rc != 0) && (count++ < kMaxPoll));
  
   // Check memory threshold flag
   is_event = msg & (0x1 << 19);
@@ -624,19 +619,27 @@ bool WorkerSis3316::EventAvailable()
     if (bank2_armed_flag) {
 
       do {
-	rc = Write(0x420, 1);
+	rc = Write(KEY_DISARM_AND_ARM_BANK1, 1);
 	bank2_armed_flag = false;
     
-      } while ((rc != 0) && (count++ < 100));
+      } while ((rc != 0) && (count++ < kMaxPoll));
 
     } else {
 
       do {
+	rc = Write(KEY_DISARM_AND_ARM_BANK2, 1);
 	rc = Write(0x424, 1);
 	bank2_armed_flag = true;
     
-      } while ((rc != 0) && (count++ < 100));
+      } while ((rc != 0) && (count++ < kMaxPoll));
 
+      if (rc != 0) {
+        LogError("failed to write to trigger logic register");
+      }
+
+      if (count >= kMaxPoll) {
+        LogError("timed out attempting to set trigger logic register");
+      }
     }
 
     return is_event;
@@ -664,7 +667,7 @@ void WorkerSis3316::GetEvent(sis_3316 &bundle)
   for (ch = 0; ch < SIS_3316_CH; ch++) {
 
     // Calculate the register for previous address.
-    offset = 0x1120 + kAdcRegOffset * (ch / SIS_3316_GR);
+    offset = CH1_PREVIOUS_SAMPLE_ADDRESS + kAdcRegOffset * (ch >> 2);
     offset += 0x4 * (ch % SIS_3316_GR);
 
     // Read out the previous address.
@@ -696,7 +699,7 @@ void WorkerSis3316::GetEvent(sis_3316 &bundle)
     if ((ch & 0x2) == 0x2) msg += 0x10000000; // ch 2, 3, 6, 7, ...
 
     // Start readout FSM
-    addr = 0x80 + 0x4 * (ch / SIS_3316_GR);
+    addr = DATA_TRANSFER_ADC1_4_CTRL + 0x4 * (ch >> 2);
     rc = Write(addr, msg);
 
     if (rc != 0) {
@@ -706,12 +709,21 @@ void WorkerSis3316::GetEvent(sis_3316 &bundle)
 
     // Set to the adc base memory.
     count = 0;
-    trace_addr = 0x100000 * (ch / SIS_3316_GR + 1);
+    trace_addr = 0x100000 * ((ch >> 2) + 1);
     LogMessage("attempting to read trace at 0x%08x", trace_addr);
 
     do {
       rc = ReadTraceMblt64Fifo(trace_addr, data[ch]);
-    } while ((rc < 0) && (count++ < 100));
+
+      if (rc != 0) {
+        LogError("failed to read trace for channel %i", ch);
+      }
+    } while ((rc != 0) && (count++ < kMaxPoll));
+
+
+    if (count >= kMaxPoll) {
+      LogError("timed out reading trace for channel %i", ch);
+    }
 
     // Reset the FSM
     rc = Write(addr, 0x0);
@@ -744,7 +756,7 @@ int WorkerSis3316::I2cStart(int osc)
   uint addr = 0, msg = 0, count = 0;
 
   // Set address to specified oscillator register (0 for int, 1|2 for ext).
-  addr = 0x40 + 0x4 * osc;
+  addr = ADC_CLK_OSC_I2C + 0x4 * osc;
 
   // Write to START bit.
   if (Write(addr, 0x1 << 9) != 0) {
@@ -757,9 +769,9 @@ int WorkerSis3316::I2cStart(int osc)
       LogError("failed to read I2C register");
     }
     LogMessage("I2cStart response: 0x%08x", msg);
-  } while ((count++ < 1000) && ((msg >> 31) & 0x1));
+  } while ((count++ < kMaxPoll) && ((msg >> 31) & 0x1));
 
-  if (count >= 1000) return 2;
+  if (count >= kMaxPoll) return 2;
 
   return 0;
 }
@@ -774,7 +786,7 @@ int WorkerSis3316::I2cStop(int osc)
   uint addr = 0, msg = 0, count = 0;
   
   // Set address to specified oscillator register (0 for int, 1|2 for ext).
-  addr = 0x40 + 0x4 * osc;
+  addr = ADC_CLK_OSC_I2C + 0x4 * osc;
   
   // Write to STOP bit.
   if (Write(addr, 0x1 << 11) != 0) {
@@ -787,10 +799,10 @@ int WorkerSis3316::I2cStop(int osc)
       LogError("failed to read I2C register");
     }
     LogMessage("I2cStop response: 0x%08x", msg);
-  } while ((count++ < 1000) && ((msg >> 31) & 0x1));
+  } while ((count++ < kMaxPoll) && ((msg >> 31) & 0x1));
 
   
-  if (count >= 1000) {
+  if (count >= kMaxPoll) {
     LogError("I2C busy, timed out");
     return 2;
   }
@@ -808,7 +820,7 @@ int WorkerSis3316::I2cRead(int osc, unsigned char &data, unsigned char ack)
   uint addr = 0, msg = 0, count = 0;
   
   // Set address to specified oscillator register (0 for int, 1|2 for ext).
-  addr = 0x40 + 0x4 * osc;
+  addr = ADC_CLK_OSC_I2C + 0x4 * osc;
 
   // Set the message READ bit and ACK bit.
   msg = (0x1 << 13);
@@ -823,9 +835,9 @@ int WorkerSis3316::I2cRead(int osc, unsigned char &data, unsigned char ack)
     if (Read(addr, msg) != 0) {
       LogError("failed to read I2C register");
     }
-  } while ((count++ < 1000) && ((msg >> 31) & 0x1));
+  } while ((count++ < kMaxPoll) && ((msg >> 31) & 0x1));
 
-  if (count >= 1000) {
+  if (count >= kMaxPoll) {
     LogError("I2C busy timed out");
     return 2;
   }
@@ -846,7 +858,7 @@ int WorkerSis3316::I2cWrite(int osc, unsigned char data, unsigned char &ack)
   uint addr = 0, msg = 0, count = 0;
 
   // Set address to specified oscillator register (0 for int, 1|2 for ext).
-  addr = 0x40 + 0x4 * osc;
+  addr = ADC_CLK_OSC_I2C + 0x4 * osc;
 
   // Set the message data and WRITE bit.
   msg = (0x1 << 12) ^ data;
@@ -861,9 +873,9 @@ int WorkerSis3316::I2cWrite(int osc, unsigned char data, unsigned char &ack)
       LogError("failed to read I2C register");
     }
     LogMessage("I2cWrite response: 0x%08x", msg);
-  } while ((count++ < 1000) && ((msg >> 31) & 0x1));
+  } while ((count++ < kMaxPoll) && ((msg >> 31) & 0x1));
 
-  if (count >= 1000) {
+  if (count >= kMaxPoll) {
     LogError("I2C busy timed out");
     return 2;
   }
@@ -1066,7 +1078,7 @@ int WorkerSis3316::SetOscFreqHSN1(int osc, unsigned char hs, unsigned char n1)
   }
 
   // Write data.
-  rc = I2cWrite(osc, 0x40, ack);
+  rc = I2cWrite(osc, ADC_CLK_OSC_I2C, ack);
   if ((rc != 0) || (!ack)) {
     LogError("failure writing I2C byte");
     I2cStop(osc);
@@ -1077,7 +1089,7 @@ int WorkerSis3316::SetOscFreqHSN1(int osc, unsigned char hs, unsigned char n1)
   
   // Wait, then reset the DCM.
   usleep(15000);
-  rc = Write(0x438, 0x0);
+  rc = Write(KEY_ADC_CLOCK_DCM_RESET, 0x0);
   if (rc != 0) {
     LogError("failed to reset the DCM");
   }
@@ -1103,7 +1115,7 @@ int WorkerSis3316::AdcSpiWrite(int gr, int chip, uint spi_addr, uint msg)
   }
 
   // Set to appropriate SPI_CTRL register.
-  addr = 0x100c + gr * 0x1000;
+  addr = CH1_4_SPI_CTRL + gr * kAdcRegOffset;
 
   if (Read(addr, data) != 0) {
     return -1;
@@ -1136,13 +1148,13 @@ int WorkerSis3316::Si5325Write(uint addr, uint msg)
   uint count = 0, maxpoll = 100, tmp = 0;
 
   // Select the address for writing.
-  if (Write(0x54, addr & 0xff) != 0) {
+  if (Write(NIM_CLK_MULTIPLIER_SPI, addr & 0xff) != 0) {
     LogError("failure to select address for clock multipler spi register");
   }
   
   // Wait for the SPI to finish.
   do {
-    if (Read(0x54, tmp) != 0) {
+    if (Read(NIM_CLK_MULTIPLIER_SPI, tmp) != 0) {
       LogError("SI5235 SPI write failed");
       return -1;
     } 
@@ -1154,7 +1166,7 @@ int WorkerSis3316::Si5325Write(uint addr, uint msg)
   }
 
   // Write the data (0xff) and instructions (0xff00).
-  if (Write(0x54, 0x4000 + (msg & 0xff)) != 0) {
+  if (Write(NIM_CLK_MULTIPLIER_SPI, 0x4000 + (msg & 0xff)) != 0) {
     LogError("SI5235 SPI write failed");
     return -1;
   }
@@ -1162,7 +1174,7 @@ int WorkerSis3316::Si5325Write(uint addr, uint msg)
   // Wait for the SPI command to finish again.
   count = 0;
   do {
-    if (Read(0x54, tmp) != 0) {
+    if (Read(NIM_CLK_MULTIPLIER_SPI, tmp) != 0) {
       LogError("SI5235 SPI busy poll failed");
       return -1;
     }
