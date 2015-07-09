@@ -429,7 +429,7 @@ void WorkerSis3316::LoadConfig()
     if (SIS_3316_LN > 0xffff) {
       addr = CH1_4_EXTENDED_RAW_DATA_BUFFER_CONFIG + kAdcRegOffset * gr;
 
-      if ((SIS_3316_LN & 0x1ffffff) != 0) {
+      if ((SIS_3316_LN & 0xfe000000) != 0) {
         LogWarning("event length truncated to maximum value, 0x1ffffff");
       }
 
@@ -534,7 +534,7 @@ void WorkerSis3316::LoadConfig()
   }
 
   // Arm bank1 to start.
-  rc = Write(KEY_DISARM_AND_ARM_BANK2, 0x1);
+  rc = Write(KEY_DISARM_AND_ARM_BANK1, 0x1);
   
   if (rc != 0) {
     LogError("failed to arm logic on bank 1");
@@ -628,7 +628,6 @@ bool WorkerSis3316::EventAvailable()
 
       do {
 	rc = Write(KEY_DISARM_AND_ARM_BANK2, 1);
-	rc = Write(0x424, 1);
 	bank2_armed_flag = true;
     
       } while ((rc != 0) && (count++ < kMaxPoll));
@@ -680,7 +679,7 @@ void WorkerSis3316::GetEvent(sis_3316 &bundle)
 	LogError("failure reading address for channel %i", ch);
       }
 
-      if (count++ > 10000) {
+      if (count++ > kMaxPoll) {
 	LogError("read event timed out");
 	return;
       }
