@@ -52,6 +52,9 @@ namespace daq {
     int socketfd; // The initial socket file descriptor
     int new_sd; // New file descriptor for connected socket
 
+    char msg[60];// stores the message to move the arduino
+    char incoming_data_buffer[60];// stores confirmation message
+    
     double steps_per_inch;
     double steps_per_cm;
 
