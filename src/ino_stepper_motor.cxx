@@ -175,13 +175,13 @@ namespace daq {
   }
 
   int InoStepperMotor::MoveCmForward(double cm) {
-    Send(cm*steps_per_inch);
+    Send(cm*steps_per_cm);
 
     return 0;
   }
 
   int InoStepperMotor::MoveCmBackward(double cm) {
-    Send(-cm*steps_per_inch);
+    Send(-cm*steps_per_cm);
 
     return 0;
   }
