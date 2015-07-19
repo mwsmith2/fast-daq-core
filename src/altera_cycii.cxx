@@ -13,7 +13,7 @@ void AlteraCycII::CheckBoardId()
     Read(id_addr + 2*i, data);
     name[i] = data & 0xff;
   }
-  
+
   LogMessage("Device description: %s", name);
 
   Read(id_addr + 0x06, data);
@@ -34,7 +34,7 @@ int AlteraCycII::LoadHexCode(std::ifstream& in)
   data_ = 0xA;
   rc = Read(0x8A, data_);
   data_ &= 0xff; // only care about the last byte
-  
+
   LogMessage("0x8A: %02x", data_);
 
   if (data_ == 0x49) {
@@ -42,105 +42,105 @@ int AlteraCycII::LoadHexCode(std::ifstream& in)
     LogError("Cyclone II device is in in user mode");
     return -1;
 
-  } else if (data_ == 0x48) {
+  } else if (data_ != 0x48) {
 
-    // Start configuration. (Set 0x0 bit-0 to logic high and wait for change)
-    data_ = 0x1;
-    Write(0x0, data_);
-
-    data_ = 0x0;
-    while (!(data_ & 0x1)) {
-      Read(0x0, data_);
-      // printf("0x00: %02x\n", data_);
-      usleep(5);
-    }
-
-    while (in.good()) {
-      
-      usleep(500);
-      std::string line;
-      std::getline(in, line);
-      int rc = ParseHexRecord(line, hex_data_);
-
-      if (rc < 0) {
-
-	LogWarning("Record parse return code %i", rc);
-	continue;
-
-      } else if (rc != 0) {
-
-	continue;
-      }
-      
-      for (auto it = hex_data_.begin(); it != hex_data_.end(); ++it) {
-
-	//	LogMessage("Writing data: %02x\n", *it);
-	Write(0x2, *it);
-
-	// Poll until ready for the next byte.
-	Read(0x0, data_);
-	//	LogMessage("0x00: %02x\n", data_);
-	while (!(data_ & 0x3)) {
-	  Read(0x0, data_);
-	  //	  LogMessage("0x00: %02x\n", data_);
-	  usleep(100);
-	}
-
-	// Monitor the FPGA status
-	if (data_ & 0x4) {
-	  //	  LogMessage("Status register reads: %04x\n", data_);
-	  Read(0x8A, data_);
-	  //	  LogMessage("0x8A: %02x\n", data_);
-	  if ((data_ & 0xff == 0x49)) {
-
-	    LogMessage("FPGA programming complete");
-
-	  } else {
-
-	    LogError("Loading code onto the The Cyclone II failed");
-
-	  }
-
-	  break;
-	}
-      }
-    }
-    
-    Read(0x8A, data_);
-    LogMessage("0x8A: %02x\n", data_);
-
-    if (data_ & 0xff == 0x49) {
-      
-      LogMessage("Programming done, return to user mode");
-
-      return 0;
-
-    } else {
-
-      return -1;
-    }
-    
-  } else {
-    
-    // Failed to communicate
     LogError("Failed to communicate with FPGA");
+    return -1;
+  }
 
+  // Start configuration. (Set 0x0 bit-0 to logic high and wait for change)
+  data_ = 0x1;
+  Write(0x0, data_);
+
+  unsigned int cnt = 6; //40 usec min, 160 usec max expected
+  do {
+    usleep(40);
+    Read(0x0, data_);
+    --cnt;
+  } while ((data_ & 0x1) == 0x1 && cnt > 0);
+
+  if (cnt == 0) {
+      LogError("The control bit-0 failed to go low");
+      return -1;
+  }
+
+  //during the transfer, control & status register at address 0x0 should read:
+  //Bit-0 config: low
+  //Bit-1 status: high
+  //Bit-2 done: low
+  //Bit-5 selection: high, i.e., data coming from VME
+
+  if ((data_ & 0x27) != 0x22) {
+      LogError("CSR value is wrong; read: 0x%02x, expected: 0x22", data_);
+      return -1;
+  }
+
+  while (in.good()) {
+
+    std::string line;
+    std::getline(in, line);
+    int rc = ParseHexRecord(line, hex_data_);
+
+    //rc == 0 is the record type of data; ignore other records
+    if (rc < 0) {
+      LogWarning("Record parse return code %i", rc);
+      continue;
+    } else if (rc != 0) {
+      continue;
+    }
+
+    //check CPLD is still in control
+    Read(0x0, data_);
+    if ((data_ & 0x27) != 0x22) {
+        LogError("CSR value is wrong; read: 0x%02x, expected: 0x22", data_);
+        break; //do not return -1 here; we might have missed the done flag.
+    }
+
+    for (auto it = hex_data_.begin(); it != hex_data_.end(); ++it) {
+	  Write(0x2, *it);
+      //wait for the bits to be clocked-in
+      usleep(10); //1 usec should be sufficient: 8 bits at 8 MHz
+
+	  Read(0x0, data_);
+
+      if ((data_ & 0x4) == 0x4) {
+          LogMessage("Data transfer terminated by FPGA: done bit went high");
+          break;
+      }
+
+      if ((data_ & 0x27) != 0x22) {
+          LogError("CSR value is wrong; read: 0x%02x, expected: 0x22", data_);
+          break; //do not return -1 here; we might have missed the done flag.
+      }
+    }
+  }
+
+  //FPGA is taking control over the I/O address space
+  usleep(1000);
+
+  Read(0x8A, data_);
+  LogMessage("0x8A: %02x\n", data_);
+
+  if ((data_ & 0xff) == 0x49) {
+    LogMessage("Programming done, return to user mode");
+    return 0;
+  } else {
     return -1;
   }
 }
 
-int AlteraCycII::LoadHexCode(std::string filename) 
+int AlteraCycII::LoadHexCode(std::string filename)
 {
   // Open the file
   std::ifstream in;
   in.open(filename);
-  
+
   return LoadHexCode(in);
 }
 
 // Parse the intel hex record and do a checksum for each line.
-int AlteraCycII::ParseHexRecord(const std::string& record, 
-				std::vector<u_int8_t>& data)
+int AlteraCycII::ParseHexRecord(const std::string& record,
+				std::vector<u_int16_t>& data)
 {
   // Compute the checksum as we go.
   uint checksum = 0;
@@ -177,7 +177,7 @@ int AlteraCycII::ParseHexRecord(const std::string& record,
 
   uint record_type = std::stoul(byte_string, nullptr, 16);
   checksum += record_type;
-  
+
   // Finally we get to the data.
   for (int i = 0; i < byte_count; ++i) {
     byte_string[0] = *(it++);
@@ -186,13 +186,13 @@ int AlteraCycII::ParseHexRecord(const std::string& record,
     data.push_back(std::stoul(byte_string, nullptr, 16));
     checksum += data[i];
   }
-  
+
   // Get the checksum and compare to calculation.
   byte_string[0] = *(it++);
   byte_string[1] = *(it++);
   byte_string[2] = '\0';
 
-  
+
   if (((~checksum + 1) & 0xff) != std::stoul(byte_string, nullptr, 16)) {
 
     // Return an empty vector if the checksum fails.
@@ -204,7 +204,3 @@ int AlteraCycII::ParseHexRecord(const std::string& record,
   }
 }
 } // ::daq
-
-    
-    
-
