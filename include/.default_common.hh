@@ -16,7 +16,7 @@ about:  Contains the data structures for several hardware devices in a single
 #define SIS_3350_CH 4
 #define SIS_3350_LN 1024
 
-#define SIS_3302_CH 8 
+#define SIS_3302_CH 8
 #define SIS_3302_LN 100000
 
 #define SIS_3316_CH 16
@@ -33,7 +33,7 @@ about:  Contains the data structures for several hardware devices in a single
 #define CAEN_1742_CH 32
 #define CAEN_1742_LN 1024
 
-#define DRS4_CH 4 
+#define DRS4_CH 4
 #define DRS4_LN 1024
 
 #define TEK_SCOPE_CH 4
@@ -50,6 +50,7 @@ about:  Contains the data structures for several hardware devices in a single
 
 //--- std includes ----------------------------------------------------------//
 #include <vector>
+#include <array>
 #include <mutex>
 #include <cstdarg>
 #include <sys/time.h>
@@ -124,7 +125,7 @@ struct run_info {
   Int_t fid_ch1;
 };
 
-// Built from basic structs 
+// Built from basic structs
 struct event_data {
   std::vector<sis_3350> sis_3350_vec;
   std::vector<sis_3302> sis_3302_vec;
@@ -213,11 +214,11 @@ struct nmr_data {
     trace.resize(size);
   }
 };
-  
+
 // Typedef for all workers - needed by in WorkerList
-typedef boost::variant<WorkerBase<sis_3350> *, 
-                       WorkerBase<sis_3302> *, 
-                       WorkerBase<caen_1785> *, 
+typedef boost::variant<WorkerBase<sis_3350> *,
+                       WorkerBase<sis_3302> *,
+                       WorkerBase<caen_1785> *,
                        WorkerBase<caen_6742> *,
                        WorkerBase<drs4> *,
                        WorkerBase<caen_1742> *,
