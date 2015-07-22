@@ -163,25 +163,25 @@ namespace daq {
   }
   
   int InoStepperMotor::MoveInchesForward(double in) {
-    Send(in*steps_per_inch);
+    Send(in*steps_per_inch + 0.5); // to round properly
 
     return 0;
   }
   
   int InoStepperMotor::MoveInchesBackward(double in) {
-    Send(-in*steps_per_inch);
+    Send(-in*steps_per_inch + 0.5); // to round properly
 
     return 0;
   }
 
   int InoStepperMotor::MoveCmForward(double cm) {
-    Send(cm*steps_per_cm);
+    Send(cm*steps_per_cm + 0.5); // to round properly
 
     return 0;
   }
 
   int InoStepperMotor::MoveCmBackward(double cm) {
-    Send(-cm*steps_per_cm);
+    Send(-cm*steps_per_cm + 0.5); // to round properly
 
     return 0;
   }
