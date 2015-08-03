@@ -187,11 +187,11 @@ void WorkerSis3316::LoadConfig()
 
   if (conf.get<bool>("enable_ext_clk", false)) {
 
-    // Reset the device again.
-    rc = Write(KEY_RESET, 0x1);
-    if (rc != 0) {
-      LogError("failure to reset device");
-    }
+    // // Reset the device again.
+    // rc = Write(KEY_RESET, 0x1);
+    // if (rc != 0) {
+    //   LogError("failure to reset device");
+    // }
     
     // Disarm the device.
     rc = Write(KEY_DISARM, 0x1);
@@ -246,23 +246,15 @@ void WorkerSis3316::LoadConfig()
       LogError("failure to trigger internal calibration on Si5325");
     }
 
-    usleep(500000);
-
-    // Issue a DCM/PLL reset.
-    if (Write(KEY_ADC_CLOCK_DCM_RESET, msg) != 0) {
-        LogError("failure to reset DCM/PLL");
-    }
-
-    // Give it a bit to finish.
-    usleep(5000);
+    usleep(25000);
 
   } else {
 
-    // Reset the device again.
-    rc = Write(KEY_RESET, 0x1);
-    if (rc != 0) {
-      LogError("failure to reset device");
-    }
+    // // Reset the device again.
+    // rc = Write(KEY_RESET, 0x1);
+    // if (rc != 0) {
+    //   LogError("failure to reset device");
+    // }
     
     // Disarm the device.
     rc = Write(KEY_DISARM, 0x1);
@@ -274,6 +266,14 @@ void WorkerSis3316::LoadConfig()
                    conf.get<unsigned char>("oscillator_hs", 5),
                    conf.get<unsigned char>("oscillator_n1", 8));
   }
+
+  // Issue a DCM/PLL reset.
+  if (Write(KEY_ADC_CLOCK_DCM_RESET, msg) != 0) {
+    LogError("failure to reset DCM/PLL");
+  }
+
+  // Give it a bit to finish.
+  usleep(5000);
 
   // Enable ADC chip outputs.
   for (gr = 0; gr < SIS_3316_GR; ++gr) {
@@ -880,7 +880,7 @@ int WorkerSis3316::I2cWrite(int osc, unsigned char data, unsigned char &ack)
   }
   
   // Check the ACK bit.
-  ack = msg & (0x1 << 8) ? 1 : 0;
+  ack = ((msg >> 8) & 0x1) ? 1 : 0;
 
   return 0;
 }
@@ -1133,7 +1133,7 @@ int WorkerSis3316::AdcSpiWrite(int gr, int chip, uint spi_addr, uint msg)
   
   do {
     rc = Read(addr, data);
-  } while ((rc != 0) && (count++ < maxcount));
+  } while (((rc != 0) && (count++ < maxcount)) && (data & (0x1 << 31)));
   
   if (count >= maxcount) {
     return -2;
