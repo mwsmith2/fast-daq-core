@@ -57,6 +57,26 @@ int EventManagerTrgSeq::BeginOfRun()
     workers_.PushBack(new WorkerSis3302(name, dev_conf_file));
   }
 
+  sis_idx = 0;
+  for (auto &v : conf.get_child("devices.sis_3316")) {
+
+    std::string name(v.first);
+    std::string dev_conf_file = conf_dir + std::string(v.second.data());
+    sis_idx_map_[name] = sis_idx++;
+
+    workers_.PushBack(new WorkerSis3316(name, dev_conf_file));
+  }
+
+  sis_idx = 0;
+  for (auto &v : conf.get_child("devices.sis_3350")) {
+
+    std::string name(v.first);
+    std::string dev_conf_file = conf_dir + std::string(v.second.data());
+    sis_idx_map_[name] = sis_idx++;
+
+    workers_.PushBack(new WorkerSis3350(name, dev_conf_file));
+  }
+
   // Set up the NMR pulser trigger.
   char bid = conf.get<char>("devices.nmr_pulser.dio_board_id");
   int port = conf.get<int>("devices.nmr_pulser.dio_port_num");
@@ -334,7 +354,8 @@ void EventManagerTrgSeq::BuilderLoop()
             for (auto &pair : trg_seq_[seq_index]) {
 	      
               // Get the right data out of the input.
-              int sis_idx = sis_idx_map_[data_in_[pair.first].first];
+              auto sis_name = data_in_[pair.first].first;
+              int sis_idx = sis_idx_map_[sis_name];
               int trace_idx = data_in_[pair.first].second;
 
               LogMessage(std::string("BuilderLoop: Copied sis ") +
@@ -342,17 +363,51 @@ void EventManagerTrgSeq::BuilderLoop()
                        std::string(", ch ") +
                        std::to_string(trace_idx));
 
-              auto trace = data.sis_3302_vec[sis_idx].trace[trace_idx];
-              auto clock = data.sis_3302_vec[sis_idx].device_clock[trace_idx];
+              int idx = 0;
+              ULong64_t clock = 0;
 
-              // Store index
-              int idx = data_out_[pair].second;
-	      
-              // Get FID data
-              auto arr_ptr = &bundle.trace[idx][0];
-              std::copy(&trace[0], &trace[SIS_3302_LN], arr_ptr);
-              std::copy(&trace[0], &trace[SIS_3302_LN], wf.begin());
-	      
+              if (sis_name.find("sis_3302") == 0) {
+
+                // Store index and clock.
+                clock = data.sis_3302_vec[sis_idx].device_clock[trace_idx];
+                idx = data_out_[pair].second;
+                
+                // Get FID data.
+                auto arr_ptr = &bundle.trace[idx][0];
+                auto trace = data.sis_3302_vec[sis_idx].trace[trace_idx];
+                std::copy(&trace[0], &trace[SIS_3302_LN], arr_ptr);
+                std::copy(&trace[0], &trace[SIS_3302_LN], wf.begin());
+
+              } else if (sis_name.find("sis_3316") == 0) {
+                
+                // Store index and clock.
+                idx = data_out_[pair].second;
+                clock = data.sis_3316_vec[sis_idx].device_clock[trace_idx];
+
+                // Get FID data.
+                auto arr_ptr = &bundle.trace[idx][0];
+                auto trace = data.sis_3316_vec[sis_idx].trace[trace_idx];
+                std::copy(&trace[0], &trace[SIS_3316_LN], arr_ptr);
+                std::copy(&trace[0], &trace[SIS_3316_LN], wf.begin());
+
+              } else if (sis_name.find("sis_3350") == 0) {
+                
+                // Store index and clock.
+                clock = data.sis_3350_vec[sis_idx].device_clock[trace_idx];
+                idx = data_out_[pair].second;
+                
+                // Get FID data.
+                auto arr_ptr = &bundle.trace[idx][0];
+                auto trace = data.sis_3350_vec[sis_idx].trace[trace_idx];
+                std::copy(&trace[0], &trace[SIS_3350_LN], arr_ptr);
+                std::copy(&trace[0], &trace[SIS_3350_LN], wf.begin());
+
+              } else {
+
+                LogError("digitizer name did not match any known type.");
+                return;
+              }
+                
               // Get the timestamp
               struct timeval tv;
               gettimeofday(&tv, nullptr);
