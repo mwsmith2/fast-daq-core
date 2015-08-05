@@ -661,7 +661,7 @@ void WorkerSis3316::GetEvent(sis_3316 &bundle)
   auto t1 = high_resolution_clock::now();
   auto dtn = t1.time_since_epoch() - t0_.time_since_epoch();
   bundle.system_clock = duration_cast<milliseconds>(dtn).count();  
-  LogMessage("GetEvent start: %ul", duration_cast<microseconds>(dtn).count());
+  LogMessage("GetEvent start: %u us", duration_cast<microseconds>(dtn).count());
 
   // Now get the raw data (timestamp and waveform).
   for (ch = 0; ch < SIS_3316_CH; ch++) {
@@ -747,7 +747,7 @@ void WorkerSis3316::GetEvent(sis_3316 &bundle)
 
   t1 = high_resolution_clock::now();
   dtn = t1.time_since_epoch() - t0_.time_since_epoch();
-  LogMessage("GetEvent stop: %ul", duration_cast<microseconds>(dtn).count());
+  LogMessage("GetEvent stop: %u us", duration_cast<microseconds>(dtn).count());
 }
 
 int WorkerSis3316::I2cStart(int osc)
