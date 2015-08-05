@@ -33,7 +33,7 @@ ifeq ($(UNAME_S), Linux)
 endif
 
 ifdef DEBUG
-	FLAGS += -g -fPIC -O3 -pthread
+	FLAGS += -g -pg -fPIC -O3 -pthread
 else
 	FLAGS += -fPIC -O3 -pthread
 endif
