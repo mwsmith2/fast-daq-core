@@ -535,10 +535,12 @@ void WorkerSis3316::LoadConfig()
 
   // Arm bank1 to start.
   rc = Write(KEY_DISARM_AND_ARM_BANK1, 0x1);
+  bank2_armed_flag = false;
   
   if (rc != 0) {
     LogError("failed to arm logic on bank 1");
   }
+
 } // LoadConfig
 
 void WorkerSis3316::WorkLoop()
@@ -695,7 +697,7 @@ void WorkerSis3316::GetEvent(sis_3316 &bundle)
     // Specify the channel's fifo address
     msg = 0x80000000; // Start transfer bit
     if (!bank2_armed_flag) msg += 0x01000000; // Bank 2 offset
-    if ((ch & 0x1) == 0x1) msg += 0x02000000; // ch 2, 4, 6, ...
+    if ((ch & 0x1) == 0x0) msg += 0x02000000; // ch 2, 4, 6, ...
     if ((ch & 0x2) == 0x2) msg += 0x10000000; // ch 2, 3, 6, 7, ...
 
     // Start readout FSM
@@ -705,7 +707,9 @@ void WorkerSis3316::GetEvent(sis_3316 &bundle)
     if (rc != 0) {
       LogError("failed begin data tranfer for channel %i", ch);
     }
-    usleep(5);
+
+    // Make sure the data transfer is complete (up to 2 us).
+    usleep(2);
 
     // Set to the adc base memory.
     count = 0;
@@ -727,6 +731,7 @@ void WorkerSis3316::GetEvent(sis_3316 &bundle)
 
     // Reset the FSM
     rc = Write(addr, 0x0);
+
     if (rc != 0) {
       LogError("failed reset data tranfer for channel %i", ch);
     }
@@ -1098,7 +1103,7 @@ int WorkerSis3316::SetOscFreqHSN1(int osc, unsigned char hs, unsigned char n1)
     LogError("failed to reset the DCM");
   }
   // And wait for reset.
-  usleep(5000);
+  usleep(10000);
 
 return 0;
 }
