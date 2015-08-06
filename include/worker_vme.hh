@@ -274,11 +274,11 @@ int WorkerVme<T>::ReadTraceFifo(uint addr, uint *trace)
   close(device_);
 
   if (status != 0) {
-    this->LogError("read32_mblt_fifo failed at 0x%08x", base_address_ + addr);
+    this->LogError("read32_2evmefifo failed at 0x%08x", base_address_ + addr);
 
   } else {
 
-    this->LogDebug("read32_mblt_fifo addr 0x%08x, trace_len %i, ndata recv %i", 
+    this->LogDebug("read32_2evmefifo addr 0x%08x, trace_len %i, ndata recv %i",
                    base_address_ + addr, read_trace_len_, num_got);
   }
 
