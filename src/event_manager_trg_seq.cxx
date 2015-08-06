@@ -4,30 +4,19 @@ namespace daq {
 
 EventManagerTrgSeq::EventManagerTrgSeq(int num_probes) : EventManagerBase()
 {
-  go_time_ = false;
-  thread_live_ = false;
-
-  sequence_in_progress_ = false;
-  builder_has_finished_ = true;
-  mux_round_configured_ = false;
-
   conf_file_ = std::string("config/fe_vme_shimming.json");
-
   num_probes_ = num_probes;
+
+  Init();
 }
 
 EventManagerTrgSeq::EventManagerTrgSeq(std::string conf_file, int num_probes) : 
   EventManagerBase()
 {
-  go_time_ = false;
-  thread_live_ = false;
-
-  sequence_in_progress_ = false;
-  builder_has_finished_ = true;
-  mux_round_configured_ = false;
-
   conf_file_ = conf_file;
   num_probes_ = num_probes;
+
+  Init();
 }
 
 EventManagerTrgSeq::~EventManagerTrgSeq() 
@@ -39,10 +28,27 @@ EventManagerTrgSeq::~EventManagerTrgSeq()
   delete nmr_pulser_trg_;
 }
 
+int EventManagerTrgSeq::Init()
+{
+  boost::property_tree::ptree conf;
+  boost::property_tree::read_json(conf_file_, conf);
+
+  SetLogFile(conf.get<std::string>("logfile", logfile_));
+
+  go_time_ = false;
+  thread_live_ = false;
+
+  sequence_in_progress_ = false;
+  builder_has_finished_ = true;
+  mux_round_configured_ = false;
+}
+
 int EventManagerTrgSeq::BeginOfRun() 
 {
   boost::property_tree::ptree conf;
   boost::property_tree::read_json(conf_file_, conf);
+
+  LogMessage("BeginOfRun executed");
 
   // First set the config-dir if there is one.
   conf_dir = conf.get<std::string>("config_dir", conf_dir);
@@ -226,11 +232,13 @@ void EventManagerTrgSeq::RunLoop()
         
         if (!workers_.AllWorkersHaveEvent()) {
           
+          LogWarning("event was not synchronized among all workers, dropping");
           workers_.FlushEventData();
           continue;
           
         } else if (workers_.AnyWorkersHaveMultiEvent()) {
           
+          LogWarning("two events detected among some workers, dropping");
           workers_.FlushEventData();
           continue;
         }
@@ -322,6 +330,8 @@ void EventManagerTrgSeq::TriggerLoop()
 
 void EventManagerTrgSeq::BuilderLoop()
 {
+  using namespace std::chrono;
+
   while (thread_live_) {
     
     std::vector<double> tm(NMR_FID_LN, 0.0);
@@ -338,6 +348,13 @@ void EventManagerTrgSeq::BuilderLoop()
 
       static event_data data;
       int seq_index = 0;
+
+      if (sequence_in_progress_) {
+        // Get the system time.
+        auto dt = high_resolution_clock::now().time_since_epoch();
+        auto timestamp = duration_cast<microseconds>(dt).count();  
+        LogMessage("TrgSequence start: %u us", timestamp);
+      }
 
       while (sequence_in_progress_ && go_time_) {
 
@@ -420,7 +437,7 @@ void EventManagerTrgSeq::BuilderLoop()
 
               // Make sure we got an FID signal
               if (myfid.isgood()) {
-
+                
                 bundle.snr[idx] = myfid.snr();
                 bundle.len[idx] = myfid.fid_time();
                 bundle.freq[idx] = myfid.CalcPhaseFreq();
@@ -429,9 +446,9 @@ void EventManagerTrgSeq::BuilderLoop()
                 bundle.health[idx] = myfid.isgood();
                 bundle.freq_zc[idx] = myfid.CalcZeroCountFreq();
                 bundle.ferr_zc[idx] = myfid.freq_err();
-
+                
               } else {
-
+               
                 myfid.PrintDiagnosticInfo();
                 bundle.snr[idx] = 0.0;
                 bundle.len[idx] = 0.0;
@@ -456,6 +473,11 @@ void EventManagerTrgSeq::BuilderLoop()
 
       // Sequence finished.
       if (!sequence_in_progress_ && !builder_has_finished_) {
+
+        // Get the system time.
+        auto dt = high_resolution_clock::now().time_since_epoch();
+        auto timestamp = duration_cast<microseconds>(dt).count();  
+        LogMessage("TrgSequence stop: %u us", timestamp);
 
         LogMessage("BuilderLoop: Pushing event to run_queue_");
         

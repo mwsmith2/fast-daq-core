@@ -33,7 +33,7 @@ class CommonBase {
   //   name - used in logging output
   CommonBase(std::string name) : name_(name) {};
   ~CommonBase() {};
-  
+
  protected:
   
   static const int name_width_ = 16;
@@ -288,7 +288,6 @@ class CommonBase {
     logfile_ = logfile;
     log_mutex_.unlock();      
   };
-
 };
 
 } // daq

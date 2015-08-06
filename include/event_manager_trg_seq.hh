@@ -43,7 +43,10 @@ public:
   
   //dtor
   ~EventManagerTrgSeq();
-  
+
+  // Simple initialization.
+  int Init();
+
   // Launches any threads needed and start collecting data.
   int BeginOfRun();
 
