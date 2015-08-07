@@ -717,7 +717,7 @@ void WorkerSis3316::GetEvent(sis_3316 &bundle)
     LogMessage("attempting to read trace at 0x%08x", trace_addr);
 
     do {
-      rc = ReadTraceFifo(trace_addr, data[ch]);
+      rc = ReadTraceMblt64Fifo(trace_addr, data[ch]);
 
       if (rc != 0) {
         LogError("failed to read trace for channel %i", ch);
