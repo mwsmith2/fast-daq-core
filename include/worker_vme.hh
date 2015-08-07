@@ -46,6 +46,7 @@ public:
 
 protected:
 
+  const int maxcount_ = 1000;
   int num_ch_;
   uint read_trace_len_;
 
@@ -76,9 +77,15 @@ template<typename T>
 int WorkerVme<T>::Read(uint addr, uint &msg)
 {
   std::lock_guard<std::mutex> lock(daq::vme_mutex);
-  static int retval, status;
+  static int retval, status, count;
 
-  device_ = open(daq::vme_path.c_str(), O_RDWR);
+  count = 0;
+  do {
+    device_ = open(daq::vme_path.c_str(), O_RDWR);
+    usleep(2);
+  } while ((device_ < 0) && (count++ < maxcount_));
+
+  // Log an error if we couldn't open it at all
   if (device_ < 0) {
     this->LogError("failure to find vme device, error %i", device_);
     return device_;
@@ -112,14 +119,22 @@ template<typename T>
 int WorkerVme<T>::Write(uint addr, uint msg)
 {
   std::lock_guard<std::mutex> lock(daq::vme_mutex);
-  static int retval, status;
+  static int retval, status, count;
 
-  device_ = open(daq::vme_path.c_str(), O_RDWR);
+  // Get the vme device handle.
+  count = 0;
+  do {
+    device_ = open(daq::vme_path.c_str(), O_RDWR);
+    usleep(2);
+  } while ((device_ < 0) && (count++ < maxcount_));
+
+  // Log an error if we couldn't open it at all.
   if (device_ < 0) {
     this->LogError("failure to find vme device, error %i", device_);
     return device_;
   }
 
+  // Make the vme call.
   status = (retval = vme_A32D32_write(device_, base_address_ + addr, msg));
   close(device_);
 
@@ -148,9 +163,16 @@ template<typename T>
 int WorkerVme<T>::Read16(uint addr, ushort &msg)
 {
   std::lock_guard<std::mutex> lock(daq::vme_mutex);
-  static int retval, status;
+  static int retval, status, count;
 
-  device_ = open(daq::vme_path.c_str(), O_RDWR);
+  // Get the vme device handle.
+  count = 0;
+  do {
+    device_ = open(daq::vme_path.c_str(), O_RDWR);
+    usleep(2);
+  } while ((device_ < 0) && (count++ < maxcount_));
+
+  // Log an error if we couldn't open it at all.
   if (device_ < 0) {
     this->LogError("failure to find vme device, error %i", device_);
     return device_;
@@ -184,14 +206,22 @@ template<typename T>
 int WorkerVme<T>::Write16(uint addr, ushort msg)
 {
   std::lock_guard<std::mutex> lock(daq::vme_mutex);
-  static int retval, status;
+    static int retval, status, count;
 
-  device_ = open(daq::vme_path.c_str(), O_RDWR);
+  // Get the vme device handle.
+  count = 0;
+  do {
+    device_ = open(daq::vme_path.c_str(), O_RDWR);
+    usleep(2);
+  } while ((device_ < 0) && (count++ < maxcount_));
+
+  // Log an error if we couldn't open it at all.
   if (device_ < 0) {
     this->LogError("failure to find vme device, error %i", device_);
     return device_;
   }
 
+  // Make our vme call.
   status = (retval = vme_A32D16_write(device_, base_address_ + addr, msg));
   close(device_);
 
@@ -221,15 +251,23 @@ template<typename T>
 int WorkerVme<T>::ReadTrace(uint addr, uint *trace)
 {
   std::lock_guard<std::mutex> lock(daq::vme_mutex);
-  static int retval, status;
   static uint num_got;
+  static int retval, status, count;
 
-  device_ = open(daq::vme_path.c_str(), O_RDWR);
+  // Get the vme device handle.
+  count = 0;
+  do {
+    device_ = open(daq::vme_path.c_str(), O_RDWR);
+    usleep(2);
+  } while ((device_ < 0) && (count++ < maxcount_));
+
+  // Log an error if we couldn't open it at all.
   if (device_ < 0) {
     this->LogError("failure to find vme device, error %i", device_);
     return device_;
   }
 
+  // Make the vme call.
   this->LogDebug("read_2evme vme device 0x%08x, register 0x%08x, samples %i", 
 		 base_address_, addr, read_trace_len_);
 
@@ -257,15 +295,23 @@ template<typename T>
 int WorkerVme<T>::ReadTraceFifo(uint addr, uint *trace)
 {
   std::lock_guard<std::mutex> lock(daq::vme_mutex);
-  static int retval, status;
   static uint num_got;
+  static int retval, status, count;
 
-  device_ = open(daq::vme_path.c_str(), O_RDWR);
+  // Get the vme device handle.
+  count = 0;
+  do {
+    device_ = open(daq::vme_path.c_str(), O_RDWR);
+    usleep(2);
+  } while ((device_ < 0) && (count++ < maxcount_));
+
+  // Log an error if we couldn't open it at all.
   if (device_ < 0) {
     this->LogError("failure to find vme device, error %i", device_);
     return device_;
   }
 
+  // Make the vme call.
   status = (retval = vme_A32_2EVMEFIFO_read(device_,
          				    base_address_ + addr,
          				    trace,
@@ -299,18 +345,23 @@ template<typename T>
 int WorkerVme<T>::ReadTraceMblt64(uint addr, uint *trace)
 {
   std::lock_guard<std::mutex> lock(daq::vme_mutex);
-  static int retval, status;
   static uint num_got;
+  static int retval, status, count;
 
-  this->LogDebug("read_mblt64 vme device 0x%08x, register 0x%08x, samples %i", 
-		 base_address_, addr, read_trace_len_);
+  // Get the vme device handle.
+  count = 0;
+  do {
+    device_ = open(daq::vme_path.c_str(), O_RDWR);
+    usleep(2);
+  } while ((device_ < 0) && (count++ < maxcount_));
 
-  device_ = open(daq::vme_path.c_str(), O_RDWR);
+  // Log an error if we couldn't open it at all.
   if (device_ < 0) {
     this->LogError("failure to find vme device, error %i", device_);
     return device_;
   }
 
+  // Make the vme call.
   status = (retval = vme_A32MBLT64_read(device_,
                                         base_address_ + addr,
                                         trace,
@@ -344,15 +395,23 @@ template<typename T>
 int WorkerVme<T>::ReadTraceMblt64Fifo(uint addr, uint *trace)
 {
   std::lock_guard<std::mutex> lock(daq::vme_mutex);
-  static int retval, status;
   static uint num_got;
+  static int retval, status, count;
 
-  device_ = open(daq::vme_path.c_str(), O_RDWR);
+  // Get the vme device handle.
+  count = 0;
+  do {
+    device_ = open(daq::vme_path.c_str(), O_RDWR);
+    usleep(2);
+  } while ((device_ < 0) && (count++ < maxcount_));
+
+  // Log an error if we couldn't open it at all.
   if (device_ < 0) {
     this->LogError("failure to find vme device, error %i", device_);
     return device_;
   }
 
+  // Make the vme call.
   status = (retval = vme_A32MBLT64FIFO_read(device_,
          				    base_address_ + addr,
          				    trace,
