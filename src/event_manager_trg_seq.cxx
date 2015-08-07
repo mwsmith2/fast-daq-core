@@ -30,11 +30,6 @@ EventManagerTrgSeq::~EventManagerTrgSeq()
 
 int EventManagerTrgSeq::Init()
 {
-  boost::property_tree::ptree conf;
-  boost::property_tree::read_json(conf_file_, conf);
-
-  SetLogFile(conf.get<std::string>("logfile", logfile_));
-
   go_time_ = false;
   thread_live_ = false;
 

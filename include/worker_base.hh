@@ -43,7 +43,13 @@ class WorkerBase : public CommonBase {
     conf_file_(conf_file),
     go_time_(false), 
     has_event_(false),
-    CommonBase(name) {};
+    CommonBase(name) {
+    
+    // Change the logfile if there is one in the config.
+    boost::property_tree::ptree conf;
+    boost::property_tree::read_json(conf_file_, conf);
+    SetLogFile(conf.get<std::string>("logfile", logfile_));
+  };
   
   // Dtor rejoins the data pulling thread before destroying the object.
   virtual ~WorkerBase() {
