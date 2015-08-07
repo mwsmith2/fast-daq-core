@@ -585,7 +585,7 @@ void WorkerSis3316::LoadConfig()
   }
 
   if (nerrors > 0) {
-    LogMessage("configuration failed with % errors, killing worker", nerrors);
+    LogMessage("configuration failed with %i errors, killing worker", nerrors);
     exit(-1);
   }
 } // LoadConfig

@@ -41,16 +41,16 @@ class WorkerSis3316 : public WorkerVme<sis_3316> {
   // An example:
   // {
   //     "base_address": "0x20000000",
-  //     "invert_ext_trg": false,
   //     "enable_ext_trg": true,
-  //     "enable_ext_clk": true,
-  //     "oscillator_num": 0,
+  //     "enable_int_trg": false,
+  //     "invert_ext_trg": false,
+  //     "enable_ext_clk": false,
   //     "oscillator_hs": 5,
   //     "oscillator_n1": 8,
   //     "iob_tap_delay": "0x1020",
-  //     "set_voltage_offset": "true",
-  //     "dac_voltage_offset": "0x8000"
-  //     "pretrigger_samples": "0x0",
+  //     "set_voltage_offset": true,
+  //     "dac_voltage_offset": "0x8000",
+  //     "pretrigger_samples": "0x0"
   // }
   void LoadConfig();
 
