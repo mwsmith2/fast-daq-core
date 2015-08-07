@@ -284,9 +284,9 @@ void WorkerSis3316::LoadConfig()
       ++nerrors;
     }
 
-    SetOscFreqHSN1(conf.get<int>("oscillator_num", 0),
-                   conf.get<unsigned char>("oscillator_hs", 5),
-                   conf.get<unsigned char>("oscillator_n1", 8));
+    auto hs = conf.get<unsigned char>("oscillator_hs", 5);
+    auto n1 = conf.get<unsigned char>("oscillator_n1", 5);
+    SetOscFreqHSN1(0, hs, n1);
   }
 
   // Issue a DCM/PLL reset.
