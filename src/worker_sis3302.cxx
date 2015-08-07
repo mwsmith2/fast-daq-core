@@ -30,7 +30,7 @@ void WorkerSis3302::LoadConfig()
   base_address_ = std::stoul(conf.get<string>("base_address"), nullptr, 0);
 
   // Read the base register.
-  rc = Read(0x0, msg);
+  rc = Read(CONTROL_STATUS, msg);
   if (rc != 0) {
 
     LogError("could not find SIS3302 device at 0x%08x", base_address_);
@@ -42,14 +42,14 @@ void WorkerSis3302::LoadConfig()
   }
 
   // Reset the device.
-  rc = Write(0x400, 0x1);
+  rc = Write(KEY_RESET, 0x1);
   if (rc != 0) {
     LogError("failure writing sis3302 reset register");
     ++nerrors;
   }
 
   // Get device ID.
-  rc = Read(0x4, msg);
+  rc = Read(MODID, msg);
   if (rc != 0) {
 
     LogError("failed reading device ID");
@@ -76,13 +76,13 @@ void WorkerSis3302::LoadConfig()
   msg = ((~msg & 0xffff) << 16) | msg; // j/k
   msg &= ~0xfffefffe;
 
-  rc = Write(0x0, msg);
+  rc = Write(CONTROL_STATUS, msg);
   if (rc != 0) {
     LogError("failed setting the control register");
     ++nerrors;
   }
   
-  rc = Read(0x0, msg);
+  rc = Read(CONTROL_STATUS, msg);
   if (rc != 0) {
 
     LogError("failed reading status/control register");
@@ -163,13 +163,13 @@ void WorkerSis3302::LoadConfig()
   msg = ((~msg & 0xffff) << 16) | msg; // j/k
   msg &= 0x7df07df0; // zero reserved bits / disable bits
 
-  rc = Write(0x10, msg);
+  rc = Write(ACQUISITION_CONTROL, msg);
   if (rc != 0) {
     LogError("failed writing acquisition register");
     ++nerrors;
   }
 
-  rc = Read(0x10, msg);
+  rc = Read(ACQUISITION_CONTROL, msg);
   if (rc != 0) {
 
     LogError("failed reading acquisition register");
@@ -183,21 +183,21 @@ void WorkerSis3302::LoadConfig()
   LogMessage("setting start/stop delays");
   msg = conf.get<int>("start_delay", 0);
 
-  rc = Write(0x14, msg);
+  rc = Write(START_DELAY, msg);
   if (rc != 0) {
     LogError("failed to set start delay");
     ++nerrors;
   }
 
   msg = conf.get<int>("stop_delay", 0);
-  rc = Write(0x18, msg);
+  rc = Write(STOP_DELAY, msg);
   if (rc != 0) {
     LogError("failed to set stop delay");
     ++nerrors;
   }
 
   LogMessage("setting event configuration register");
-  rc = Read(0x02000000, msg);
+  rc = Read(EVENT_CONFIG_ADC12, msg);
   if (rc != 0) {
     LogError("failed to read event configuration register");
     ++nerrors;
@@ -205,10 +205,10 @@ void WorkerSis3302::LoadConfig()
 
   // Set event configure register with changes
   if (conf.get<bool>("enable_event_length_stop", true)) {
-    msg = 0x1 << 5; 
+    msg |= 0x1 << 5; 
   }
 
-  rc = Write(0x01000000, msg);
+  rc = Write(EVENT_CONFIG_ALL_ADC, msg);
   if (rc != 0) {
     LogError("failed to set event configuration register");
     ++nerrors;
@@ -217,7 +217,7 @@ void WorkerSis3302::LoadConfig()
   LogMessage("setting event length register and pre-trigger buffer");
   // @hack -> The extra 512 pads against a problem in the wfd.
   msg = (SIS_3302_LN - 4 + 512) & 0xfffffc;
-  rc = Write(0x01000004, msg);
+  rc = Write(SAMPLE_LENGTH_ALL_ADC, msg);
   if (rc != 0) {
     LogError("failed to set event length");
     ++nerrors;
@@ -225,7 +225,7 @@ void WorkerSis3302::LoadConfig()
 
   // Set the pre-trigger buffer length.
   msg = std::stoi(conf.get<string>("pretrigger_samples", "0x0"), nullptr, 0);
-  rc = Write(0x01000060, msg);
+  rc = Write(PRETRIGGER_DELAY_ALL_ADC, msg);
   if (rc != 0) {
     LogError("failed to set pre-trigger buffer");
     ++nerrors;
@@ -234,7 +234,7 @@ void WorkerSis3302::LoadConfig()
   LogMessage("setting memory page");
   msg = 0; //first 8MB chunk
 
-  rc = Write(0x34, msg);
+  rc = Write(ADC_MEMORY_PAGE, msg);
   if (rc != 0) {
     LogError("failed to set memory page");
     ++nerrors;
@@ -304,13 +304,13 @@ bool WorkerSis3302::EventAvailable()
   // Check acq reg.
   static uint msg = 0;
   static bool is_event;
-  static int count, rc, maxcount = 500;
+  static int count, rc;
 
   count = 0;
   rc = 0;
   do {
 
-    rc = Read(0x10, msg);
+    rc = Read(ACQUISITION_CONTROL, msg);
     if (rc != 0) {
       LogError("failed to read event status register");
     }
@@ -322,13 +322,12 @@ bool WorkerSis3302::EventAvailable()
 
   if (is_event && go_time_) {
     // rearm the logic
-    uint armit = 1;
-
     count = 0;
     rc = 0;
+
     do {
 
-      rc = Write(0x410, armit);
+      rc = Write(KEY_ARM, 0x1);
       if (rc != 0) {
         LogError("failed to rearm sampling logic");
       }
