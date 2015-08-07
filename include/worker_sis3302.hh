@@ -62,6 +62,8 @@ class WorkerSis3302 : public WorkerVme<sis_3302> {
 
  private:
   
+  const int kMaxPoll = 500;
+
   std::chrono::high_resolution_clock::time_point t0_;
   
   // Checks the device for a triggered event.
