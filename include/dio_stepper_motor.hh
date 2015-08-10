@@ -56,10 +56,16 @@ class DioStepperMotor
   int MoveInchesBackward(double in=1.0);
   int MoveCmForward(double cm=1.0);
   int MoveCmBackward(double cm=1.0);
+  int StepForward(double num_steps);
+  int StepBackward(double num_steps);
 
   // Stop/start functions.
   int EnableMotor() { move_it_ = true; };
   int DisableMotor() { move_it_ = false; };
+
+  // Accessors for the distance conversions.
+  double steps_per_inch() { return steps_per_inch_; };
+  double steps_per_cm() { return steps_per_cm_; };
 
  private:
 
@@ -83,10 +89,6 @@ class DioStepperMotor
 
   std::mutex board_guard_;
   std::thread clock_thread_;
-
-  // Internal functions used to take single steps
-  int StepForward(double num_steps);
-  int StepBackward(double num_steps);
   
   // Set the direction on the motor, could be relative if set up changes.
   int ForwardDirection();
