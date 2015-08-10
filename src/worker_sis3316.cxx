@@ -1173,17 +1173,15 @@ int WorkerSis3316::AdcSpiWrite(int gr, int chip, uint spi_addr, uint msg)
   // Set to appropriate SPI_CTRL register.
   addr = CH1_4_SPI_CTRL + gr * kAdcRegOffset;
 
-  if (Read(addr, data) != 0) {
-    return -1;
-  }
-  
+  rc = Read(addr, data);
+  if (rc != 0) return rc;
+
   // Preserve the enable bit and add command bit and mux bit.
   data &= (0x1 << 24);
   data += 0x80000000 + adc_mux + (spi_addr << 8) + (msg & 0xff);
 
-  if (Write(addr, data) != 0) {
-    return -1;
-  }
+  rc = Write(addr, data);
+  if (rc != 0) return rc;
 
   // Check busy register, bit 31 to make sure it finishes before returning.
   addr = 0xa4;
@@ -1192,11 +1190,107 @@ int WorkerSis3316::AdcSpiWrite(int gr, int chip, uint spi_addr, uint msg)
     rc = Read(addr, data);
   } while (((rc != 0) && (count++ < maxcount)) && (data & (0x1 << 31)));
   
-  if (count >= maxcount) {
-    return -2;
-  }
+  if (count >= maxcount) return -2;
   
   return rc;
+}
+
+int WorkerSis3316::AdcSpiRead(int gr, int chip, uint spi_addr, uint &msg)
+{
+  int rc;
+  uint data = 0, adc_mux = 0, addr = 0, count = 0, maxcount = 1000;
+
+  if ((gr > 4) || ((chip > 2) || (spi_addr > 0xffff))) {
+    return -1;
+  }
+
+  if (chip == 0) {
+    adc_mux = 0;
+  } else {
+    adc_mux = 0x1 << 22;
+  }
+
+  // Set to appropriate SPI_CTRL register.
+  addr = CH1_4_SPI_CTRL + gr * kAdcRegOffset;
+
+  rc = Read(addr, data);
+  if (rc != 0) return rc;
+  
+  // Preserve the enable bit and add command bit and mux bit.
+  data &= (0x1 << 24);
+  data += 0xc0000000 + adc_mux + (spi_addr << 8);
+
+  rc = Write(addr, data);
+  if (rc != 0) return rc;
+
+  // Check busy register, bit 31 to make sure it finishes before returning.
+  addr = 0xa4;
+  
+  do {
+    rc = Read(addr, data);
+  } while (((rc != 0) && (count++ < maxcount)) && (data & (0x1 << 31)));
+  
+  if (count >= maxcount) return -2;
+  if (rc != 0) return rc;
+
+  // Set address to the readback register.
+  addr = CH1_4_SPI_READBACK + gr * kAdcRegOffset;
+  
+  rc = Read(addr, data);
+  if (rc != 0) return rc;
+
+  msg = data & 0xff;
+  
+  return rc;
+}
+
+int WorkerSis3316::Si5325Read(uint addr, uint &msg)
+{
+  uint count = 0, maxpoll = 100, tmp = 0;
+
+  // Select the address for writing.
+  if (Write(NIM_CLK_MULTIPLIER_SPI, addr & 0xff) != 0) {
+    LogError("failure to select address for clock multipler spi register");
+  }
+  
+  // Wait for the SPI to finish.
+  do {
+    if (Read(NIM_CLK_MULTIPLIER_SPI, tmp) != 0) {
+      LogError("SI5235 SPI write failed");
+      return -1;
+    } 
+  } while (((0x80000000 & tmp) == 0x80000000) && (count++ < maxpoll));
+
+  if (count >= maxpoll) {
+    LogError("SI5235 SPI busy polling timed out");
+    return -2;
+  }
+
+  // Short sleep to load instructions.
+  usleep(10000);
+
+  // Write the data (0xff) and instructions (0xff00).
+  if (Write(NIM_CLK_MULTIPLIER_SPI, 0x8000) != 0) {
+    LogError("SI5235 SPI write failed");
+    return -1;
+  }
+
+  // Wait for the SPI command to finish again.
+  count = 0;
+  do {
+    if (Read(NIM_CLK_MULTIPLIER_SPI, tmp) != 0) {
+      LogError("SI5235 SPI busy poll failed");
+      return -1;
+    }
+  } while (((0x80000000 & tmp) == 0x80000000) && (count++ < maxpoll));
+
+  if (count >= maxpoll) {
+    LogError("SI5235 SPI busy polling timed out");
+    return -2;
+  }
+
+  msg = tmp;
+  return 0;
 }
 
 int WorkerSis3316::Si5325Write(uint addr, uint msg)
