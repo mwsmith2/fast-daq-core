@@ -4,6 +4,8 @@ OBJ_VME = $(patsubst include/vme/%.c, build/%.o, $(wildcard include/vme/*.c))
 OBJ_DRS = $(patsubst src/drs/%.cpp, build/%.o, $(wildcard src/drs/*.cpp))
 OBJ_DRS += $(patsubst src/drs/%.c, build/%.o, $(wildcard src/drs/*.c))
 DATADEF = include/common.hh include/common_extdef.hh
+LOGFILE = /var/log/lab-daq/fast-daq.log
+CONFDIR = /usr/local/opt/lab-daq/config
 
 # Library info.
 MAJOR=0
@@ -52,7 +54,16 @@ LIBS += $(shell wx-config --libs)
 CPPFLAGS += -Iinclude -Iinclude/drs
 LIBS += -lm -lzmq -ljson_spirit -lCAENDigitizer -lusb-1.0 -lutil -lpthread
 
-all: $(OBJECTS) $(OBJ_VME) $(OBJ_DRS) $(TARGETS) lib/$(ARNAME) $(DATADEF)
+all: $(OBJECTS) $(OBJ_VME) $(OBJ_DRS) $(TARGETS) lib/$(ARNAME) $(DATADEF) \
+	$(LOGFILE) $(CONFDIR)
+
+$(LOGFILE):
+	@mkdir -p $(@D)
+	@touch $@
+
+$(CONFDIR):
+	@mkdir -p $(@D)
+	@cp -r config $(@D)/
 
 include/%.hh: include/.default_%.hh
 	cp $+ $@
