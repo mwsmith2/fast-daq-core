@@ -182,23 +182,21 @@ int AcromagIp470a::WriteOctet(int port_id, u_int8_t data)
 int AcromagIp470a::ReadSextet(int port_id)
 {
   // Read data from the specified group of 6.
-  int port_address, rc, bit_shift, bit_mask, bit_idx;
+  int rc, bit_shift, bit_mask, bit_idx;
   u_int8_t temp;
 
   // Set the byte index for it.
   bit_idx = port_id * 6;
 
   // Read the first part of the data.
-  port_address = 2 * bit_idx / 8 + 1;
-  rc = Read(port_address, temp);
+  rc = ReadOctet(bit_idx / 8, temp);
   
   bit_shift = bit_idx % 8;
   bit_mask = 6 - (bit_idx + 8) % 8;
   data_ = (temp >> bit_shift) & (bit_mask);
 
   // Read the next part, masked if not needed.
-  port_address = 2 * (bit_idx + 1)/ 8 + 1;
-  rc |= Read(port_address, temp);    
+  rc |= ReadOctet(bit_idx / 8 + 1, temp);    
 
   bit_shift =  6 - (bit_idx + 8) % 8;
   bit_mask = (bit_idx + 6) % 8;
@@ -210,23 +208,21 @@ int AcromagIp470a::ReadSextet(int port_id)
 int AcromagIp470a::ReadSextet(int port_id, u_int8_t& data)
 {
   // Read data from the specified group of 6.
-  int port_address, rc, bit_shift, bit_mask, bit_idx;
+  int rc, bit_shift, bit_mask, bit_idx;
   u_int8_t temp;
 
   // Set the byte index for it.
   bit_idx = port_id * 6;
 
   // Read the first part of the data.
-  port_address = 2 * bit_idx / 8 + 1;
-  rc = Read(port_address, temp);
+  rc = ReadOctet(bit_idx / 8, temp);
   
   bit_shift = bit_idx % 8;
   bit_mask = 6 - (bit_idx + 8) % 8;
   data_ = (temp >> bit_shift) & (bit_mask);
 
   // Read the next part, masked if not needed.
-  port_address = 2 * (bit_idx + 1)/ 8 + 1;
-  rc |= Read(port_address, temp);    
+  rc |= ReadOctet(bit_idx / 8 + 1, temp);    
 
   bit_shift =  6 - (bit_idx + 8) % 8;
   bit_mask = (bit_idx + 6) % 8;
@@ -246,8 +242,7 @@ int AcromagIp470a::WriteSextet(int port_id)
   bit_idx = port_id * 6;
 
   // Read the first octet port to not change the data.
-  port_address = 2 * bit_idx / 8 + 1;
-  rc = Read(port_address, temp);
+  rc = ReadOctet(bit_idx / 8, temp);
   
   bit_shift = bit_idx % 8;
   bit_mask = 6 - (bit_idx + 8) % 8;
@@ -257,11 +252,10 @@ int AcromagIp470a::WriteSextet(int port_id)
 
   // Set the proper bits in the data, and write.
   temp |= (data_ >> bit_shift) & (bit_mask);
-  rc |= Write(port_address, temp);
+  rc |= WriteOctet(bit_idx / 8, temp);
 
   // Read the next part, masked if not needed.
-  port_address = 2 * (bit_idx + 1)/ 8 + 1;
-  rc |= Read(port_address, temp);    
+  rc |= ReadOctet(bit_idx / 8 + 1, temp);    
 
   bit_shift =  6 - (bit_idx + 8) % 8;
   bit_mask = (bit_idx + 6) % 8;
@@ -271,7 +265,7 @@ int AcromagIp470a::WriteSextet(int port_id)
 
   // Set the data and write
   temp  = (data_ << bit_shift) & (bit_mask);
-  rc |= Write(port_address, temp);
+  rc |= WriteOctet(bit_idx / 8 + 1, temp);    
   
   return rc;
 }
@@ -279,15 +273,14 @@ int AcromagIp470a::WriteSextet(int port_id)
 int AcromagIp470a::WriteSextet(int port_id, u_int8_t data) 
 {
   // Write data to the specified group of 6.
-  int port_address, rc, bit_shift, bit_mask, bit_idx;
+  int rc, bit_shift, bit_mask, bit_idx;
   u_int8_t temp;
 
   // Set the byte index for it.
   bit_idx = port_id * 6;
 
   // Read the first octet port to not change the data.
-  port_address = 2 * bit_idx / 8 + 1;
-  rc = Read(port_address, temp);
+  rc = ReadOctet(bit_idx / 8, temp);
   
   bit_shift = bit_idx % 8;
   bit_mask = 6 - (bit_idx + 8) % 8;
@@ -296,12 +289,12 @@ int AcromagIp470a::WriteSextet(int port_id, u_int8_t data)
   temp &= (bit_mask ^ 0xff);
 
   // Set the proper bits in the data, and write.
-  temp |= (data >> bit_shift) & (bit_mask);
-  rc |= Write(port_address, temp);
+  data_ = data;
+  temp |= (data_ >> bit_shift) & (bit_mask);
+  rc |= WriteOctet(bit_idx / 8, temp);
 
   // Read the next part, masked if not needed.
-  port_address = 2 * (bit_idx + 1)/ 8 + 1;
-  rc |= Read(port_address, temp);    
+  rc |= ReadOctet(bit_idx / 8 + 1, temp);    
 
   bit_shift =  6 - (bit_idx + 8) % 8;
   bit_mask = (bit_idx + 6) % 8;
@@ -310,8 +303,8 @@ int AcromagIp470a::WriteSextet(int port_id, u_int8_t data)
   temp &= (bit_mask ^ 0xff);
 
   // Set the data and write
-  temp = (data << bit_shift) & (bit_mask);
-  rc |= Write(port_address, temp);
+  temp  = (data_ << bit_shift) & (bit_mask);
+  rc |= WriteOctet(bit_idx / 8 + 1, temp);    
   
   return rc;
 }
