@@ -28,7 +28,7 @@
 
 //--- project includes -------------------------------------------------------//
 #include "event_manager_base.hh"
-#include "mux_control_board.hh"
+#include "dio_mux_controler.hh"
 #include "dio_trigger_board.hh"
 
 namespace daq {
