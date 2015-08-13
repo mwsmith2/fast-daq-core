@@ -30,7 +30,7 @@ namespace daq {
 enum board_id {BOARD_A, BOARD_B, BOARD_C, BOARD_D};
 
 // AlteraCycII contains the basic functionality needed to operate
-// the Cyclone 2 FPGA. It inherits vme read/write routines from 
+// the Cyclone 2 FPGA. It inherits vme read/write routines from
 // Sis3100VmeDev.
 class AlteraCycII : public Sis3100VmeDev {
 
@@ -39,14 +39,14 @@ class AlteraCycII : public Sis3100VmeDev {
   // ctor params:
   //   dev - handle to vme device
   //   base_addr - base address of vme device
-  //   block - used to calcuate base address, acromag blocks A-D 
+  //   block - used to calcuate base address, acromag blocks A-D
   //           get 0xff address space
   //   16 - specifies A16 vme addressing
   //   32 - specifies BLT32 vme block transfers
   AlteraCycII(int base_addr, board_id block) : 
     Sis3100VmeDev(base_addr + 0x100*block, 16, 32) {};
 
-  // Formats and prints the ID data in the ID register of the board.  
+  // Formats and prints the ID data in the ID register of the board.
   void CheckBoardId();
 
   // Configures the FPGA using the given Intel style hex file.
@@ -54,21 +54,25 @@ class AlteraCycII : public Sis3100VmeDev {
   int LoadHexCode(std::ifstream& in);
 
  private:
-  
+
   u_int16_t data_; // forces vme writes to be D16
-  std::vector<u_int8_t> hex_data_; // holds a line of hex data
+
+  //holds a line of hex data, u_int16_t to enforce A16D16
+  //A16D8 works theretically, but A16D16 is practically better
+  //the CSR address is 0x0 for A16D16, and 0x1 for A16D8
+  //the FPGA data register adress is 0x2 for A16D16, and 0x3 for A16D8
+  std::vector<u_int16_t> hex_data_;
+
   const std::string name_ = "AlteraCycII";
-  
-  // Read a line of Intel-hex and sets the data vector to the 
+
+  // Read a line of Intel-hex and sets the data vector to the
   // data bytes in the line.
   // returns:
   //   record_type (>0) or error_type (<0)
-  int ParseHexRecord(const std::string& record, std::vector<u_int8_t>& data);
+  int ParseHexRecord(const std::string& record, std::vector<u_int16_t>& data);
 
 };
 
 } // ::daq
 
 #endif
-
-  

@@ -4,7 +4,7 @@
 	"wfd_chan": 0,
 	"dio_board_id": "a",
         "dio_port_num": 0,
-        "use_dio_sextets": "true",
+        "dio_use_sextets": "true",
     },
 
     "mux_2": {
@@ -12,7 +12,7 @@
 	"wfd_chan": 1,
 	"dio_board_id": "a",
 	"dio_port_num": 1
-        "use_dio_sextets": "true",
+        "dio_use_sextets": "true",
     },
 
     "mux_3": {
@@ -20,7 +20,7 @@
 	"wfd_chan": 2,
 	"dio_board_id": "a",
 	"dio_port_num": 2
-        "use_dio_sextets": "true",
+        "dio_use_sextets": "true",
     },
 
     "mux_4": {
@@ -28,7 +28,7 @@
 	"wfd_chan": 3,
 	"dio_board_id": "a",
 	"dio_port_num": 3
-        "use_dio_sextets": "true",
+        "dio_use_sextets": "true",
     },
 
     "mux_5": {
@@ -43,6 +43,6 @@
 	"wfd_chan": 5,
 	"dio_board_id": "a",
 	"dio_port_num": 5
-        "use_dio_sextets": "true",
+        "dio_use_sextets": "true",
     }
 }
