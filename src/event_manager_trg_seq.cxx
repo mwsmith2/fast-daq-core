@@ -132,10 +132,10 @@ int EventManagerTrgSeq::BeginOfRun()
   }
 
   mux_boards_.resize(0);
-  mux_boards_.push_back(new MuxControlBoard(vme_path, 0x0, BOARD_A));
-  mux_boards_.push_back(new MuxControlBoard(vme_path, 0x0, BOARD_B));
-  mux_boards_.push_back(new MuxControlBoard(vme_path, 0x0, BOARD_C));
-  mux_boards_.push_back(new MuxControlBoard(vme_path, 0x0, BOARD_D));
+  mux_boards_.push_back(new DioMuxController(vme_path, 0x0, BOARD_A));
+  mux_boards_.push_back(new DioMuxController(vme_path, 0x0, BOARD_B));
+  mux_boards_.push_back(new DioMuxController(vme_path, 0x0, BOARD_C));
+  mux_boards_.push_back(new DioMuxController(vme_path, 0x0, BOARD_D));
  
   std::map<char, int> bid_map;
   bid_map['a'] = 0;
