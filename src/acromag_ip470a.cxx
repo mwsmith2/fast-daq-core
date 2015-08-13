@@ -111,7 +111,7 @@ int AcromagIp470a::ReadOctet(int port_id)
   // Read data from the correct port
   u_int8_t d;
   int port_address = 2 * port_id + 1;
-  int rc = Read(port_address, data_);
+  int rc = Read(port_address, d);
 
   // Reverse the bits
   d = ((d & 0xf0) >> 4) | ((d & 0x0f) << 4);
@@ -175,7 +175,7 @@ int AcromagIp470a::WriteOctet(int port_id, u_int8_t data)
   d = ((d & 0xcc) >> 2) | ((d & 0x33) << 2);
   d = ((d & 0xaa) >> 1) | ((d & 0x55) << 1);
 
-  int rc = Write(port_address, data_);
+  int rc = Write(port_address, d);
   return rc;
 }
 
