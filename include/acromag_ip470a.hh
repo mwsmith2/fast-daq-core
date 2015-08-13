@@ -36,8 +36,11 @@ class AcromagIp470a : public Sis3100VmeDev {
   //           get 0xff address space
   //   16 - specifies A16 vme addressing
   //   32 - specifies BLT32 vme block transfers
-  AcromagIp470a(int carrier_address, board_id block) : 
-    Sis3100VmeDev(carrier_address + 0x100 * block, 16, 32) {};
+  AcromagIp470a(int carrier_address, board_id block, bool use_sextets=false) : 
+    use_sextets_(use_sextets), 
+    Sis3100VmeDev(carrier_address + 0x100 * block, 16, 32) {
+    name_ = std::string("AcromagIp470a_") + std::to_string(block);
+  };
 
   // Formats and prints the ID data in the ID register of the board.
   void CheckBoardId();
@@ -48,24 +51,36 @@ class AcromagIp470a : public Sis3100VmeDev {
 
   // Check the status of a one byte port, 0-7, 0-6 are again IO pins.
   int ReadPort(int port_id);
-  int ReadPort(int port_id, u_int8_t& data);
+  int ReadPort(int port_id, u_int8_t &data);
 
   // Write data to a one byte port, 0-7, 0-6 of which control 48 IO pins.
   int WritePort(int port_id);
   int WritePort(int port_id, u_int8_t data);
 
   // Read a single bit on a specific port.
-  int ReadBit(int port_id, int bit_id, u_int8_t& data);
+  int ReadBit(int port_id, int bit_id, u_int8_t &data);
 
   // Write a single bit of data to a specified port, preserving other data.
   int WriteBit(int port_id, int bit_id, u_int8_t data);
 
  private:
   
-  bool is_enhanced_; 
+  bool is_enhanced_;
+  bool use_sextets_;
   u_int8_t data_; // force D8 vme reads/writes.
-  const std::string name_ = "AcromagIp470a";
-  
+  std::string name_;
+
+  int ReadOctet(int block_idx);
+  int ReadOctet(int block_idx, u_int8_t &data);
+
+  int WriteOctet(int block_idx);
+  int WriteOctet(int block_idx, u_int8_t data);
+
+  int ReadSextet(int block_idx);
+  int ReadSextet(int block_idx, u_int8_t &data);
+
+  int WriteSextet(int block_idx);
+  int WriteSextet(int block_idx, u_int8_t data);
 };
 
 } // ::daq
