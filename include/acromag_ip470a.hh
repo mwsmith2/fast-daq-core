@@ -36,8 +36,8 @@ class AcromagIp470a : public Sis3100VmeDev {
   //           get 0xff address space
   //   16 - specifies A16 vme addressing
   //   32 - specifies BLT32 vme block transfers
-  AcromagIp470a(std::string device,  int carrier_address, board_id block) : 
-    Sis3100VmeDev(device, carrier_address + 0x100 * block, 16, 32) {};
+  AcromagIp470a(int carrier_address, board_id block) : 
+    Sis3100VmeDev(carrier_address + 0x100 * block, 16, 32) {};
 
   // Formats and prints the ID data in the ID register of the board.
   void CheckBoardId();

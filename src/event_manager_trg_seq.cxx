@@ -85,19 +85,19 @@ int EventManagerTrgSeq::BeginOfRun()
   
   switch (bid) {
     case 'a':
-      nmr_pulser_trg_ = new DioTriggerBoard(vme_path, 0x0, BOARD_A, port);
+      nmr_pulser_trg_ = new DioTriggerBoard(0x0, BOARD_A, port);
       break;
 
     case 'b':
-      nmr_pulser_trg_ = new DioTriggerBoard(vme_path, 0x0, BOARD_B, port);
+      nmr_pulser_trg_ = new DioTriggerBoard(0x0, BOARD_B, port);
       break;
 
     case 'c':
-      nmr_pulser_trg_ = new DioTriggerBoard(vme_path, 0x0, BOARD_C, port);   
+      nmr_pulser_trg_ = new DioTriggerBoard(0x0, BOARD_C, port);   
       break;
 
     default:
-      nmr_pulser_trg_ = new DioTriggerBoard(vme_path, 0x0, BOARD_D, port);  
+      nmr_pulser_trg_ = new DioTriggerBoard(0x0, BOARD_D, port);  
       break;
   }
 
@@ -132,10 +132,10 @@ int EventManagerTrgSeq::BeginOfRun()
   }
 
   mux_boards_.resize(0);
-  mux_boards_.push_back(new DioMuxController(vme_path, 0x0, BOARD_A));
-  mux_boards_.push_back(new DioMuxController(vme_path, 0x0, BOARD_B));
-  mux_boards_.push_back(new DioMuxController(vme_path, 0x0, BOARD_C));
-  mux_boards_.push_back(new DioMuxController(vme_path, 0x0, BOARD_D));
+  mux_boards_.push_back(new DioMuxController(0x0, BOARD_A));
+  mux_boards_.push_back(new DioMuxController(0x0, BOARD_B));
+  mux_boards_.push_back(new DioMuxController(0x0, BOARD_C));
+  mux_boards_.push_back(new DioMuxController(0x0, BOARD_D));
  
   std::map<char, int> bid_map;
   bid_map['a'] = 0;

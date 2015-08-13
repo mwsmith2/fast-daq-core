@@ -2,9 +2,8 @@
 
 namespace daq {
 
-DioTriggerBoard::DioTriggerBoard(std::string device, int board_addr, 
-				 board_id bid, int trg_port) :
-  io_board_(device, board_addr, bid), trg_port_(trg_port) {}
+DioTriggerBoard::DioTriggerBoard(int board_addr, board_id bid, int trg_port) :
+  io_board_(board_addr, bid), trg_port_(trg_port) {}
 
 void DioTriggerBoard::FireTrigger(int trg_bit, int length_us)
 {

@@ -28,7 +28,7 @@ class DioMuxController
  public:
   
   // Ctor params:
-  DioMuxController(std::string dev, int board_addr, board_id bid);
+  DioMuxController(int board_addr, board_id bid);
 
   // Add a new multiplexer controlled by the acromag dio.
   void AddMux(std::string mux_name, int port_idx);

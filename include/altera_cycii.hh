@@ -43,8 +43,8 @@ class AlteraCycII : public Sis3100VmeDev {
   //           get 0xff address space
   //   16 - specifies A16 vme addressing
   //   32 - specifies BLT32 vme block transfers
-  AlteraCycII(std::string device, int base_addr, board_id block) : 
-    Sis3100VmeDev(device, base_addr + 0x100*block, 16, 32) {};
+  AlteraCycII(int base_addr, board_id block) : 
+    Sis3100VmeDev(base_addr + 0x100*block, 16, 32) {};
 
   // Formats and prints the ID data in the ID register of the board.  
   void CheckBoardId();
