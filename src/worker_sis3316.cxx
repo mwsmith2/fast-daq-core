@@ -17,7 +17,7 @@ void WorkerSis3316::LoadConfig()
 { 
   using std::string;
 
-  int rc = 0, gr = 0;
+  int rc = 0, gr = 0, nerrors = 0;
   uint msg = 0, addr = 0;
   
   // Open the configuration file.
@@ -36,6 +36,7 @@ void WorkerSis3316::LoadConfig()
   } else {
     
     LogError("SIS3316 at 0x%08x could not be found", base_address_);
+    ++nerrors;
   }
 
   // Get device ID.
@@ -43,6 +44,7 @@ void WorkerSis3316::LoadConfig()
   if (rc != 0) {
 
     LogError("failed to read device ID register");
+    ++nerrors;
 
   } else {
 
@@ -59,6 +61,7 @@ void WorkerSis3316::LoadConfig()
   } else {
 
     LogError("failed to read device hardware revision");
+    ++nerrors;
   }
 
   // Get ADC fpga firmware revision.
@@ -71,6 +74,7 @@ void WorkerSis3316::LoadConfig()
   
     if (rc != 0) {
       LogError("failed to read device hardware revision");
+      ++nerrors;
     }
 
     LogMessage("ADC%i fpga firmware version 0x%08x", gr, msg);
@@ -86,18 +90,21 @@ void WorkerSis3316::LoadConfig()
   } else {
     
     LogError("failed to read device temperature");
+    ++nerrors;
   }
   
   // Reset the device.
   rc = Write(KEY_RESET, 0x1);
   if (rc != 0) {
     LogError("failure to reset device");
+    ++nerrors;
   }
 
   // Disarm the device.
   rc = Write(KEY_DISARM, 0x1);
   if (rc != 0) {
     LogError("failure to disarm device");
+    ++nerrors;
   }
   
   // SPI setup here. First disable ADC chip outputs.
@@ -109,6 +116,7 @@ void WorkerSis3316::LoadConfig()
 
     if (rc != 0) {
       LogError("failure disabling ADC output");
+      ++nerrors;
     }
   }
 
@@ -119,6 +127,7 @@ void WorkerSis3316::LoadConfig()
     
     if (rc != 0) {
       LogError("failure to reset ADCs");
+      ++nerrors;
     }
   }
 
@@ -129,6 +138,7 @@ void WorkerSis3316::LoadConfig()
 
     if (rc != 0) {
       LogError("failure to set ADC reference voltage (2.0V)");
+      ++nerrors;
     }
   }
 
@@ -139,6 +149,7 @@ void WorkerSis3316::LoadConfig()
 
     if (rc != 0) {
       LogError("failure to select ADC output mode");
+      ++nerrors;
     }
   }
 
@@ -149,6 +160,7 @@ void WorkerSis3316::LoadConfig()
 
     if (rc != 0) {
       LogError("failure to update ADCs");
+      ++nerrors;
     }
   }
 
@@ -161,6 +173,7 @@ void WorkerSis3316::LoadConfig()
 
     if (rc != 0) {
       LogError("failure enabling ADC output");
+      ++nerrors;
     }
   }
 
@@ -183,25 +196,28 @@ void WorkerSis3316::LoadConfig()
 
   if (rc != 0) {
     LogError("failure to write NIM input control register");
+    ++nerrors;
   }
 
   if (conf.get<bool>("enable_ext_clk", false)) {
 
-    // Reset the device again.
-    rc = Write(KEY_RESET, 0x1);
-    if (rc != 0) {
-      LogError("failure to reset device");
-    }
+    // // Reset the device again.
+    // rc = Write(KEY_RESET, 0x1);
+    // if (rc != 0) {
+    //   LogError("failure to reset device");
+    // }
     
     // Disarm the device.
     rc = Write(KEY_DISARM, 0x1);
     if (rc != 0) {
       LogError("failure to disarm device");
+      ++nerrors;
     }
     
     // Set the ADC clock distribution.
     if (Write(SAMPLE_CLOCK_DISTRIBUTION_CONTROL, 0x3) != 0) {
       LogError("failure to set ADC clock mux");      
+      ++nerrors;
     }
 
     // Enable external LEMO trigger.
@@ -223,57 +239,64 @@ void WorkerSis3316::LoadConfig()
 
     if (rc != 0) {
       LogError("failure to write NIM input control register");
+      ++nerrors;
     }
 
     // Reset the Si5325.
     if (Si5325Write(0x88, 0x80) != 0) {
       LogError("failure to reset the Si5325");
+      ++nerrors;
     }
     usleep(12000);
 
     // Program the clock multiplier
     if (Si5325Write(0x0, 0x2) != 0) {
       LogError("failure to select address for clock multipler spi register");
+      ++nerrors;
     }
 
     // Power down clk2.
     if (Si5325Write(0xb, 0x2) != 0) {
       LogError("failure to power down clk2");
+      ++nerrors;
     }
 
     // Trigger an internal calibration
     if (Si5325Write(0x88, 0x40) != 0) {
       LogError("failure to trigger internal calibration on Si5325");
+      ++nerrors;
     }
 
-    usleep(500000);
-
-    // Issue a DCM/PLL reset.
-    if (Write(KEY_ADC_CLOCK_DCM_RESET, msg) != 0) {
-        LogError("failure to reset DCM/PLL");
-    }
-
-    // Give it a bit to finish.
-    usleep(5000);
+    usleep(25000);
 
   } else {
 
-    // Reset the device again.
-    rc = Write(KEY_RESET, 0x1);
-    if (rc != 0) {
-      LogError("failure to reset device");
-    }
+    // // Reset the device again.
+    // rc = Write(KEY_RESET, 0x1);
+    // if (rc != 0) {
+    //   LogError("failure to reset device");
+    // }
     
     // Disarm the device.
     rc = Write(KEY_DISARM, 0x1);
     if (rc != 0) {
       LogError("failure to disarm device");
+      ++nerrors;
     }
 
-    SetOscFreqHSN1(conf.get<int>("oscillator_num", 0),
-                   conf.get<unsigned char>("oscillator_hs", 5),
-                   conf.get<unsigned char>("oscillator_n1", 8));
+    auto hs = conf.get<unsigned char>("oscillator_hs", 5);
+    auto n1 = conf.get<unsigned char>("oscillator_n1", 5);
+    SetOscFreqHSN1(0, hs, n1);
   }
+
+  // Issue a DCM/PLL reset.
+  if (Write(KEY_ADC_CLOCK_DCM_RESET, msg) != 0) {
+    LogError("failure to reset DCM/PLL");
+    ++nerrors;
+  }
+
+  // Give it a bit to finish.
+  usleep(5000);
 
   // Enable ADC chip outputs.
   for (gr = 0; gr < SIS_3316_GR; ++gr) {
@@ -284,6 +307,7 @@ void WorkerSis3316::LoadConfig()
 
     if (rc != 0) {
       LogError("failure enabling ADC output");
+      ++nerrors;
     }
   }
 
@@ -298,6 +322,7 @@ void WorkerSis3316::LoadConfig()
 
     if (rc != 0) {
       LogError("failure calibrating IOB tap delay logic");
+      ++nerrors;
     }
   }
   usleep(100);
@@ -326,6 +351,7 @@ void WorkerSis3316::LoadConfig()
 
     if (rc != 0) {
       LogError("failure setting IOB tap delay logic");
+      ++nerrors;
     }
   }
   usleep(100);
@@ -339,6 +365,7 @@ void WorkerSis3316::LoadConfig()
 
     if (rc != 0) {
       LogError("failure to write channel header register");
+      ++nerrors;
     }
   }
 
@@ -354,6 +381,7 @@ void WorkerSis3316::LoadConfig()
 
       if (rc != 0) {
 	LogError("failed to enable the internal reference for ADC %i", gr + 1);
+        ++nerrors;
       }
       usleep(1000);  // update takes time
 
@@ -376,12 +404,14 @@ void WorkerSis3316::LoadConfig()
       rc = Write(addr, msg);
       if (rc != 0) {
 	LogError("failure to write offset for DAC %i", gr + 1);
+        ++nerrors;
       }
 
       // Tell the DAC to load the values.
       rc = Write(addr, 0x3 << 30);
       if (rc != 0) {
 	LogError("failure to load offset for DAC %i", gr + 1);
+        ++nerrors;
       }
       usleep(1000);
     }
@@ -396,6 +426,7 @@ void WorkerSis3316::LoadConfig()
     if (rc != 0) {
 
       LogError("failure checking DAC offset readback register");
+      ++nerrors;
 
     } else {
 
@@ -414,6 +445,7 @@ void WorkerSis3316::LoadConfig()
 
     if (rc != 0) {
       LogError("failure to set the trigger gate window");
+      ++nerrors;
     }
 
     // Now the number of samples per trace.
@@ -423,6 +455,7 @@ void WorkerSis3316::LoadConfig()
     rc = Write(addr, msg);
     if (rc != 0) {
       LogError("failure to set the raw data buffer length");
+      ++nerrors;
     }
 
     // Write to the extended length register if the trace is too long.
@@ -438,6 +471,7 @@ void WorkerSis3316::LoadConfig()
       
       if (rc != 0) {
         LogError("failure to set the raw data buffer length");
+        ++nerrors;
       }
     }
   }
@@ -459,6 +493,7 @@ void WorkerSis3316::LoadConfig()
 
     if (rc != 0) {
       LogError("failure setting pre-trigger for channel group %i", gr + 1);
+      ++nerrors;
     }
   }
 
@@ -470,6 +505,7 @@ void WorkerSis3316::LoadConfig()
     rc = Read(addr, msg);
     if (rc != 0) {
       LogError("failure reading event config for channel group %i", gr + 1);
+      ++nerrors;
     }
     
     if (conf.get<bool>("enable_ext_trg", true)) {
@@ -488,7 +524,8 @@ void WorkerSis3316::LoadConfig()
 
     rc = Write(addr, msg);
     if (rc != 0) {
-	LogError("failure writing event config for channel group %i", gr + 1);
+      LogError("failure writing event config for channel group %i", gr + 1);
+      ++nerrors;
     }
   }
 
@@ -501,6 +538,7 @@ void WorkerSis3316::LoadConfig()
 
     if (rc != 0) {
       LogError("failed to set data format for ADC %i", gr);
+      ++nerrors;
     }
 
     // Address threshold
@@ -510,6 +548,7 @@ void WorkerSis3316::LoadConfig()
 
     if (rc != 0) {
       LogError("failed to set address threshold for ADC %i", gr);
+      ++nerrors;
     }
   }
 
@@ -519,25 +558,35 @@ void WorkerSis3316::LoadConfig()
 
   if (rc != 0) {
     LogError("failure to write acquisition control register");
+    ++nerrors;
   }
 
   // Enable clock output
   rc = Write(LEMO_OUT_CO_SELECT, 0x1);
   if (rc != 0) {
     LogError("failure to enable CO clock out");
+    ++nerrors;
   }
 
   // Trigger a timestamp clear.
   rc = Write(KEY_TIMESTAMP_CLR, 0x1);
   if (rc != 0) {
     LogError("failed to clear timestamp");
+    ++nerrors;
   }
 
   // Arm bank1 to start.
   rc = Write(KEY_DISARM_AND_ARM_BANK1, 0x1);
+  bank2_armed_flag = false;
   
   if (rc != 0) {
     LogError("failed to arm logic on bank 1");
+    ++nerrors;
+  }
+
+  if (nerrors > 0) {
+    LogMessage("configuration failed with %i errors, killing worker", nerrors);
+    exit(-1);
   }
 } // LoadConfig
 
@@ -661,6 +710,7 @@ void WorkerSis3316::GetEvent(sis_3316 &bundle)
   auto t1 = high_resolution_clock::now();
   auto dtn = t1.time_since_epoch() - t0_.time_since_epoch();
   bundle.system_clock = duration_cast<milliseconds>(dtn).count();  
+  LogMessage("GetEvent start: %u us", duration_cast<microseconds>(dtn).count());
 
   // Now get the raw data (timestamp and waveform).
   for (ch = 0; ch < SIS_3316_CH; ch++) {
@@ -694,7 +744,7 @@ void WorkerSis3316::GetEvent(sis_3316 &bundle)
     // Specify the channel's fifo address
     msg = 0x80000000; // Start transfer bit
     if (!bank2_armed_flag) msg += 0x01000000; // Bank 2 offset
-    if ((ch & 0x1) == 0x1) msg += 0x02000000; // ch 2, 4, 6, ...
+    if ((ch & 0x1) == 0x0) msg += 0x02000000; // ch 2, 4, 6, ...
     if ((ch & 0x2) == 0x2) msg += 0x10000000; // ch 2, 3, 6, 7, ...
 
     // Start readout FSM
@@ -704,7 +754,9 @@ void WorkerSis3316::GetEvent(sis_3316 &bundle)
     if (rc != 0) {
       LogError("failed begin data tranfer for channel %i", ch);
     }
-    usleep(5);
+
+    // Make sure the data transfer is complete (up to 2 us).
+    usleep(2);
 
     // Set to the adc base memory.
     count = 0;
@@ -712,7 +764,7 @@ void WorkerSis3316::GetEvent(sis_3316 &bundle)
     LogMessage("attempting to read trace at 0x%08x", trace_addr);
 
     do {
-      rc = ReadTraceMblt64Fifo(trace_addr, data[ch]);
+      rc = ReadTraceFifo(trace_addr, data[ch]);
 
       if (rc != 0) {
         LogError("failed to read trace for channel %i", ch);
@@ -726,6 +778,7 @@ void WorkerSis3316::GetEvent(sis_3316 &bundle)
 
     // Reset the FSM
     rc = Write(addr, 0x0);
+
     if (rc != 0) {
       LogError("failed reset data tranfer for channel %i", ch);
     }
@@ -743,6 +796,10 @@ void WorkerSis3316::GetEvent(sis_3316 &bundle)
 	      (ushort *)(data[ch]+3) + SIS_3316_LN,
     	      bundle.trace[ch]);
   }
+
+  t1 = high_resolution_clock::now();
+  dtn = t1.time_since_epoch() - t0_.time_since_epoch();
+  LogMessage("GetEvent stop: %u us", duration_cast<microseconds>(dtn).count());
 }
 
 int WorkerSis3316::I2cStart(int osc)
@@ -880,7 +937,7 @@ int WorkerSis3316::I2cWrite(int osc, unsigned char data, unsigned char &ack)
   }
   
   // Check the ACK bit.
-  ack = msg & (0x1 << 8) ? 1 : 0;
+  ack = ((msg >> 8) & 0x1) ? 1 : 0;
 
   return 0;
 }
@@ -1093,7 +1150,7 @@ int WorkerSis3316::SetOscFreqHSN1(int osc, unsigned char hs, unsigned char n1)
     LogError("failed to reset the DCM");
   }
   // And wait for reset.
-  usleep(5000);
+  usleep(10000);
 
 return 0;
 }
@@ -1116,30 +1173,124 @@ int WorkerSis3316::AdcSpiWrite(int gr, int chip, uint spi_addr, uint msg)
   // Set to appropriate SPI_CTRL register.
   addr = CH1_4_SPI_CTRL + gr * kAdcRegOffset;
 
-  if (Read(addr, data) != 0) {
-    return -1;
-  }
-  
+  rc = Read(addr, data);
+  if (rc != 0) return rc;
+
   // Preserve the enable bit and add command bit and mux bit.
   data &= (0x1 << 24);
   data += 0x80000000 + adc_mux + (spi_addr << 8) + (msg & 0xff);
 
-  if (Write(addr, data) != 0) {
-    return -1;
-  }
+  rc = Write(addr, data);
+  if (rc != 0) return rc;
 
   // Check busy register, bit 31 to make sure it finishes before returning.
   addr = 0xa4;
   
   do {
     rc = Read(addr, data);
-  } while ((rc != 0) && (count++ < maxcount));
+  } while (((rc != 0) && (count++ < maxcount)) && (data & (0x1 << 31)));
   
-  if (count >= maxcount) {
-    return -2;
-  }
+  if (count >= maxcount) return -2;
   
   return rc;
+}
+
+int WorkerSis3316::AdcSpiRead(int gr, int chip, uint spi_addr, uint &msg)
+{
+  int rc;
+  uint data = 0, adc_mux = 0, addr = 0, count = 0, maxcount = 1000;
+
+  if ((gr > 4) || ((chip > 2) || (spi_addr > 0xffff))) {
+    return -1;
+  }
+
+  if (chip == 0) {
+    adc_mux = 0;
+  } else {
+    adc_mux = 0x1 << 22;
+  }
+
+  // Set to appropriate SPI_CTRL register.
+  addr = CH1_4_SPI_CTRL + gr * kAdcRegOffset;
+
+  rc = Read(addr, data);
+  if (rc != 0) return rc;
+  
+  // Preserve the enable bit and add command bit and mux bit.
+  data &= (0x1 << 24);
+  data += 0xc0000000 + adc_mux + (spi_addr << 8);
+
+  rc = Write(addr, data);
+  if (rc != 0) return rc;
+
+  // Check busy register, bit 31 to make sure it finishes before returning.
+  addr = 0xa4;
+  
+  do {
+    rc = Read(addr, data);
+  } while (((rc != 0) && (count++ < maxcount)) && (data & (0x1 << 31)));
+  
+  if (count >= maxcount) return -2;
+  if (rc != 0) return rc;
+
+  // Set address to the readback register.
+  addr = CH1_4_SPI_READBACK + gr * kAdcRegOffset;
+  
+  rc = Read(addr, data);
+  if (rc != 0) return rc;
+
+  msg = data & 0xff;
+  
+  return rc;
+}
+
+int WorkerSis3316::Si5325Read(uint addr, uint &msg)
+{
+  uint count = 0, maxpoll = 100, tmp = 0;
+
+  // Select the address for writing.
+  if (Write(NIM_CLK_MULTIPLIER_SPI, addr & 0xff) != 0) {
+    LogError("failure to select address for clock multipler spi register");
+  }
+  
+  // Wait for the SPI to finish.
+  do {
+    if (Read(NIM_CLK_MULTIPLIER_SPI, tmp) != 0) {
+      LogError("SI5235 SPI write failed");
+      return -1;
+    } 
+  } while (((0x80000000 & tmp) == 0x80000000) && (count++ < maxpoll));
+
+  if (count >= maxpoll) {
+    LogError("SI5235 SPI busy polling timed out");
+    return -2;
+  }
+
+  // Short sleep to load instructions.
+  usleep(10000);
+
+  // Write the data (0xff) and instructions (0xff00).
+  if (Write(NIM_CLK_MULTIPLIER_SPI, 0x8000) != 0) {
+    LogError("SI5235 SPI write failed");
+    return -1;
+  }
+
+  // Wait for the SPI command to finish again.
+  count = 0;
+  do {
+    if (Read(NIM_CLK_MULTIPLIER_SPI, tmp) != 0) {
+      LogError("SI5235 SPI busy poll failed");
+      return -1;
+    }
+  } while (((0x80000000 & tmp) == 0x80000000) && (count++ < maxpoll));
+
+  if (count >= maxpoll) {
+    LogError("SI5235 SPI busy polling timed out");
+    return -2;
+  }
+
+  msg = tmp;
+  return 0;
 }
 
 int WorkerSis3316::Si5325Write(uint addr, uint msg)

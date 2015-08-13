@@ -4,30 +4,19 @@ namespace daq {
 
 EventManagerTrgSeq::EventManagerTrgSeq(int num_probes) : EventManagerBase()
 {
-  go_time_ = false;
-  thread_live_ = false;
-
-  sequence_in_progress_ = false;
-  builder_has_finished_ = true;
-  mux_round_configured_ = false;
-
   conf_file_ = std::string("config/fe_vme_shimming.json");
-
   num_probes_ = num_probes;
+
+  Init();
 }
 
 EventManagerTrgSeq::EventManagerTrgSeq(std::string conf_file, int num_probes) : 
   EventManagerBase()
 {
-  go_time_ = false;
-  thread_live_ = false;
-
-  sequence_in_progress_ = false;
-  builder_has_finished_ = true;
-  mux_round_configured_ = false;
-
   conf_file_ = conf_file;
   num_probes_ = num_probes;
+
+  Init();
 }
 
 EventManagerTrgSeq::~EventManagerTrgSeq() 
@@ -39,10 +28,22 @@ EventManagerTrgSeq::~EventManagerTrgSeq()
   delete nmr_pulser_trg_;
 }
 
+int EventManagerTrgSeq::Init()
+{
+  go_time_ = false;
+  thread_live_ = false;
+
+  sequence_in_progress_ = false;
+  builder_has_finished_ = true;
+  mux_round_configured_ = false;
+}
+
 int EventManagerTrgSeq::BeginOfRun() 
 {
   boost::property_tree::ptree conf;
   boost::property_tree::read_json(conf_file_, conf);
+
+  LogMessage("BeginOfRun executed");
 
   // First set the config-dir if there is one.
   conf_dir = conf.get<std::string>("config_dir", conf_dir);
@@ -55,6 +56,26 @@ int EventManagerTrgSeq::BeginOfRun()
     sis_idx_map_[name] = sis_idx++;
 
     workers_.PushBack(new WorkerSis3302(name, dev_conf_file));
+  }
+
+  sis_idx = 0;
+  for (auto &v : conf.get_child("devices.sis_3316")) {
+
+    std::string name(v.first);
+    std::string dev_conf_file = conf_dir + std::string(v.second.data());
+    sis_idx_map_[name] = sis_idx++;
+
+    workers_.PushBack(new WorkerSis3316(name, dev_conf_file));
+  }
+
+  sis_idx = 0;
+  for (auto &v : conf.get_child("devices.sis_3350")) {
+
+    std::string name(v.first);
+    std::string dev_conf_file = conf_dir + std::string(v.second.data());
+    sis_idx_map_[name] = sis_idx++;
+
+    workers_.PushBack(new WorkerSis3350(name, dev_conf_file));
   }
 
   // Set up the NMR pulser trigger.
@@ -111,10 +132,10 @@ int EventManagerTrgSeq::BeginOfRun()
   }
 
   mux_boards_.resize(0);
-  mux_boards_.push_back(new MuxControlBoard(vme_path, 0x0, BOARD_A));
-  mux_boards_.push_back(new MuxControlBoard(vme_path, 0x0, BOARD_B));
-  mux_boards_.push_back(new MuxControlBoard(vme_path, 0x0, BOARD_C));
-  mux_boards_.push_back(new MuxControlBoard(vme_path, 0x0, BOARD_D));
+  mux_boards_.push_back(new DioMuxController(vme_path, 0x0, BOARD_A));
+  mux_boards_.push_back(new DioMuxController(vme_path, 0x0, BOARD_B));
+  mux_boards_.push_back(new DioMuxController(vme_path, 0x0, BOARD_C));
+  mux_boards_.push_back(new DioMuxController(vme_path, 0x0, BOARD_D));
  
   std::map<char, int> bid_map;
   bid_map['a'] = 0;
@@ -206,11 +227,13 @@ void EventManagerTrgSeq::RunLoop()
         
         if (!workers_.AllWorkersHaveEvent()) {
           
+          LogWarning("event was not synchronized among all workers, dropping");
           workers_.FlushEventData();
           continue;
           
         } else if (workers_.AnyWorkersHaveMultiEvent()) {
           
+          LogWarning("two events detected among some workers, dropping");
           workers_.FlushEventData();
           continue;
         }
@@ -302,6 +325,8 @@ void EventManagerTrgSeq::TriggerLoop()
 
 void EventManagerTrgSeq::BuilderLoop()
 {
+  using namespace std::chrono;
+
   while (thread_live_) {
     
     std::vector<double> tm(NMR_FID_LN, 0.0);
@@ -319,6 +344,13 @@ void EventManagerTrgSeq::BuilderLoop()
       static event_data data;
       int seq_index = 0;
 
+      if (sequence_in_progress_) {
+        // Get the system time.
+        auto dt = high_resolution_clock::now().time_since_epoch();
+        auto timestamp = duration_cast<microseconds>(dt).count();  
+        LogMessage("TrgSequence start: %u us", timestamp);
+      }
+
       while (sequence_in_progress_ && go_time_) {
 
         if (mux_round_configured_) {
@@ -334,7 +366,8 @@ void EventManagerTrgSeq::BuilderLoop()
             for (auto &pair : trg_seq_[seq_index]) {
 	      
               // Get the right data out of the input.
-              int sis_idx = sis_idx_map_[data_in_[pair.first].first];
+              auto sis_name = data_in_[pair.first].first;
+              int sis_idx = sis_idx_map_[sis_name];
               int trace_idx = data_in_[pair.first].second;
 
               LogMessage(std::string("BuilderLoop: Copied sis ") +
@@ -342,17 +375,51 @@ void EventManagerTrgSeq::BuilderLoop()
                        std::string(", ch ") +
                        std::to_string(trace_idx));
 
-              auto trace = data.sis_3302_vec[sis_idx].trace[trace_idx];
-              auto clock = data.sis_3302_vec[sis_idx].device_clock[trace_idx];
+              int idx = 0;
+              ULong64_t clock = 0;
 
-              // Store index
-              int idx = data_out_[pair].second;
-	      
-              // Get FID data
-              auto arr_ptr = &bundle.trace[idx][0];
-              std::copy(&trace[0], &trace[SIS_3302_LN], arr_ptr);
-              std::copy(&trace[0], &trace[SIS_3302_LN], wf.begin());
-	      
+              if (sis_name.find("sis_3302") == 0) {
+
+                // Store index and clock.
+                clock = data.sis_3302_vec[sis_idx].device_clock[trace_idx];
+                idx = data_out_[pair].second;
+                
+                // Get FID data.
+                auto arr_ptr = &bundle.trace[idx][0];
+                auto trace = data.sis_3302_vec[sis_idx].trace[trace_idx];
+                std::copy(&trace[0], &trace[SIS_3302_LN], arr_ptr);
+                std::copy(&trace[0], &trace[SIS_3302_LN], wf.begin());
+
+              } else if (sis_name.find("sis_3316") == 0) {
+                
+                // Store index and clock.
+                idx = data_out_[pair].second;
+                clock = data.sis_3316_vec[sis_idx].device_clock[trace_idx];
+
+                // Get FID data.
+                auto arr_ptr = &bundle.trace[idx][0];
+                auto trace = data.sis_3316_vec[sis_idx].trace[trace_idx];
+                std::copy(&trace[0], &trace[SIS_3316_LN], arr_ptr);
+                std::copy(&trace[0], &trace[SIS_3316_LN], wf.begin());
+
+              } else if (sis_name.find("sis_3350") == 0) {
+                
+                // Store index and clock.
+                clock = data.sis_3350_vec[sis_idx].device_clock[trace_idx];
+                idx = data_out_[pair].second;
+                
+                // Get FID data.
+                auto arr_ptr = &bundle.trace[idx][0];
+                auto trace = data.sis_3350_vec[sis_idx].trace[trace_idx];
+                std::copy(&trace[0], &trace[SIS_3350_LN], arr_ptr);
+                std::copy(&trace[0], &trace[SIS_3350_LN], wf.begin());
+
+              } else {
+
+                LogError("digitizer name did not match any known type.");
+                return;
+              }
+                
               // Get the timestamp
               struct timeval tv;
               gettimeofday(&tv, nullptr);
@@ -365,7 +432,7 @@ void EventManagerTrgSeq::BuilderLoop()
 
               // Make sure we got an FID signal
               if (myfid.isgood()) {
-
+                
                 bundle.snr[idx] = myfid.snr();
                 bundle.len[idx] = myfid.fid_time();
                 bundle.freq[idx] = myfid.CalcPhaseFreq();
@@ -374,9 +441,9 @@ void EventManagerTrgSeq::BuilderLoop()
                 bundle.health[idx] = myfid.isgood();
                 bundle.freq_zc[idx] = myfid.CalcZeroCountFreq();
                 bundle.ferr_zc[idx] = myfid.freq_err();
-
+                
               } else {
-
+               
                 myfid.PrintDiagnosticInfo();
                 bundle.snr[idx] = 0.0;
                 bundle.len[idx] = 0.0;
@@ -401,6 +468,11 @@ void EventManagerTrgSeq::BuilderLoop()
 
       // Sequence finished.
       if (!sequence_in_progress_ && !builder_has_finished_) {
+
+        // Get the system time.
+        auto dt = high_resolution_clock::now().time_since_epoch();
+        auto timestamp = duration_cast<microseconds>(dt).count();  
+        LogMessage("TrgSequence stop: %u us", timestamp);
 
         LogMessage("BuilderLoop: Pushing event to run_queue_");
         

@@ -41,16 +41,16 @@ class WorkerSis3316 : public WorkerVme<sis_3316> {
   // An example:
   // {
   //     "base_address": "0x20000000",
-  //     "invert_ext_trg": false,
   //     "enable_ext_trg": true,
-  //     "enable_ext_clk": true,
-  //     "oscillator_num": 0,
+  //     "enable_int_trg": false,
+  //     "invert_ext_trg": false,
+  //     "enable_ext_clk": false,
   //     "oscillator_hs": 5,
   //     "oscillator_n1": 8,
   //     "iob_tap_delay": "0x1020",
-  //     "set_voltage_offset": "true",
-  //     "dac_voltage_offset": "0x8000"
-  //     "pretrigger_samples": "0x0",
+  //     "set_voltage_offset": true,
+  //     "dac_voltage_offset": "0x8000",
+  //     "pretrigger_samples": "0x0"
   // }
   void LoadConfig();
 
@@ -134,10 +134,11 @@ class WorkerSis3316 : public WorkerVme<sis_3316> {
   int SetOscFreqHSN1(int osc, unsigned char hs, unsigned char n1);
 
   // ADC SPI control commands
-  // int AdcSpiRead(int gr, int chip, uint addr, uint &msg);
+  int AdcSpiRead(int gr, int chip, uint addr, uint &msg);
   int AdcSpiWrite(int gr, int chip, uint addr, uint msg);
 
   // External clock multiplier SPI.
+  int Si5325Read(uint addr, uint &msg);
   int Si5325Write(uint addr, uint msg);
 };
 

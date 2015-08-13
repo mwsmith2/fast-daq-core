@@ -46,6 +46,7 @@ public:
 
 protected:
 
+  const int maxcount_ = 1000;
   int num_ch_;
   uint read_trace_len_;
 
@@ -58,10 +59,10 @@ protected:
   int Write(uint addr, uint msg);        // A32D32
   int Read16(uint addr, ushort &msg);    // A16D16
   int Write16(uint addr, ushort msg);    // A16D16
-  int ReadTrace(uint addr, uint *trace); // 2eVME
-  int ReadTraceMblt64(uint addr, uint *trace); // MBLT64
-  int ReadTraceMblt64Fifo(uint addr, uint *trace); // MBLT64FIFO
-
+  int ReadTrace(uint addr, uint *trace); // 2eVME (A32)
+  int ReadTraceFifo(uint addr, uint *trace); // 2eVMEFIFO (A32)
+  int ReadTraceMblt64(uint addr, uint *trace); // MBLT64 (A32)
+  int ReadTraceMblt64Fifo(uint addr, uint *trace); // MBLT64FIFO (A32)
 };
 
 // Reads 4 bytes from the specified address offset.
@@ -76,23 +77,35 @@ template<typename T>
 int WorkerVme<T>::Read(uint addr, uint &msg)
 {
   std::lock_guard<std::mutex> lock(daq::vme_mutex);
-  static int retval, status;
+  static int retval, status, count;
 
-  device_ = open(daq::vme_path.c_str(), O_RDWR);
-  if (device_ < 0) return device_;
+  count = 0;
+  do {
+    device_ = open(daq::vme_path.c_str(), O_RDWR);
+    usleep(2);
+  } while ((device_ < 0) && (count++ < maxcount_));
 
-  this->LogDebug("read32 vme device 0x%08x, register 0x%08x", 
-		 base_address_, addr);
+  // Log an error if we couldn't open it at all
+  if (device_ < 0) {
+    this->LogError("failure to find vme device, error %i", device_);
+    return device_;
+  }
 
   status = (retval = vme_A32D32_read(device_, base_address_ + addr, &msg));
   close(device_);
 
   if (status != 0) {
-    this->LogError("address 0x%08x not readable", base_address_ + addr);
+    this->LogError("read32  failure at address 0x%08x", base_address_ + addr);
+
+  } else {
+
+    this->LogDebug("read32  vme device 0x%08x, register 0x%08x, data 0x%08x", 
+                   base_address_, addr, msg);
   }
 
   return retval;
 }
+
 
 // Writes 4 bytes from the specified address offset.
 //
@@ -106,23 +119,37 @@ template<typename T>
 int WorkerVme<T>::Write(uint addr, uint msg)
 {
   std::lock_guard<std::mutex> lock(daq::vme_mutex);
-  static int retval, status;
+  static int retval, status, count;
 
-  device_ = open(daq::vme_path.c_str(), O_RDWR);
-  if (device_ < 0) return device_;
+  // Get the vme device handle.
+  count = 0;
+  do {
+    device_ = open(daq::vme_path.c_str(), O_RDWR);
+    usleep(2);
+  } while ((device_ < 0) && (count++ < maxcount_));
 
-  this->LogDebug("write32 0x%08x to vme device 0x%08x, register 0x%08x", 
-		 msg, base_address_, addr);
+  // Log an error if we couldn't open it at all.
+  if (device_ < 0) {
+    this->LogError("failure to find vme device, error %i", device_);
+    return device_;
+  }
 
+  // Make the vme call.
   status = (retval = vme_A32D32_write(device_, base_address_ + addr, msg));
   close(device_);
 
   if (status != 0) {
-    this->LogError("address 0x%08x not writeable", base_address_ + addr);
+    this->LogError("write32 failure at address 0x%08x", base_address_ + addr);
+
+  } else {
+
+    this->LogDebug("write32 vme device 0x%08x, register 0x%08x, data 0x%08x", 
+                   base_address_, addr, msg);
   }
 
   return retval;
 }
+
 
 // Reads 2 bytes from the specified address offset.
 //
@@ -136,23 +163,36 @@ template<typename T>
 int WorkerVme<T>::Read16(uint addr, ushort &msg)
 {
   std::lock_guard<std::mutex> lock(daq::vme_mutex);
-  static int retval, status;
+  static int retval, status, count;
 
-  device_ = open(daq::vme_path.c_str(), O_RDWR);
-  if (device_ < 0) return device_;
+  // Get the vme device handle.
+  count = 0;
+  do {
+    device_ = open(daq::vme_path.c_str(), O_RDWR);
+    usleep(2);
+  } while ((device_ < 0) && (count++ < maxcount_));
 
-  this->LogDebug("read16 vme device 0x%08x, register 0x%08x", 
-		 base_address_, addr);
+  // Log an error if we couldn't open it at all.
+  if (device_ < 0) {
+    this->LogError("failure to find vme device, error %i", device_);
+    return device_;
+  }
 
   status = (retval = vme_A32D16_read(device_, base_address_ + addr, &msg));
   close(device_);
 
   if (status != 0) {
-    this->LogError("Address 0x%08x not readable", base_address_ + addr);
+    this->LogError("read16  failure at address 0x%08x", base_address_ + addr);
+
+  } else {
+
+    this->LogDebug("read16  vme device 0x%08x, register 0x%08x, data 0x%04x", 
+                   base_address_, addr, msg);
   }
 
   return retval;
 }
+
 
 // Writes 2 bytes from the specified address offset.
 //
@@ -166,23 +206,37 @@ template<typename T>
 int WorkerVme<T>::Write16(uint addr, ushort msg)
 {
   std::lock_guard<std::mutex> lock(daq::vme_mutex);
-  static int retval, status;
+    static int retval, status, count;
 
-  device_ = open(daq::vme_path.c_str(), O_RDWR);
-  if (device_ < 0) return device_;
+  // Get the vme device handle.
+  count = 0;
+  do {
+    device_ = open(daq::vme_path.c_str(), O_RDWR);
+    usleep(2);
+  } while ((device_ < 0) && (count++ < maxcount_));
 
-  this->LogDebug("write16 0x%08x to vme device 0x%08x, register 0x%08x", 
-		 msg, base_address_, addr);
+  // Log an error if we couldn't open it at all.
+  if (device_ < 0) {
+    this->LogError("failure to find vme device, error %i", device_);
+    return device_;
+  }
 
+  // Make our vme call.
   status = (retval = vme_A32D16_write(device_, base_address_ + addr, msg));
   close(device_);
 
   if (status != 0) {
-    this->LogError("Address 0x%08x not writeable", base_address_ + addr);
+    this->LogError("write16 failure at address 0x%08x", base_address_ + addr);
+
+  } else {
+
+    this->LogDebug("write16 vme device 0x%08x, register 0x%08x, data 0x%04x", 
+                   base_address_, addr, msg);
   }
 
   return retval;
 }
+
 
 // Reads a block of data from the specified address offset.  The total
 // number of bytes read depends on the read_trace_len_ variable.
@@ -197,12 +251,23 @@ template<typename T>
 int WorkerVme<T>::ReadTrace(uint addr, uint *trace)
 {
   std::lock_guard<std::mutex> lock(daq::vme_mutex);
-  static int retval, status;
   static uint num_got;
+  static int retval, status, count;
 
-  device_ = open(daq::vme_path.c_str(), O_RDWR);
-  if (device_ < 0) return device_;
-  
+  // Get the vme device handle.
+  count = 0;
+  do {
+    device_ = open(daq::vme_path.c_str(), O_RDWR);
+    usleep(2);
+  } while ((device_ < 0) && (count++ < maxcount_));
+
+  // Log an error if we couldn't open it at all.
+  if (device_ < 0) {
+    this->LogError("failure to find vme device, error %i", device_);
+    return device_;
+  }
+
+  // Make the vme call.
   this->LogDebug("read_2evme vme device 0x%08x, register 0x%08x, samples %i", 
 		 base_address_, addr, read_trace_len_);
 
@@ -214,11 +279,58 @@ int WorkerVme<T>::ReadTrace(uint addr, uint *trace)
   close(device_);
 
   if (status != 0) {
-    this->LogError("Error reading trace at 0x%08x", base_address_ + addr);
+    this->LogError("read32_evme failed at 0x%08x", base_address_ + addr);
+
+  } else {
+
+    this->LogDebug("read32_evme address 0x%08x, ndata asked %i, ndata recv %i", 
+                   base_address_ + addr, read_trace_len_, num_got);
   }
 
   return retval;
 }
+
+
+template<typename T>
+int WorkerVme<T>::ReadTraceFifo(uint addr, uint *trace)
+{
+  std::lock_guard<std::mutex> lock(daq::vme_mutex);
+  static uint num_got;
+  static int retval, status, count;
+
+  // Get the vme device handle.
+  count = 0;
+  do {
+    device_ = open(daq::vme_path.c_str(), O_RDWR);
+    usleep(2);
+  } while ((device_ < 0) && (count++ < maxcount_));
+
+  // Log an error if we couldn't open it at all.
+  if (device_ < 0) {
+    this->LogError("failure to find vme device, error %i", device_);
+    return device_;
+  }
+
+  // Make the vme call.
+  status = (retval = vme_A32_2EVMEFIFO_read(device_,
+         				    base_address_ + addr,
+         				    trace,
+         				    read_trace_len_,
+         				    &num_got));
+  close(device_);
+
+  if (status != 0) {
+    this->LogError("read32_2evmefifo failed at 0x%08x", base_address_ + addr);
+
+  } else {
+
+    this->LogDebug("read32_2evmefifo addr 0x%08x, trace_len %i, ndata recv %i",
+                   base_address_ + addr, read_trace_len_, num_got);
+  }
+
+  return retval;
+}
+
 
 // Reads a block of data from the specified address offset.  The total
 // number of bytes read depends on the read_trace_len_ variable. Uses MBLT64
@@ -233,16 +345,23 @@ template<typename T>
 int WorkerVme<T>::ReadTraceMblt64(uint addr, uint *trace)
 {
   std::lock_guard<std::mutex> lock(daq::vme_mutex);
-  static int retval, status;
   static uint num_got;
+  static int retval, status, count;
 
-  this->LogDebug("read_mblt64 vme device 0x%08x, register 0x%08x, samples %i", 
-		 base_address_, addr, read_trace_len_);
+  // Get the vme device handle.
+  count = 0;
+  do {
+    device_ = open(daq::vme_path.c_str(), O_RDWR);
+    usleep(2);
+  } while ((device_ < 0) && (count++ < maxcount_));
 
-  device_ = open(daq::vme_path.c_str(), O_RDWR);
-  if (device_ < 0) return device_;
+  // Log an error if we couldn't open it at all.
+  if (device_ < 0) {
+    this->LogError("failure to find vme device, error %i", device_);
+    return device_;
+  }
 
-
+  // Make the vme call.
   status = (retval = vme_A32MBLT64_read(device_,
                                         base_address_ + addr,
                                         trace,
@@ -251,11 +370,17 @@ int WorkerVme<T>::ReadTraceMblt64(uint addr, uint *trace)
   close(device_);
 
   if (status != 0) {
-    this->LogError("Error reading trace at 0x%08x", base_address_ + addr);
+    this->LogError("read32_mblt failed at 0x%08x", base_address_ + addr);
+
+  } else {
+
+    this->LogDebug("read32_mblt address 0x%08x, ndata asked %i, ndata recv %i", 
+                   base_address_ + addr, read_trace_len_, num_got);
   }
 
   return retval;
 }
+
 
 // Reads a block of data from the specified address offset.  The total
 // number of bytes read depends on the read_trace_len_ variable. Uses MBLT64
@@ -266,30 +391,41 @@ int WorkerVme<T>::ReadTraceMblt64(uint addr, uint *trace)
 //
 // return:
 //   error code from vme read
-
 template<typename T>
 int WorkerVme<T>::ReadTraceMblt64Fifo(uint addr, uint *trace)
 {
   std::lock_guard<std::mutex> lock(daq::vme_mutex);
-  static int retval, status;
   static uint num_got;
+  static int retval, status, count;
 
-  this->LogDebug("read_mblt64fifo vme 0x%08x, register 0x%08x, samples %i", 
-		 base_address_, addr, read_trace_len_);
+  // Get the vme device handle.
+  count = 0;
+  do {
+    device_ = open(daq::vme_path.c_str(), O_RDWR);
+    usleep(2);
+  } while ((device_ < 0) && (count++ < maxcount_));
 
-  device_ = open(daq::vme_path.c_str(), O_RDWR);
-  if (device_ < 0) return device_;
+  // Log an error if we couldn't open it at all.
+  if (device_ < 0) {
+    this->LogError("failure to find vme device, error %i", device_);
+    return device_;
+  }
 
-
+  // Make the vme call.
   status = (retval = vme_A32MBLT64FIFO_read(device_,
-					    base_address_ + addr,
-					    trace,
-					    read_trace_len_,
-					    &num_got));
+         				    base_address_ + addr,
+         				    trace,
+         				    read_trace_len_,
+         				    &num_got));
   close(device_);
 
   if (status != 0) {
-    this->LogError("Error reading trace at 0x%08x", base_address_ + addr);
+    this->LogError("read32_mblt_fifo failed at 0x%08x", base_address_ + addr);
+
+  } else {
+
+    this->LogDebug("read32_mblt_fifo addr 0x%08x, trace_len %i, ndata recv %i", 
+                   base_address_ + addr, read_trace_len_, num_got);
   }
 
   return retval;
