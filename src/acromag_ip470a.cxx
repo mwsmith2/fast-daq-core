@@ -182,52 +182,48 @@ int AcromagIp470a::WriteOctet(int port_id, u_int8_t data)
 int AcromagIp470a::ReadSextet(int port_id)
 {
   // Read data from the specified group of 6.
-  int rc, bit_shift, bit_mask, bit_idx;
+  int rc, bit_shift, bit_idx;
+  int vals[2];
   u_int8_t temp;
-
+  
   // Set the byte index for it.
   bit_idx = port_id * 6;
 
-  // Read the first part of the data.
+  // Read two bytes, and get out what we need.
   rc = ReadOctet(bit_idx / 8, temp);
-  
+  vals[0] = temp;
+
+  rc |= ReadOctet(bit_idx / 8 + 1, temp);
+  vals[1] = temp;
+
+  // Assign the value;
   bit_shift = bit_idx % 8;
-  bit_mask = (0xff << bit_shift) & 0xff;
-  data_ = (temp >> bit_shift) & (bit_mask);
-
-  // Read the next part, masked if not needed.
-  rc |= ReadOctet(bit_idx / 8 + 1, temp);    
-
-  bit_shift =  6 - (bit_idx + 6) % 8;
-  bit_mask = (0xff >> bit_shift) & 0xff;
-  data_ += (temp << bit_shift) & (bit_mask);
-
+  data_ = (((vals[1] << 8) + vals[0]) >> bit_shift) & 0x3f ;
+  
   return rc;
 }
 
 int AcromagIp470a::ReadSextet(int port_id, u_int8_t& data)
 {
   // Read data from the specified group of 6.
-  int rc, bit_shift, bit_mask, bit_idx;
+  int rc, bit_shift, bit_idx;
+  int vals[2];
   u_int8_t temp;
-
+  
   // Set the byte index for it.
   bit_idx = port_id * 6;
 
-  // Read the first part of the data.
+  // Read two bytes, and get out what we need.
   rc = ReadOctet(bit_idx / 8, temp);
-  
+  vals[0] = temp;
+
+  rc |= ReadOctet(bit_idx / 8 + 1, temp);
+  vals[1] = temp;
+
+  // Assign the value;
   bit_shift = bit_idx % 8;
-  bit_mask = (0xff << bit_shift) & 0xff;
-  data_ = (temp >> bit_shift) & (bit_mask);
-
-  // Read the next part, masked if not needed.
-  rc |= ReadOctet(bit_idx / 8 + 1, temp);    
-
-  bit_shift =  6 - (bit_idx + 6) % 8;
-  bit_mask = (0xff >> bit_shift) & 0xff;
-  data_ += (temp << bit_shift) & (bit_mask);
-
+  data_ = (((vals[1] << 8) + vals[0]) >> bit_shift) & 0x3f ;
+  
   data = data_;
   return rc;
 }
@@ -235,37 +231,35 @@ int AcromagIp470a::ReadSextet(int port_id, u_int8_t& data)
 int AcromagIp470a::WriteSextet(int port_id)
 {
   // Write data to the specified group of 6.
-  int rc, bit_shift, bit_mask, bit_idx;
+  int rc, val, bit_idx, bit_shift;
   u_int8_t temp;
+  u_int8_t d = data_;
 
   // Set the byte index for it.
   bit_idx = port_id * 6;
 
   // Read the first octet port to not change the data.
   rc = ReadOctet(bit_idx / 8, temp);
-  
+  val = temp;
+
+  rc |= ReadOctet(bit_idx / 8 + 1, temp);
+  val += (temp << 8);
+
+  printf("val = 0x%x\n", val);
+
+  // Calculate bit shift for each register.
   bit_shift = bit_idx % 8;
-  bit_mask = (0xff << bit_shift) & 0xff;
 
   // Preserve old data.
-  temp &= (bit_mask ^ 0xff);
+  val &= 0xffff - (0x3f << bit_shift);
+  printf("after bit mask val = 0x%x\n", val);
 
-  // Set the proper bits in the data, and write.
-  temp |= (data_ >> bit_shift) & (bit_mask);
-  rc |= WriteOctet(bit_idx / 8, temp);
+  // Assign new data;
+  val |= ((int)d & 0x3f) << bit_shift;
+  printf("after assignment val = 0x%x\n", val);
 
-  // Read the next part, masked if not needed.
-  rc |= ReadOctet(bit_idx / 8 + 1, temp);    
-
-  bit_shift =  6 - (bit_idx + 6) % 8;
-  bit_mask = (0xff >> bit_shift) & 0xff;
-
-  // Preserver old data
-  temp &= (bit_mask ^ 0xff);
-
-  // Set the data and write
-  temp  = (data_ << bit_shift) & (bit_mask);
-  rc |= WriteOctet(bit_idx / 8 + 1, temp);    
+  rc |= WriteOctet(bit_idx / 8, val & 0xff);    
+  rc |= WriteOctet(bit_idx / 8 + 1, (val >> 8) & 0xff);
   
   return rc;
 }
@@ -273,39 +267,35 @@ int AcromagIp470a::WriteSextet(int port_id)
 int AcromagIp470a::WriteSextet(int port_id, u_int8_t data) 
 {
   // Write data to the specified group of 6.
-  int rc, bit_shift, bit_mask, bit_idx;
+  int rc, val, bit_idx, bit_shift;
   u_int8_t temp;
-
-  data_ = data;
+  u_int8_t d = data;
 
   // Set the byte index for it.
   bit_idx = port_id * 6;
 
   // Read the first octet port to not change the data.
   rc = ReadOctet(bit_idx / 8, temp);
-  
+  val = temp;
+
+  rc |= ReadOctet(bit_idx / 8 + 1, temp);
+  val += (temp << 8);
+
+  printf("val = 0x%x\n", val);
+
+  // Calculate bit shift for each register.
   bit_shift = bit_idx % 8;
-  bit_mask = (0xff << bit_shift) & 0xff;
 
   // Preserve old data.
-  temp &= (bit_mask ^ 0xff);
+  val &= 0xffff - (0x3f << bit_shift);
+  printf("after bit mask val = 0x%x\n", val);
 
-  // Set the proper bits in the data, and write.
-  temp |= (data_ >> bit_shift) & (bit_mask);
-  rc |= WriteOctet(bit_idx / 8, temp);
+  // Assign new data;
+  val |= ((int)d & 0x3f) << bit_shift;
+  printf("after assignment val = 0x%x\n", val);
 
-  // Read the next part, masked if not needed.
-  rc |= ReadOctet(bit_idx / 8 + 1, temp);    
-
-  bit_shift =  6 - (bit_idx + 6) % 8;
-  bit_mask = (0xff >> bit_shift) & 0xff;
-
-  // Preserver old data
-  temp &= (bit_mask ^ 0xff);
-
-  // Set the data and write
-  temp  = (data_ << bit_shift) & (bit_mask);
-  rc |= WriteOctet(bit_idx / 8 + 1, temp);    
+  rc |= WriteOctet(bit_idx / 8, val & 0xff);    
+  rc |= WriteOctet(bit_idx / 8 + 1, (val >> 8) & 0xff);
   
   return rc;
 }

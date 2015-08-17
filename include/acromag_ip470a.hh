@@ -72,13 +72,13 @@ class AcromagIp470a : public Sis3100VmeDev {
 
   int ReadOctet(int block_idx);
   int ReadOctet(int block_idx, u_int8_t &data);
-
+  
   int WriteOctet(int block_idx);
   int WriteOctet(int block_idx, u_int8_t data);
 
   int ReadSextet(int block_idx);
   int ReadSextet(int block_idx, u_int8_t &data);
-
+  
   int WriteSextet(int block_idx);
   int WriteSextet(int block_idx, u_int8_t data);
 };
