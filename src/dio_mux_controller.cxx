@@ -2,8 +2,10 @@
 
 namespace daq {
 
-DioMuxController::DioMuxController(int board_addr, board_id bid) :
-  io_board_(board_addr, bid)
+DioMuxController::DioMuxController(int board_addr, 
+                                   board_id bid, 
+                                   bool enable_sextets) :
+  io_board_(board_addr, bid, enable_sextets)
 {
   // Instantiate the carrier board class.
   io_board_.CheckBoardId();
