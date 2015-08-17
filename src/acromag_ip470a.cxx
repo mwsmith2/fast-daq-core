@@ -245,18 +245,14 @@ int AcromagIp470a::WriteSextet(int port_id)
   rc |= ReadOctet(bit_idx / 8 + 1, temp);
   val += (temp << 8);
 
-  printf("val = 0x%x\n", val);
-
   // Calculate bit shift for each register.
   bit_shift = bit_idx % 8;
 
   // Preserve old data.
   val &= 0xffff - (0x3f << bit_shift);
-  printf("after bit mask val = 0x%x\n", val);
 
   // Assign new data;
   val |= ((int)d & 0x3f) << bit_shift;
-  printf("after assignment val = 0x%x\n", val);
 
   rc |= WriteOctet(bit_idx / 8, val & 0xff);    
   rc |= WriteOctet(bit_idx / 8 + 1, (val >> 8) & 0xff);
@@ -281,18 +277,14 @@ int AcromagIp470a::WriteSextet(int port_id, u_int8_t data)
   rc |= ReadOctet(bit_idx / 8 + 1, temp);
   val += (temp << 8);
 
-  printf("val = 0x%x\n", val);
-
   // Calculate bit shift for each register.
   bit_shift = bit_idx % 8;
 
   // Preserve old data.
   val &= 0xffff - (0x3f << bit_shift);
-  printf("after bit mask val = 0x%x\n", val);
 
   // Assign new data;
   val |= ((int)d & 0x3f) << bit_shift;
-  printf("after assignment val = 0x%x\n", val);
 
   rc |= WriteOctet(bit_idx / 8, val & 0xff);    
   rc |= WriteOctet(bit_idx / 8 + 1, (val >> 8) & 0xff);
