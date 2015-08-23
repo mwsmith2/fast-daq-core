@@ -28,8 +28,7 @@ class DioTriggerBoard
  public:
   
   // Ctor params:
-  DioTriggerBoard(std::string devpath, int board_addr, 
-                  board_id bid, int trg_port);
+  DioTriggerBoard(int board_addr, board_id bid, int trg_port);
 
   // Set the proper acromag port used for sending TTL triggers.
   void SetTriggerPort(int trg_port) { trg_port_ = trg_port; };

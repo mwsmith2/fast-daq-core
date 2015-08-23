@@ -248,6 +248,12 @@ void WorkerSis3302::LoadConfig()
 
 void WorkerSis3302::WorkLoop()
 {
+  // Dump first event (they are corrupted).
+  if (EventAvailable()) {
+    sis_3302 tmp;
+    GetEvent(tmp);
+  }
+
   t0_ = std::chrono::high_resolution_clock::now();
 
   while (thread_live_) {

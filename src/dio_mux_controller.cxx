@@ -1,9 +1,11 @@
-#include "mux_control_board.hh"
+#include "dio_mux_controller.hh"
 
 namespace daq {
 
-MuxControlBoard::MuxControlBoard(std::string dev, int board_addr, board_id bid) :
-  io_board_(dev, board_addr, bid)
+DioMuxController::DioMuxController(int board_addr, 
+                                   board_id bid, 
+                                   bool enable_sextets) :
+  io_board_(board_addr, bid, enable_sextets)
 {
   // Instantiate the carrier board class.
   io_board_.CheckBoardId();
@@ -23,12 +25,12 @@ MuxControlBoard::MuxControlBoard(std::string dev, int board_addr, board_id bid) 
   }
 }  
 
-void MuxControlBoard::AddMux(std::string mux_name, int port_idx)
+void DioMuxController::AddMux(std::string mux_name, int port_idx)
 {
   mux_port_map_[mux_name] = port_idx;
 }
 
-void MuxControlBoard::SetMux(std::string mux_name, int mux_ch)
+void DioMuxController::SetMux(std::string mux_name, int mux_ch)
 {
   io_board_.WritePort(mux_port_map_[mux_name], channel_map_[mux_ch]);
 

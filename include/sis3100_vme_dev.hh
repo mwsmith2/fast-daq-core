@@ -23,23 +23,24 @@
 #include "vme/sis3100_vme_calls.h"
 
 //--- project includes ------------------------------------------------------//
+#include "common.hh"
 #include "common_base.hh"
+
+namespace daq {
 
 class Sis3100VmeDev : public daq::CommonBase {
 
 protected:
 
   // ctor
-  Sis3100VmeDev(std::string devpath, int addr, 
-		int addr_type=32, int mblt_type=64, 
-		std::string name="VmeDevice") :
-    devpath_(devpath), addr_(addr), addr_type_(addr_type), mblt_type_(mblt_type),
-    CommonBase(name) {};
+  Sis3100VmeDev(int addr, int addr_type=32, int mblt_type=64, 
+    std::string name="VmeDevice") : addr_(addr), addr_type_(addr_type), 
+    mblt_type_(mblt_type), CommonBase(name) {};
 
   // Open vme device handle from the standard struck location.
   inline void OpenVme() {
     while (dev_ <= 0) {
-      dev_ = open(devpath_.c_str(), O_RDWR);
+      dev_ = open(vme_path.c_str(), O_RDWR);
     }
   }
 
@@ -323,12 +324,13 @@ protected:
 
  private:
 
-  std::string devpath_;
   int dev_;
   int addr_;
   int addr_type_;
   int mblt_type_;
 
 };
+
+} // ::daq
 
 #endif

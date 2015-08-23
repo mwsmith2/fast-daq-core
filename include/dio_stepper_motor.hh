@@ -33,8 +33,7 @@ class DioStepperMotor
  public:
   
   // Ctor params:
-  DioStepperMotor(std::string devpath, int board_addr, 
-                  board_id bid, std::string conf_file);
+  DioStepperMotor(int board_addr, board_id bid, std::string conf_file);
 
   // Dtor
   ~DioStepperMotor() {

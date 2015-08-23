@@ -1,13 +1,13 @@
-#ifndef DAQ_FAST_CORE_INCLUDE_MUX_CONTROL_BOARD_HH_
-#define DAQ_FAST_CORE_INCLUDE_MUX_CONTROL_BOARD_HH_
+#ifndef DAQ_FAST_CORE_INCLUDE_DIO_MUX_CONTROLLER_HH_
+#define DAQ_FAST_CORE_INCLUDE_DIO_MUX_CONTROLLER_HH_
 
 /*============================================================================*\
 
 author: Matthias W. Smith
 email:  mwsmith2@uw.edu
-file:   mux_control_board.hh
+file:   dio_mux_controller.hh
 
-about: Allows easy intuitive control of the multiplexers connected to 
+about: Allows intuitive control of the multiplexers connected to 
        acromag ip470 digital I/O boards.
 
 \*============================================================================*/
@@ -23,12 +23,12 @@ about: Allows easy intuitive control of the multiplexers connected to
 
 namespace daq {
 
-class MuxControlBoard
+class DioMuxController
 {
  public:
   
   // Ctor params:
-  MuxControlBoard(std::string dev, int board_addr, board_id bid);
+  DioMuxController(int board_addr, board_id bid, bool enable_hex=true);
 
   // Add a new multiplexer controlled by the acromag dio.
   void AddMux(std::string mux_name, int port_idx);

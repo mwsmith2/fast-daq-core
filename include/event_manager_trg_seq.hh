@@ -28,7 +28,7 @@
 
 //--- project includes -------------------------------------------------------//
 #include "event_manager_base.hh"
-#include "mux_control_board.hh"
+#include "dio_mux_controller.hh"
 #include "dio_trigger_board.hh"
 
 namespace daq {
@@ -95,7 +95,7 @@ private:
 
   int nmr_trg_bit_;
   DioTriggerBoard *nmr_pulser_trg_;
-  std::vector<MuxControlBoard *> mux_boards_;
+  std::vector<DioMuxController *> mux_boards_;
   std::map<std::string, int> mux_idx_map_;
   std::map<std::string, int> sis_idx_map_;
   std::map<std::string, std::pair<std::string, int>> data_in_;
