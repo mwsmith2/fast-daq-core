@@ -257,10 +257,10 @@ void SyncClient::RestartLoop()
       }
       LogMessage("joined heartbeat_thread");
 
-      zmq_disconnect(trigger_sck_, trigger_address_.c_str());
-      zmq_disconnect(register_sck_, register_address_.c_str());
-      zmq_disconnect(status_sck_, status_address_.c_str());
-      zmq_disconnect(heartbeat_sck_, heartbeat_address_.c_str());
+      trigger_sck_.disconnect(trigger_address_.c_str());
+      register_sck_.disconnect(register_address_.c_str());
+      status_sck_.disconnect( status_address_.c_str());
+      heartbeat_sck_.disconnect(heartbeat_address_.c_str());
 
       got_trigger_ = false;
       sent_ready_ = false;
