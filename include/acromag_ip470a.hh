@@ -45,6 +45,12 @@ class AcromagIp470a : public Sis3100VmeDev {
   // Formats and prints the ID data in the ID register of the board.
   void CheckBoardId();
 
+  // A member method to enable blocks of 6.
+  void EnableSextets() { use_sextets_ = true; };
+
+  // A member method to enable blocks of 8.
+  void EnableOctets() { use_sextets_ = false; };
+
   // Enhanced Mode opens more registers via a shift bit.  It can be
   // used to change the amplitude and interrupt nature of the IO board.
   void ActivateEnhancedMode();

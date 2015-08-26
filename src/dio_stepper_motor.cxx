@@ -21,6 +21,14 @@ DioStepperMotor::DioStepperMotor(int board_addr, board_id bid,
   steps_per_inch_ = 1.0 / conf.get<double>("inches_per_step");
   steps_per_cm_ = steps_per_inch_ / 2.5400;
 
+  if (conf.get<bool>("use_sextets", false)) {
+    io_board_.EnableSextets();
+
+  } else {
+
+    io_board_.EnableOctets();
+  }
+
   // Mask the input port.
   u_int8_t data = 0x1 << input_port_;
   int rc = io_board_.WritePort(7, data);
