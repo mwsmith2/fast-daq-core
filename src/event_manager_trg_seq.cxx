@@ -174,6 +174,8 @@ int EventManagerTrgSeq::BeginOfRun()
   while (workers_.AnyWorkersHaveEvent()) {
     workers_.FlushEventData();
   }
+
+  LogMessage("Configuration loaded");
 }
 
 int EventManagerTrgSeq::EndOfRun() 
