@@ -36,6 +36,11 @@ int EventManagerTrgSeq::Init()
   sequence_in_progress_ = false;
   builder_has_finished_ = true;
   mux_round_configured_ = false;
+
+  // Change the logfile if there is one in the config.
+  boost::property_tree::ptree conf;
+  boost::property_tree::read_json(conf_file_, conf);
+  SetLogFile(conf.get<std::string>("logfile", logfile_));
 }
 
 int EventManagerTrgSeq::BeginOfRun() 
