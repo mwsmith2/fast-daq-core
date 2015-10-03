@@ -89,7 +89,7 @@ int EventManagerTrgSeq::BeginOfRun()
   // Set up the NMR pulser trigger.
   char bid = conf.get<char>("devices.nmr_pulser.dio_board_id");
   int port = conf.get<int>("devices.nmr_pulser.dio_port_num");
-  nmr_trg_bit_ = conf.get<int>("devices.nmr_pulser.dio_trg_bit");
+  nmr_trg_mask_ = conf.get<int>("devices.nmr_pulser.dio_trg_mask");
 
   switch (bid) {
     case 'a':
@@ -308,7 +308,7 @@ void EventManagerTrgSeq::TriggerLoop()
 
 	  LogMessage("TriggerLoop: muxes are configured for this round");
 
-	  nmr_pulser_trg_->FireTrigger(nmr_trg_bit_);
+	  nmr_pulser_trg_->FireTriggers(nmr_trg_mask_);
 	  mux_round_configured_ = true;
 	  
 	  while (!got_round_data_ && go_time_) {
