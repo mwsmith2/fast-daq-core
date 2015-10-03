@@ -181,14 +181,17 @@ void WorkerSis3316::LoadConfig()
   msg = 0;
   if (conf.get<bool>("enable_ext_trg", true)) {
     msg |= (0x1 << 4); // enable external trigger bit
+    LogMessage("enabling external triggers");
   }
   
   if (conf.get<bool>("invert_ext_trg", false)) {
     msg |= (0x1 << 5); // invert external trigger bit
+    LogMessage("inverting external triggers");
   }
 
   if (conf.get<bool>("enable_ext_clk", false)) {
     msg |= (0x1 << 0); // enable external clock
+    LogMessage("enabling external clock");
   }  
 
   // Write to NIM_INPUT_CTRL
