@@ -118,6 +118,7 @@ int EventManagerTrgSeq::BeginOfRun()
   mux_conf_file_ = conf_dir + conf.get<std::string>("mux_conf_file");
 
   // Load trigger sequence
+  LogMessage("loading trigger sequence from %s", trg_seq_file_.c_str());
   boost::property_tree::read_json(trg_seq_file_, conf);
   
   for (auto &mux : conf) {
@@ -384,10 +385,7 @@ void EventManagerTrgSeq::BuilderLoop()
               int sis_idx = sis_idx_map_[sis_name];
               int trace_idx = data_in_[pair.first].second;
 
-              LogMessage(std::string("BuilderLoop: Copied sis ") +
-                       std::to_string(sis_idx) +
-                       std::string(", ch ") +
-                       std::to_string(trace_idx));
+              LogDebug("BuilderLoop: Copied %s, ch %i", sis_name.c_str(), trace_idx);
 
               int idx = 0;
               ULong64_t clock = 0;
