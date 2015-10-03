@@ -43,7 +43,7 @@ int EventManagerTrgSeq::BeginOfRun()
   boost::property_tree::ptree conf;
   boost::property_tree::read_json(conf_file_, conf);
 
-  LogMessage("BeginOfRun executed");
+  LogMessage("BeginOfRun executed - configuring with %s", conf_file_.c_str());
 
   // First set the config-dir if there is one.
   conf_dir = conf.get<std::string>("config_dir", conf_dir);
@@ -55,6 +55,7 @@ int EventManagerTrgSeq::BeginOfRun()
     std::string dev_conf_file = conf_dir + std::string(v.second.data());
     sis_idx_map_[name] = sis_idx++;
 
+    LogDebug("loading hw: %s, %s", name.c_str(), dev_conf_file.c_str());
     workers_.PushBack(new WorkerSis3302(name, dev_conf_file));
   }
 
@@ -65,6 +66,7 @@ int EventManagerTrgSeq::BeginOfRun()
     std::string dev_conf_file = conf_dir + std::string(v.second.data());
     sis_idx_map_[name] = sis_idx++;
 
+    LogDebug("loading hw: %s, %s", name.c_str(), dev_conf_file.c_str());
     workers_.PushBack(new WorkerSis3316(name, dev_conf_file));
   }
 
@@ -75,6 +77,7 @@ int EventManagerTrgSeq::BeginOfRun()
     std::string dev_conf_file = conf_dir + std::string(v.second.data());
     sis_idx_map_[name] = sis_idx++;
 
+    LogDebug("loading hw: %s, %s", name.c_str(), dev_conf_file.c_str());
     workers_.PushBack(new WorkerSis3350(name, dev_conf_file));
   }
 
@@ -82,21 +85,25 @@ int EventManagerTrgSeq::BeginOfRun()
   char bid = conf.get<char>("devices.nmr_pulser.dio_board_id");
   int port = conf.get<int>("devices.nmr_pulser.dio_port_num");
   nmr_trg_bit_ = conf.get<int>("devices.nmr_pulser.dio_trg_bit");
-  
+
   switch (bid) {
     case 'a':
+      LogDebug("setting NMR pulser trigger on dio board A, port %i", port);
       nmr_pulser_trg_ = new DioTriggerBoard(0x0, BOARD_A, port);
       break;
 
     case 'b':
+      LogDebug("setting NMR pulser trigger on dio board B, port %i", port);
       nmr_pulser_trg_ = new DioTriggerBoard(0x0, BOARD_B, port);
       break;
 
     case 'c':
+      LogDebug("setting NMR pulser trigger on dio board C, port %i", port);
       nmr_pulser_trg_ = new DioTriggerBoard(0x0, BOARD_C, port);   
       break;
 
     default:
+      LogDebug("setting NMR pulser trigger on dio board D, port %i", port);
       nmr_pulser_trg_ = new DioTriggerBoard(0x0, BOARD_D, port);  
       break;
   }
