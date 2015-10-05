@@ -20,7 +20,7 @@ std::string vme_path("/dev/sis1100_00remote");
 std::mutex vme_mutex;
 
 // Set the default config directory.
-std::string conf_dir("/usr/local/opt/daq/config/");
+std::string conf_dir("/usr/local/opt/lab-daq/config/");
 
 // Set up a global zmq context
 zmq::context_t msg_context(1);
