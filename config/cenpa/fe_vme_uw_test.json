@@ -17,7 +17,7 @@
 	"nmr_pulser": {
             "dio_board_id":"a",
 	    "dio_port_num":5,
-	    "dio_trg_bit":0
+	    "dio_trg_mask":0
 	}
     },
     

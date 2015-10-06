@@ -55,7 +55,10 @@ class SyncClient : TriggerBase {
   const std::atomic<bool> &ready() {return ready_;};
 
   // Setters
-  void UnsetReady() {ready_ = false;};
+  void UnsetReady() {
+    ready_ = false;
+    got_trigger_ = false;
+  };
   void SetReady() {ready_ = true;};
   bool HasTrigger();
 

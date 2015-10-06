@@ -157,6 +157,7 @@ void SyncTrigger::LaunchThreads()
   register_thread_ = std::thread(&SyncTrigger::ClientLoop, this); 
 }
 
+
 void SyncTrigger::TriggerLoop()
 {
   LogMessage("TriggerLoop launched");
@@ -191,6 +192,7 @@ void SyncTrigger::TriggerLoop()
 
           // Increment ready devices.
           ++clients_ready;
+            
         }
 
       } else if (clients_ready >= num_clients_) {
