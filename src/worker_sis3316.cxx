@@ -627,12 +627,14 @@ sis_3316 WorkerSis3316::PopEvent()
 {
   static sis_3316 data;
 
+  queue_mutex_.lock();
+
   if (data_queue_.empty()) {
+    queue_mutex_.unlock();
+
     sis_3316 str;
     return str;
   }
-
-  queue_mutex_.lock();
 
   // Copy the data.
   data = data_queue_.front();
