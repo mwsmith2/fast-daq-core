@@ -308,6 +308,7 @@ void EventManagerTrgSeq::TriggerLoop()
 
 	  LogMessage("TriggerLoop: muxes are configured for this round");
 
+          usleep(100);
 	  nmr_pulser_trg_->FireTriggers(nmr_trg_mask_);
 	  mux_round_configured_ = true;
 	  
@@ -370,8 +371,14 @@ void EventManagerTrgSeq::BuilderLoop()
 
         if (mux_round_configured_) {
 	
-          if (!data_queue_.empty()) {
-            queue_mutex_.lock();
+          queue_mutex_.lock();
+          
+          if (data_queue_.empty()) {
+
+            queue_mutex_.unlock();
+
+          } else {
+
             data = data_queue_.front();
             data_queue_.pop();
             queue_mutex_.unlock();
