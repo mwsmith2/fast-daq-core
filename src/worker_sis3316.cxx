@@ -555,8 +555,17 @@ void WorkerSis3316::LoadConfig()
     }
   }
 
+  // Enable (global) external trigger)
+  if (conf.get<bool>("enable_ext_trg", true)) {
+    msg = 0x100;
+
+  } else {
+
+    msg = 0x0;
+  }
+
   // Enable external timestamp clear.
-  msg |= 0x10; 
+  msg |= 0x400; 
   rc = Write(ACQUISITION_CONTROL, msg);
 
   if (rc != 0) {
