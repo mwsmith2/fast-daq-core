@@ -308,7 +308,7 @@ void EventManagerTrgSeq::TriggerLoop()
 
 	  LogMessage("TriggerLoop: muxes are configured for this round");
 
-          usleep(100);
+          usleep(50000);
 	  nmr_pulser_trg_->FireTriggers(nmr_trg_mask_);
 	  mux_round_configured_ = true;
 	  
