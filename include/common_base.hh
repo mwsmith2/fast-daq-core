@@ -34,6 +34,8 @@ class CommonBase {
   CommonBase(std::string name) : name_(name) {};
   ~CommonBase() {};
 
+  inline void SetName(std::string name) { name_ = name; };
+
  protected:
   
   static const int name_width_ = 16;

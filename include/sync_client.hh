@@ -26,7 +26,7 @@ author: Matthias W. Smith
 
 namespace daq {
 
-class SyncClient : TriggerBase {
+class SyncClient : public TriggerBase {
 
  public:
 
