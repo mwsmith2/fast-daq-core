@@ -383,7 +383,9 @@ void EventManagerTrgSeq::BuilderLoop()
             data_queue_.pop();
             queue_mutex_.unlock();
 
-            LogMessage("BuilderLoop: Got data, starting to copy it");
+            auto dt = high_resolution_clock::now().time_since_epoch();
+            auto timestamp = duration_cast<microseconds>(dt).count();  
+            LogMessage("BuilderLoop: copying data at %u us", timestamp);
 
             for (auto &pair : trg_seq_[seq_index]) {
 	      
@@ -392,7 +394,10 @@ void EventManagerTrgSeq::BuilderLoop()
               int sis_idx = sis_idx_map_[sis_name];
               int trace_idx = data_in_[pair.first].second;
 
-              LogDebug("BuilderLoop: Copied %s, ch %i", sis_name.c_str(), trace_idx);
+              auto dt = high_resolution_clock::now().time_since_epoch();
+              auto timestamp = duration_cast<microseconds>(dt).count();  
+              LogDebug("BuilderLoop: Copying %s, ch %i at %u us", 
+                       sis_name.c_str(), trace_idx, timestamp);
 
               int idx = 0;
               ULong64_t clock = 0;
