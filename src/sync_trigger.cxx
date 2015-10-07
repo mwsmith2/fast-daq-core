@@ -92,7 +92,7 @@ void SyncTrigger::InitSockets()
 
   } catch (zmq::error_t) {
 
-    std::cerr << "Couldn't bind to given address." << std::endl;
+    LogError("couldn't bind to given address");
     exit(EXIT_FAILURE);
   }
 
@@ -149,6 +149,8 @@ void SyncTrigger::InitSockets()
 
   // Subscribe to all messages.
   heartbeat_sck_.setsockopt(ZMQ_SUBSCRIBE, "", 0);
+
+  LogMessage("sync_trigger initialized");
 }
 
 void SyncTrigger::LaunchThreads() 
@@ -235,7 +237,7 @@ void SyncTrigger::ClientLoop()
   int clients_lost = 0;
   std::string client_name;
 
-  std::map<std::string, long> client_time;
+  std::map<std::string, long long> client_time;
 
   while (thread_live_) {
 
@@ -282,24 +284,34 @@ void SyncTrigger::ClientLoop()
 
     // Monitor the heartbeat of the clients
     do {
-      rc = heartbeat_sck_.recv(&msg, ZMQ_DONTWAIT);
+      int count = 0;
+      do {
+        rc = heartbeat_sck_.recv(&msg, ZMQ_DONTWAIT);
+      } while (!rc && (count++ < 100));
       
       if (rc == true) {
 
         std::string heartbeat_msg((char *)msg.data());
-                
+
         client_time[heartbeat_msg] = systime_us();
+        LogDebug("pulse from client %s at %i", 
+                 heartbeat_msg.c_str(), 
+                 systime_us());
       } 
+
     } while (rc == true);
 
     // Now check if any clients are too old
     for (auto it = client_time.cbegin(); it != client_time.cend();) {
       
       if (systime_us() - (*it).second > client_timeout_) {
+        LogDebug("logic-check: %u - %u > %u", systime_us(), (*it).second, client_timeout_);
+        LogMessage("Dropping unresponsive client-%s [%i]", 
+                   (*it).first.c_str(), (int)num_clients_);
+
+        LogDebug("Last reponse %u us ago", systime_us() - (*it).second);
 
 	client_time.erase(it++);
-
-    LogMessage("Dropping unresponsive client [%i]", (int)num_clients_);
 
 	if (!fix_num_clients_) {
 
@@ -312,6 +324,7 @@ void SyncTrigger::ClientLoop()
 	}
 
       } else {
+
 	++it;
       }
     }
