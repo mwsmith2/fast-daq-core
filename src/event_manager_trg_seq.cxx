@@ -452,7 +452,7 @@ void EventManagerTrgSeq::BuilderLoop()
               bundle.dev_clock[idx] = clock;
               
               // Extract the FID frequency and some diagnostic params.
-              fid::FID myfid(tm, wf);
+              fid::FID myfid(wf, tm);
 
               // Make sure we got an FID signal
               if (myfid.isgood()) {
