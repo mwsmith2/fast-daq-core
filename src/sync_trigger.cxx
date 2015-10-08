@@ -150,7 +150,7 @@ void SyncTrigger::InitSockets()
   // Subscribe to all messages.
   heartbeat_sck_.setsockopt(ZMQ_SUBSCRIBE, "", 0);
 
-  LogMessage("sync_trigger initialized");
+  LogMessage("sync_trigger initialized on %s:%i", base_tcpip_, base_port_);
 }
 
 void SyncTrigger::LaunchThreads() 
@@ -162,7 +162,7 @@ void SyncTrigger::LaunchThreads()
 
 void SyncTrigger::TriggerLoop()
 {
-  LogMessage("TriggerLoop launched");
+  LogDebug("TriggerLoop launched");
 
   zmq::message_t msg;
   zmq::message_t ready_msg;
@@ -170,6 +170,7 @@ void SyncTrigger::TriggerLoop()
 
   bool rc = false;
   int clients_ready = 0;
+  int num_triggers = 0;
 
   while (thread_live_) {
 
@@ -179,6 +180,7 @@ void SyncTrigger::TriggerLoop()
 
         // Need to keep track of time zero.
         clients_ready = 0;
+        num_triggers = 0;
 
       } else if (clients_ready < num_clients_) {
 
@@ -194,15 +196,16 @@ void SyncTrigger::TriggerLoop()
 
           // Increment ready devices.
           ++clients_ready;
-            
+          LogDebug("%i/%i clients ready.", clients_ready - 1, num_clients);
         }
 
       } else if (clients_ready >= num_clients_) {
 
         // Send a trigger.
         rc = trigger_sck_.send(trigger_msg);
-
+        
         if (rc == true) {
+          LogMessage("clients ready, sent trigger %i", num_triggers++);
           clients_ready = 0;
           clients_good_ = true;
         }
@@ -272,12 +275,12 @@ void SyncTrigger::ClientLoop()
       if (!fix_num_clients_ && !client_reconnect) {
 
         ++num_clients_;
-        LogMessage("New client %s registered. [%i]", 
+        LogMessage("new client %s registered [%i]", 
                    client_name.c_str(), (int)num_clients_);
 
       } else {
         
-        LogMessage("client-%s reconnected. [%i/%i]", 
+        LogMessage("client-%s reconnected [%i/%i]", 
                    client_name.c_str(), client_time.size()+1, (int)num_clients_);
       }
     }
@@ -294,7 +297,7 @@ void SyncTrigger::ClientLoop()
         std::string heartbeat_msg((char *)msg.data());
 
         client_time[heartbeat_msg] = systime_us();
-        LogDebug("pulse from client %s at %i", 
+        LogDebug("pulse from client %s at %lli", 
                  heartbeat_msg.c_str(), 
                  systime_us());
       } 
@@ -304,12 +307,17 @@ void SyncTrigger::ClientLoop()
     // Now check if any clients are too old
     for (auto it = client_time.cbegin(); it != client_time.cend();) {
       
-      if (systime_us() - (*it).second > client_timeout_) {
-        LogDebug("logic-check: %u - %u > %u", systime_us(), (*it).second, client_timeout_);
+      auto time = systime_us();
+      bool check = time - (*it).second > client_timeout_;
+    
+      if (check) {
+        LogDebug("logic-check: %lli - %lli > %lli", 
+                 time, (*it).second, client_timeout_);
+
         LogMessage("Dropping unresponsive client-%s [%i]", 
                    (*it).first.c_str(), (int)num_clients_);
 
-        LogDebug("Last reponse %u us ago", systime_us() - (*it).second);
+        LogDebug("Last reponse %lli us ago", systime_us() - (*it).second);
 
 	client_time.erase(it++);
 

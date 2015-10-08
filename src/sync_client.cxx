@@ -167,7 +167,7 @@ void SyncClient::StatusLoop()
     // 1. Make sure we are connected to the trigger.
     if (!connected_) {
 
-      LogMessage("not connected, last response %u us ago", 
+      LogMessage("not connected, last response %lli us ago", 
                  systime_us() - last_contact); 
 
       heavy_sleep();
