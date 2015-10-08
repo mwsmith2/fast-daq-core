@@ -278,6 +278,23 @@ void SyncTrigger::ClientLoop()
         LogMessage("new client %s registered [%i]", 
                    client_name.c_str(), (int)num_clients_);
 
+      } else if (client_time.size()+1 > num_clients) {
+
+        heavy_sleep();
+        auto stale_client = client_time.cbegin();
+
+        for (auto it = client_time.cbegin(); it != client_time.cend(); ++it) {
+          
+          if ((*it).second < (*stale_client).second) {
+            stale_client = it;
+          }
+        }
+        
+        LogMessage("client-%s replaced stale client-%s", 
+                   client_name.c_str(), (*stale_client).first.c_str());
+
+        client_time.erase(stale_client)
+
       } else {
         
         LogMessage("client-%s reconnected [%i/%i]", 
