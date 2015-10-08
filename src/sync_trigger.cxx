@@ -150,7 +150,7 @@ void SyncTrigger::InitSockets()
   // Subscribe to all messages.
   heartbeat_sck_.setsockopt(ZMQ_SUBSCRIBE, "", 0);
 
-  LogMessage("sync_trigger initialized on %s:%i", base_tcpip_, base_port_);
+  LogMessage("sync_trigger initialized on %s:%i", base_tcpip_.c_str(), base_port_);
 }
 
 void SyncTrigger::LaunchThreads() 
@@ -196,7 +196,7 @@ void SyncTrigger::TriggerLoop()
 
           // Increment ready devices.
           ++clients_ready;
-          LogDebug("%i/%i clients ready.", clients_ready - 1, num_clients);
+          LogDebug("%i/%i clients ready.", clients_ready - 1, (int)num_clients_);
         }
 
       } else if (clients_ready >= num_clients_) {
@@ -278,7 +278,7 @@ void SyncTrigger::ClientLoop()
         LogMessage("new client %s registered [%i]", 
                    client_name.c_str(), (int)num_clients_);
 
-      } else if (client_time.size()+1 > num_clients) {
+      } else if (client_time.size()+1 > num_clients_) {
 
         heavy_sleep();
         auto stale_client = client_time.cbegin();
@@ -293,7 +293,7 @@ void SyncTrigger::ClientLoop()
         LogMessage("client-%s replaced stale client-%s", 
                    client_name.c_str(), (*stale_client).first.c_str());
 
-        client_time.erase(stale_client)
+        client_time.erase(stale_client);
 
       } else {
         
