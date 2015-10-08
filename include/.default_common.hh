@@ -242,17 +242,24 @@ const double sample_period = 0.1; // in microseconds
 extern zmq::context_t msg_context;
 
 inline void light_sleep() {
- usleep(100); // in usec
+ usleep(200); // in usec
 }
 
 inline void heavy_sleep() {
-usleep(100000); // in usec
+usleep(10000); // in usec
 }
 
-inline long systime_us() {
+inline long long systime_us() {
  static timeval t;
  gettimeofday(&t, nullptr);
- return 1000000*t.tv_sec + t.tv_usec;
+ return (long long)(t.tv_sec)*1000000 + (long long)t.tv_usec;
+}
+
+inline long long steadyclock_us() {
+ static timespec t;
+
+ clock_gettime(CLOCK_MONOTONIC, &t);
+ return (long long)(t.tv_sec)*1000000 + (long long)(t.tv_nsec * 0.001);
 }
 
 } // ::daq

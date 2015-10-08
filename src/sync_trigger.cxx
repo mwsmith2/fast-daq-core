@@ -313,10 +313,10 @@ void SyncTrigger::ClientLoop()
 
         std::string heartbeat_msg((char *)msg.data());
 
-        client_time[heartbeat_msg] = systime_us();
+        client_time[heartbeat_msg] = steadyclock_us();
         LogDebug("pulse from client %s at %lli", 
                  heartbeat_msg.c_str(), 
-                 systime_us());
+                 steadyclock_us());
       } 
 
     } while (rc == true);
@@ -324,7 +324,7 @@ void SyncTrigger::ClientLoop()
     // Now check if any clients are too old
     for (auto it = client_time.cbegin(); it != client_time.cend();) {
       
-      auto time = systime_us();
+      auto time = steadyclock_us();
       bool check = time - (*it).second > client_timeout_;
     
       if (check) {
@@ -334,7 +334,7 @@ void SyncTrigger::ClientLoop()
         LogMessage("Dropping unresponsive client-%s [%i]", 
                    (*it).first.c_str(), (int)num_clients_);
 
-        LogDebug("Last reponse %lli us ago", systime_us() - (*it).second);
+        LogDebug("Last reponse %lli us ago", steadyclock_us() - (*it).second);
 
 	client_time.erase(it++);
 

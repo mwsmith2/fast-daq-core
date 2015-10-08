@@ -157,25 +157,25 @@ void SyncClient::StatusLoop()
   std::string tmp("READY;");
 
   bool rc = false;
-  long long last_contact = systime_us();
+  long long last_contact = steadyclock_us();
 
   while (thread_live_) {
 
     // Make sure we haven't timed out.
-    connected_ = (systime_us() - last_contact) < trigger_timeout_;
+    connected_ = (steadyclock_us() - last_contact) < trigger_timeout_;
 
     // 1. Make sure we are connected to the trigger.
     if (!connected_) {
 
       LogMessage("not connected, last response %lli us ago", 
-                 systime_us() - last_contact); 
+                 steadyclock_us() - last_contact); 
 
       heavy_sleep();
 
     } else if (!ready_) {
 
-      // Reset the systime_us, so timeouts only occur when looking for triggers.
-      last_contact = systime_us();
+      // Reset the steadyclock_us, so timeouts only occur when looking for triggers.
+      last_contact = steadyclock_us();
 
     } else if (ready_ && !sent_ready_) {
   
@@ -188,12 +188,12 @@ void SyncClient::StatusLoop()
         // Complete the handshake.
         do {
           rc = status_sck_.recv(&msg, ZMQ_DONTWAIT);
-          connected_ = (systime_us() - last_contact) < trigger_timeout_;
+          connected_ = (steadyclock_us() - last_contact) < trigger_timeout_;
         } while (!rc && thread_live_ && connected_);
 
         if (rc == true) {
 
-          last_contact = systime_us();
+          last_contact = steadyclock_us();
           sent_ready_ = true;
           LogMessage("flagged ready for trigger");
         }
@@ -208,7 +208,7 @@ void SyncClient::StatusLoop()
       // Wait for the trigger
       do { 
         rc = trigger_sck_.recv(&msg, ZMQ_DONTWAIT);
-        connected_ = (systime_us() - last_contact) < trigger_timeout_;
+        connected_ = (steadyclock_us() - last_contact) < trigger_timeout_;
       } while (!rc && thread_live_ && connected_);
 
       // Adjust the flags
@@ -219,7 +219,7 @@ void SyncClient::StatusLoop()
 
         got_trigger_ = true;
         LogMessage("received trigger");
-        last_contact = systime_us();
+        last_contact = steadyclock_us();
       }
     }
 
