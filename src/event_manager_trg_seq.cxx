@@ -188,7 +188,7 @@ int EventManagerTrgSeq::BeginOfRun()
     workers_.FlushEventData();
   }
 
-  LogMessage("Configuration loaded");
+  LogDebug("configuration loaded");
 }
 
 int EventManagerTrgSeq::EndOfRun() 
@@ -235,7 +235,7 @@ void EventManagerTrgSeq::RunLoop()
       
       if (workers_.AnyWorkersHaveEvent()) {
         
-        LogMessage("RunLoop: got potential event");
+        LogDebug("RunLoop: got potential event");
         
         // Wait to be sure the others have events too.
         usleep(max_event_time_);
@@ -259,7 +259,7 @@ void EventManagerTrgSeq::RunLoop()
         queue_mutex_.lock();
         if (data_queue_.size() <= kMaxQueueSize) {
           data_queue_.push(bundle);
-          LogMessage(std::string("RunLoop: Got data. Data queue is now: ") +
+          LogMessage(std::string("RunLoop: new data, data_queue size = : ") +
                    std::to_string(data_queue_.size()));
         }
         
@@ -306,10 +306,10 @@ void EventManagerTrgSeq::TriggerLoop()
 	    mux_board->SetMux(conf.first, conf.second);
 	  }
 
-	  LogMessage("TriggerLoop: muxes are configured for this round");
-
           usleep(50000);
 	  nmr_pulser_trg_->FireTriggers(nmr_trg_mask_);
+
+	  LogMessage("TriggerLoop: muxes configure, triggers fired");
 	  mux_round_configured_ = true;
 	  
 	  while (!got_round_data_ && go_time_) {
@@ -364,7 +364,7 @@ void EventManagerTrgSeq::BuilderLoop()
         // Get the system time.
         auto dt = high_resolution_clock::now().time_since_epoch();
         auto timestamp = duration_cast<microseconds>(dt).count();  
-        LogMessage("TrgSequence start: %u us", timestamp);
+        LogMessage("TrgSequence start");
       }
 
       while (sequence_in_progress_ && go_time_) {
@@ -383,9 +383,7 @@ void EventManagerTrgSeq::BuilderLoop()
             data_queue_.pop();
             queue_mutex_.unlock();
 
-            auto dt = high_resolution_clock::now().time_since_epoch();
-            auto timestamp = duration_cast<microseconds>(dt).count();  
-            LogMessage("BuilderLoop: copying data at %u us", timestamp);
+            LogMessage("BuilderLoop: copying data");
 
             for (auto &pair : trg_seq_[seq_index]) {
 	      
@@ -394,10 +392,8 @@ void EventManagerTrgSeq::BuilderLoop()
               int sis_idx = sis_idx_map_[sis_name];
               int trace_idx = data_in_[pair.first].second;
 
-              auto dt = high_resolution_clock::now().time_since_epoch();
-              auto timestamp = duration_cast<microseconds>(dt).count();  
-              LogDebug("BuilderLoop: Copying %s, ch %i at %u us", 
-                       sis_name.c_str(), trace_idx, timestamp);
+              LogDebug("BuilderLoop: Copying %s, ch %i", 
+                       sis_name.c_str(), trace_idx);
 
               int idx = 0;
               ULong64_t clock = 0;
@@ -494,10 +490,7 @@ void EventManagerTrgSeq::BuilderLoop()
       if (!sequence_in_progress_ && !builder_has_finished_) {
 
         // Get the system time.
-        auto dt = high_resolution_clock::now().time_since_epoch();
-        auto timestamp = duration_cast<microseconds>(dt).count();  
-        LogMessage("TrgSequence stop: %u us", timestamp);
-
+        LogDebug("TrgSequence stop");
         LogMessage("BuilderLoop: Pushing event to run_queue_");
         
         queue_mutex_.lock();
@@ -550,13 +543,13 @@ void EventManagerTrgSeq::StarterLoop()
 
       if (rc == true) {
 	got_start_trg_ = true;
-	LogMessage("StarterLoop: Got tcp start trigger");
+	LogDebug("StarterLoop: Got tcp start trigger");
       }
 
       if (got_software_trg_){
 	got_start_trg_ = true;
 	got_software_trg_ = false;
-	LogMessage("StarterLoop: Got software trigger");
+	LogDebug("StarterLoop: Got software trigger");
       }
 
       std::this_thread::yield();
