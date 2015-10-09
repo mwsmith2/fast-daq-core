@@ -198,7 +198,7 @@ int EventManagerTrgSeq::EndOfRun()
 
   workers_.StopRun();
 
-  // Try to join the threads.
+  LogDebug("EndOfRun: joining threads");
   if (run_thread_.joinable()) {
     run_thread_.join();
   }
@@ -259,8 +259,9 @@ void EventManagerTrgSeq::RunLoop()
         queue_mutex_.lock();
         if (data_queue_.size() <= kMaxQueueSize) {
           data_queue_.push(bundle);
-          LogMessage(std::string("RunLoop: new data, data_queue size = : ") +
-                   std::to_string(data_queue_.size()));
+
+          LogDebug("RunLoop: Got data. Data queue now: %i", 
+                   data_queue_.size());
         }
         
         queue_mutex_.unlock();
@@ -288,7 +289,7 @@ void EventManagerTrgSeq::TriggerLoop()
 	builder_has_finished_ = false;
 	mux_round_configured_ = false;
 
-	LogMessage("TriggerLoop: beginning trigger sequence");
+	LogMessage("received trigger, sequencing multiplexers");
 
 	for (auto &round : trg_seq_) { // {mux_conf_0...mux_conf_n}
 	  if (!go_time_) break;
@@ -298,7 +299,7 @@ void EventManagerTrgSeq::TriggerLoop()
 	  for (auto &conf : round) { // {mux_name, set_channel}
 	    if (!go_time_) break;
 
-	    LogMessage(std::string("TriggerLoop: setting ") + 
+	    LogDebug(std::string("TriggerLoop: setting ") + 
 		     conf.first + std::string(" to ") +
 		     std::to_string(conf.second));
 
@@ -306,13 +307,14 @@ void EventManagerTrgSeq::TriggerLoop()
 	    mux_board->SetMux(conf.first, conf.second);
 	  }
 
+      	  LogDebug("TriggerLoop: muxes are configured for this round");
           usleep(50000);
-	  nmr_pulser_trg_->FireTriggers(nmr_trg_mask_);
+      	  nmr_pulser_trg_->FireTriggers(nmr_trg_mask_);
 
-	  LogMessage("TriggerLoop: muxes configure, triggers fired");
-	  mux_round_configured_ = true;
+    	   LogDebug("TriggerLoop: muxes configure, triggers fired");
+	       mux_round_configured_ = true;
 	  
-	  while (!got_round_data_ && go_time_) {
+         while (!got_round_data_ && go_time_) {
 	    std::this_thread::yield();
 	    usleep(daq::short_sleep);
 	  } 
@@ -322,11 +324,13 @@ void EventManagerTrgSeq::TriggerLoop()
 	sequence_in_progress_ = false;
 	got_start_trg_ = false;
 
-	// Pause to copy data.
+  LogDebug("TriggerLoop: waiting for builder to finish");
 	while (!builder_has_finished_ && go_time_) {
 	  std::this_thread::yield();
 	  usleep(daq::short_sleep);
 	};
+
+  LogDebug("TriggerLoop: builder finished packing event");
 
       } // done with trigger sequence
 
@@ -343,15 +347,16 @@ void EventManagerTrgSeq::BuilderLoop()
 {
   using namespace std::chrono;
 
-  while (thread_live_) {
-    
-    std::vector<double> tm(NMR_FID_LN, 0.0);
-    std::vector<double> wf(NMR_FID_LN, 0.0);
+  LogDebug("BuilderLoop: allocating wf/tm vectors")
+  std::vector<double> tm(NMR_FID_LN, 0.0);
+  std::vector<double> wf(NMR_FID_LN, 0.0);
 
-    for (int i = 0; i < NMR_FID_LN; ++i) {
-      tm[i] = i * sample_period;
-    }
-    
+  for (int i = 0; i < NMR_FID_LN; ++i) {
+    tm[i] = i * sample_period;
+  }
+
+  while (thread_live_) {
+        
     while (go_time_) {
 
       static nmr_data bundle;
@@ -361,10 +366,7 @@ void EventManagerTrgSeq::BuilderLoop()
       int seq_index = 0;
 
       if (sequence_in_progress_) {
-        // Get the system time.
-        auto dt = high_resolution_clock::now().time_since_epoch();
-        auto timestamp = duration_cast<microseconds>(dt).count();  
-        LogMessage("TrgSequence start");
+        LogMessage("assembling a new event");
       }
 
       while (sequence_in_progress_ && go_time_) {
@@ -392,7 +394,7 @@ void EventManagerTrgSeq::BuilderLoop()
               int sis_idx = sis_idx_map_[sis_name];
               int trace_idx = data_in_[pair.first].second;
 
-              LogDebug("BuilderLoop: Copying %s, ch %i", 
+              LogDebug("BuilderLoop: copying %s, ch %i", 
                        sis_name.c_str(), trace_idx);
 
               int idx = 0;
@@ -439,11 +441,10 @@ void EventManagerTrgSeq::BuilderLoop()
                 LogError("digitizer name did not match any known type.");
                 return;
               }
-                
+              
+              LogDebug("BuilderLoop: analyzing FID");  
               // Get the timestamp
-              struct timeval tv;
-              gettimeofday(&tv, nullptr);
-              bundle.sys_clock[idx] = tv.tv_sec + tv.tv_usec / 1.0e6;
+              bundle.sys_clock[idx] = systime_us();
               bundle.gps_clock[idx] = 0.0; // todo:
               bundle.dev_clock[idx] = clock;
               
@@ -474,6 +475,8 @@ void EventManagerTrgSeq::BuilderLoop()
                 bundle.freq_zc[idx] = 0.0;
                 bundle.ferr_zc[idx] = 0.0;
               }
+
+              LogDebug("BuilderLoop: FID analysis finished");  
             } // next pair
 	    
             seq_index++;
@@ -490,14 +493,12 @@ void EventManagerTrgSeq::BuilderLoop()
       if (!sequence_in_progress_ && !builder_has_finished_) {
 
         // Get the system time.
-        LogDebug("TrgSequence stop");
-        LogMessage("BuilderLoop: Pushing event to run_queue_");
+        LogMessage("new event assembled, pushing to run_queue_");
         
         queue_mutex_.lock();
         run_queue_.push(bundle);
         
-        LogMessage(std::string("BuilderLoop: Size of run_queue_ = ") +
-                 std::to_string(run_queue_.size()));
+        LogDebug("BuilderLoop: Size of run_queue_ = ", run_queue_.size());
         
         has_event_ = true;
         seq_index = 0;
@@ -533,6 +534,8 @@ void EventManagerTrgSeq::StarterLoop()
   trigger_sck.setsockopt(ZMQ_RCVTIMEO, &opt, sizeof(opt));
   trigger_sck.connect(sck_addr.c_str());
   trigger_sck.setsockopt(ZMQ_SUBSCRIBE, "", 0);
+
+  LogDebug("StarterLoop: trigger socket connected at %s", sck_addr.c_str());
 
   while (thread_live_) {
     
