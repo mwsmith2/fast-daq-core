@@ -42,8 +42,7 @@ about:  Contains the data structures for several hardware devices in a single
 // NMR specific stuff
 #define NMR_FID_LN SIS_3302_LN
 #define SHORT_FID_LN 10000
-#define SHIM_PLATFORM_CH 25
-#define SHIM_UW_TEST_CH 25
+#define SHIM_PLATFORM_CH 28
 #define SHIM_FIXED_CH 4
 #define RUN_TROLLEY_CH 17
 #define RUN_FIXED_CH 378
@@ -236,7 +235,7 @@ extern std::string conf_dir;
 // Set sleep times for data polling threads.
 const int short_sleep = 10;
 const int long_sleep = 100;
-const double sample_period = 0.1; // in microseconds
+const double sample_period = 0.0001; // in milliseconds
 
 // Set up a global zmq context
 extern zmq::context_t msg_context;
