@@ -38,7 +38,7 @@ class CommonBase {
 
  protected:
   
-  static const int name_width_ = 12;
+  static const int name_width_ = 15;
 
   // These should be defined in common_extdef.hh
   static int logging_verbosity_; 
