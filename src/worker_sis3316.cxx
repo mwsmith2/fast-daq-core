@@ -181,14 +181,17 @@ void WorkerSis3316::LoadConfig()
   msg = 0;
   if (conf.get<bool>("enable_ext_trg", true)) {
     msg |= (0x1 << 4); // enable external trigger bit
+    LogMessage("enabling external triggers");
   }
   
   if (conf.get<bool>("invert_ext_trg", false)) {
     msg |= (0x1 << 5); // invert external trigger bit
+    LogMessage("inverting external triggers");
   }
 
   if (conf.get<bool>("enable_ext_clk", false)) {
     msg |= (0x1 << 0); // enable external clock
+    LogMessage("enabling external clock");
   }  
 
   // Write to NIM_INPUT_CTRL
@@ -552,8 +555,17 @@ void WorkerSis3316::LoadConfig()
     }
   }
 
+  // Enable (global) external trigger)
+  if (conf.get<bool>("enable_ext_trg", true)) {
+    msg = 0x100;
+
+  } else {
+
+    msg = 0x0;
+  }
+
   // Enable external timestamp clear.
-  msg |= 0x10; 
+  msg |= 0x400; 
   rc = Write(ACQUISITION_CONTROL, msg);
 
   if (rc != 0) {
@@ -624,12 +636,14 @@ sis_3316 WorkerSis3316::PopEvent()
 {
   static sis_3316 data;
 
+  queue_mutex_.lock();
+
   if (data_queue_.empty()) {
+    queue_mutex_.unlock();
+
     sis_3316 str;
     return str;
   }
-
-  queue_mutex_.lock();
 
   // Copy the data.
   data = data_queue_.front();
@@ -744,7 +758,7 @@ void WorkerSis3316::GetEvent(sis_3316 &bundle)
     // Specify the channel's fifo address
     msg = 0x80000000; // Start transfer bit
     if (!bank2_armed_flag) msg += 0x01000000; // Bank 2 offset
-    if ((ch & 0x1) == 0x0) msg += 0x02000000; // ch 2, 4, 6, ...
+    if ((ch & 0x1) == 0x1) msg += 0x02000000; // ch 2, 4, 6, ...
     if ((ch & 0x2) == 0x2) msg += 0x10000000; // ch 2, 3, 6, 7, ...
 
     // Start readout FSM

@@ -157,26 +157,30 @@ void SyncClient::StatusLoop()
   std::string tmp("READY;");
 
   bool rc = false;
-  long last_contact = systime_us();
+  long long last_contact = steadyclock_us();
 
   while (thread_live_) {
 
     // Make sure we haven't timed out.
-    connected_ = (systime_us() - last_contact) < trigger_timeout_;
+    connected_ = (steadyclock_us() - last_contact) < trigger_timeout_;
 
     // 1. Make sure we are connected to the trigger.
     if (!connected_) {
+
+      LogMessage("not connected, last response %lli us ago", 
+                 steadyclock_us() - last_contact); 
 
       heavy_sleep();
 
     } else if (!ready_) {
 
-      // Reset the systime_us, so timeouts only occur when looking for triggers.
-      last_contact = systime_us();
+      // Reset the steadyclock_us, so timeouts only occur when looking for triggers.
+      last_contact = steadyclock_us();
 
     } else if (ready_ && !sent_ready_) {
   
       // Request a trigger.
+      LogMessage("requesting trigger");
       rc = status_sck_.send(ready_msg, ZMQ_DONTWAIT);
 
       if (rc == true) {
@@ -184,13 +188,14 @@ void SyncClient::StatusLoop()
         // Complete the handshake.
         do {
           rc = status_sck_.recv(&msg, ZMQ_DONTWAIT);
-          connected_ = (systime_us() - last_contact) < trigger_timeout_;
+          connected_ = (steadyclock_us() - last_contact) < trigger_timeout_;
         } while (!rc && thread_live_ && connected_);
 
         if (rc == true) {
 
-          last_contact = systime_us();
+          last_contact = steadyclock_us();
           sent_ready_ = true;
+          LogMessage("flagged ready for trigger");
         }
 
       } else {
@@ -203,7 +208,7 @@ void SyncClient::StatusLoop()
       // Wait for the trigger
       do { 
         rc = trigger_sck_.recv(&msg, ZMQ_DONTWAIT);
-        connected_ = (systime_us() - last_contact) < trigger_timeout_;
+        connected_ = (steadyclock_us() - last_contact) < trigger_timeout_;
       } while (!rc && thread_live_ && connected_);
 
       // Adjust the flags
@@ -213,7 +218,8 @@ void SyncClient::StatusLoop()
         sent_ready_ = false;
 
         got_trigger_ = true;
-        last_contact = systime_us();
+        LogMessage("received trigger");
+        last_contact = steadyclock_us();
       }
     }
 
@@ -243,38 +249,47 @@ void SyncClient::RestartLoop()
   while(thread_live_) {
 
     if (!connected_) {
-      
-      LogMessage("starting to join threads");
-      // Kill the other thread.
-      thread_live_ = false;
-      if (status_thread_.joinable()) {
-        status_thread_.join();
+
+      // Make sure it's still unconnected.
+      usleep(125000);
+      if (connected_) {
+        continue;
+
+      } else {
+             
+        LogMessage("starting to join threads");
+        // Kill the other thread.
+        thread_live_ = false;
+        if (status_thread_.joinable()) {
+          status_thread_.join();
+        }
+        LogMessage("joined status_thread");
+        
+        if (heartbeat_thread_.joinable()) {
+          heartbeat_thread_.join();
+        }
+        LogMessage("joined heartbeat_thread");
+        
+        trigger_sck_.disconnect(trigger_address_.c_str());
+        register_sck_.disconnect(register_address_.c_str());
+        status_sck_.disconnect( status_address_.c_str());
+        heartbeat_sck_.disconnect(heartbeat_address_.c_str());
+        
+        got_trigger_ = false;
+        sent_ready_ = false;
+        thread_live_ = true;
+        
+        // Reinitialize sockets.
+        LogMessage("reinitializing sockets");
+        InitSockets();
+        LogMessage("reinitialization success");
+        status_thread_ = std::thread(&SyncClient::StatusLoop, this);
+        heartbeat_thread_ = std::thread(&SyncClient::HeartbeatLoop, this);
+
       }
-      LogMessage("joined status_thread");
-
-      if (heartbeat_thread_.joinable()) {
-        heartbeat_thread_.join();
-      }
-      LogMessage("joined heartbeat_thread");
-
-      zmq_disconnect(trigger_sck_, trigger_address_.c_str());
-      zmq_disconnect(register_sck_, register_address_.c_str());
-      zmq_disconnect(status_sck_, status_address_.c_str());
-      zmq_disconnect(heartbeat_sck_, heartbeat_address_.c_str());
-
-      got_trigger_ = false;
-      sent_ready_ = false;
-      thread_live_ = true;
-
-      // Reinitialize sockets.
-      LogMessage("reinitializing sockets");
-      InitSockets();
-      LogMessage("reinitialization success");
-      status_thread_ = std::thread(&SyncClient::StatusLoop, this);
-      heartbeat_thread_ = std::thread(&SyncClient::HeartbeatLoop, this);
 
     } else {
-
+      
       std::this_thread::yield();
       heavy_sleep();
     }
@@ -285,7 +300,7 @@ void SyncClient::HeartbeatLoop()
 {
   LogMessage("HeartbeatLoop launched");
 
-  // Try to ping every every two long sleep periods.
+  // Try to ping every two long sleep periods.
   while (thread_live_) {
 
     zmq::message_t msg(client_name_.size());

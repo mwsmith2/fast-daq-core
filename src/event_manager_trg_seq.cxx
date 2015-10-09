@@ -36,6 +36,11 @@ int EventManagerTrgSeq::Init()
   sequence_in_progress_ = false;
   builder_has_finished_ = true;
   mux_round_configured_ = false;
+
+  // Change the logfile if there is one in the config.
+  boost::property_tree::ptree conf;
+  boost::property_tree::read_json(conf_file_, conf);
+  SetLogFile(conf.get<std::string>("logfile", logfile_));
 }
 
 int EventManagerTrgSeq::BeginOfRun() 
@@ -43,7 +48,7 @@ int EventManagerTrgSeq::BeginOfRun()
   boost::property_tree::ptree conf;
   boost::property_tree::read_json(conf_file_, conf);
 
-  LogMessage("BeginOfRun executed");
+  LogMessage("BeginOfRun executed - configuring with %s", conf_file_.c_str());
 
   // First set the config-dir if there is one.
   conf_dir = conf.get<std::string>("config_dir", conf_dir);
@@ -55,6 +60,7 @@ int EventManagerTrgSeq::BeginOfRun()
     std::string dev_conf_file = conf_dir + std::string(v.second.data());
     sis_idx_map_[name] = sis_idx++;
 
+    LogDebug("loading hw: %s, %s", name.c_str(), dev_conf_file.c_str());
     workers_.PushBack(new WorkerSis3302(name, dev_conf_file));
   }
 
@@ -65,6 +71,7 @@ int EventManagerTrgSeq::BeginOfRun()
     std::string dev_conf_file = conf_dir + std::string(v.second.data());
     sis_idx_map_[name] = sis_idx++;
 
+    LogDebug("loading hw: %s, %s", name.c_str(), dev_conf_file.c_str());
     workers_.PushBack(new WorkerSis3316(name, dev_conf_file));
   }
 
@@ -75,28 +82,33 @@ int EventManagerTrgSeq::BeginOfRun()
     std::string dev_conf_file = conf_dir + std::string(v.second.data());
     sis_idx_map_[name] = sis_idx++;
 
+    LogDebug("loading hw: %s, %s", name.c_str(), dev_conf_file.c_str());
     workers_.PushBack(new WorkerSis3350(name, dev_conf_file));
   }
 
   // Set up the NMR pulser trigger.
   char bid = conf.get<char>("devices.nmr_pulser.dio_board_id");
   int port = conf.get<int>("devices.nmr_pulser.dio_port_num");
-  nmr_trg_bit_ = conf.get<int>("devices.nmr_pulser.dio_trg_bit");
-  
+  nmr_trg_mask_ = conf.get<int>("devices.nmr_pulser.dio_trg_mask");
+
   switch (bid) {
     case 'a':
+      LogDebug("setting NMR pulser trigger on dio board A, port %i", port);
       nmr_pulser_trg_ = new DioTriggerBoard(0x0, BOARD_A, port);
       break;
 
     case 'b':
+      LogDebug("setting NMR pulser trigger on dio board B, port %i", port);
       nmr_pulser_trg_ = new DioTriggerBoard(0x0, BOARD_B, port);
       break;
 
     case 'c':
+      LogDebug("setting NMR pulser trigger on dio board C, port %i", port);
       nmr_pulser_trg_ = new DioTriggerBoard(0x0, BOARD_C, port);   
       break;
 
     default:
+      LogDebug("setting NMR pulser trigger on dio board D, port %i", port);
       nmr_pulser_trg_ = new DioTriggerBoard(0x0, BOARD_D, port);  
       break;
   }
@@ -106,6 +118,7 @@ int EventManagerTrgSeq::BeginOfRun()
   mux_conf_file_ = conf_dir + conf.get<std::string>("mux_conf_file");
 
   // Load trigger sequence
+  LogMessage("loading trigger sequence from %s", trg_seq_file_.c_str());
   boost::property_tree::read_json(trg_seq_file_, conf);
   
   for (auto &mux : conf) {
@@ -174,6 +187,8 @@ int EventManagerTrgSeq::BeginOfRun()
   while (workers_.AnyWorkersHaveEvent()) {
     workers_.FlushEventData();
   }
+
+  LogMessage("Configuration loaded");
 }
 
 int EventManagerTrgSeq::EndOfRun() 
@@ -293,7 +308,8 @@ void EventManagerTrgSeq::TriggerLoop()
 
 	  LogMessage("TriggerLoop: muxes are configured for this round");
 
-	  nmr_pulser_trg_->FireTrigger(nmr_trg_bit_);
+          usleep(50000);
+	  nmr_pulser_trg_->FireTriggers(nmr_trg_mask_);
 	  mux_round_configured_ = true;
 	  
 	  while (!got_round_data_ && go_time_) {
@@ -355,13 +371,21 @@ void EventManagerTrgSeq::BuilderLoop()
 
         if (mux_round_configured_) {
 	
-          if (!data_queue_.empty()) {
-            queue_mutex_.lock();
+          queue_mutex_.lock();
+          
+          if (data_queue_.empty()) {
+
+            queue_mutex_.unlock();
+
+          } else {
+
             data = data_queue_.front();
             data_queue_.pop();
             queue_mutex_.unlock();
 
-            LogMessage("BuilderLoop: Got data, starting to copy it");
+            auto dt = high_resolution_clock::now().time_since_epoch();
+            auto timestamp = duration_cast<microseconds>(dt).count();  
+            LogMessage("BuilderLoop: copying data at %u us", timestamp);
 
             for (auto &pair : trg_seq_[seq_index]) {
 	      
@@ -370,10 +394,10 @@ void EventManagerTrgSeq::BuilderLoop()
               int sis_idx = sis_idx_map_[sis_name];
               int trace_idx = data_in_[pair.first].second;
 
-              LogMessage(std::string("BuilderLoop: Copied sis ") +
-                       std::to_string(sis_idx) +
-                       std::string(", ch ") +
-                       std::to_string(trace_idx));
+              auto dt = high_resolution_clock::now().time_since_epoch();
+              auto timestamp = duration_cast<microseconds>(dt).count();  
+              LogDebug("BuilderLoop: Copying %s, ch %i at %u us", 
+                       sis_name.c_str(), trace_idx, timestamp);
 
               int idx = 0;
               ULong64_t clock = 0;
@@ -428,7 +452,7 @@ void EventManagerTrgSeq::BuilderLoop()
               bundle.dev_clock[idx] = clock;
               
               // Extract the FID frequency and some diagnostic params.
-              fid::FID myfid(tm, wf);
+              fid::FID myfid(wf, tm);
 
               // Make sure we got an FID signal
               if (myfid.isgood()) {

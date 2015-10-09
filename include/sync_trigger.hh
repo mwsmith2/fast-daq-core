@@ -28,7 +28,7 @@ author: Matthias W. Smith
 
 namespace daq {
 
-class SyncTrigger : TriggerBase {
+class SyncTrigger : public TriggerBase {
 
  public:
   // ctors

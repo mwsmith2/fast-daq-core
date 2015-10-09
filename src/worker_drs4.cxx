@@ -107,12 +107,14 @@ drs4 WorkerDrs4::PopEvent()
 {
   static drs4 data;
 
+  queue_mutex_.lock();
+
   if (data_queue_.empty()) {
+    queue_mutex_.unlock();
+
     drs4 str;
     return str;
   }
-
-  queue_mutex_.lock();
 
   // Copy the data.
   data = data_queue_.front();

@@ -373,9 +373,9 @@ caen_1742 WorkerCaen1742::PopEvent()
   queue_mutex_.lock();
 
   if (data_queue_.empty()) {
+    queue_mutex_.unlock();
 
     caen_1742 str;
-    queue_mutex_.unlock();
     return str;
 
   } else if (!data_queue_.empty()) {

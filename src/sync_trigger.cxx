@@ -92,7 +92,7 @@ void SyncTrigger::InitSockets()
 
   } catch (zmq::error_t) {
 
-    std::cerr << "Couldn't bind to given address." << std::endl;
+    LogError("couldn't bind to given address");
     exit(EXIT_FAILURE);
   }
 
@@ -149,6 +149,8 @@ void SyncTrigger::InitSockets()
 
   // Subscribe to all messages.
   heartbeat_sck_.setsockopt(ZMQ_SUBSCRIBE, "", 0);
+
+  LogMessage("sync_trigger initialized on %s:%i", base_tcpip_.c_str(), base_port_);
 }
 
 void SyncTrigger::LaunchThreads() 
@@ -157,9 +159,10 @@ void SyncTrigger::LaunchThreads()
   register_thread_ = std::thread(&SyncTrigger::ClientLoop, this); 
 }
 
+
 void SyncTrigger::TriggerLoop()
 {
-  LogMessage("TriggerLoop launched");
+  LogDebug("TriggerLoop launched");
 
   zmq::message_t msg;
   zmq::message_t ready_msg;
@@ -167,6 +170,7 @@ void SyncTrigger::TriggerLoop()
 
   bool rc = false;
   int clients_ready = 0;
+  int num_triggers = 0;
 
   while (thread_live_) {
 
@@ -176,6 +180,7 @@ void SyncTrigger::TriggerLoop()
 
         // Need to keep track of time zero.
         clients_ready = 0;
+        num_triggers = 0;
 
       } else if (clients_ready < num_clients_) {
 
@@ -191,14 +196,16 @@ void SyncTrigger::TriggerLoop()
 
           // Increment ready devices.
           ++clients_ready;
+          LogDebug("%i/%i clients ready.", clients_ready - 1, (int)num_clients_);
         }
 
       } else if (clients_ready >= num_clients_) {
 
         // Send a trigger.
         rc = trigger_sck_.send(trigger_msg);
-
+        
         if (rc == true) {
+          LogMessage("clients ready, sent trigger %i", num_triggers++);
           clients_ready = 0;
           clients_good_ = true;
         }
@@ -233,7 +240,7 @@ void SyncTrigger::ClientLoop()
   int clients_lost = 0;
   std::string client_name;
 
-  std::map<std::string, long> client_time;
+  std::map<std::string, long long> client_time;
 
   while (thread_live_) {
 
@@ -268,36 +275,68 @@ void SyncTrigger::ClientLoop()
       if (!fix_num_clients_ && !client_reconnect) {
 
         ++num_clients_;
-        LogMessage("New client %s registered. [%i]", 
+        LogMessage("new client %s registered [%i]", 
                    client_name.c_str(), (int)num_clients_);
+
+      } else if (client_time.size()+1 > num_clients_) {
+
+        heavy_sleep();
+        auto stale_client = client_time.cbegin();
+
+        for (auto it = client_time.cbegin(); it != client_time.cend(); ++it) {
+          
+          if ((*it).second < (*stale_client).second) {
+            stale_client = it;
+          }
+        }
+        
+        LogMessage("client-%s replaced stale client-%s", 
+                   client_name.c_str(), (*stale_client).first.c_str());
+
+        client_time.erase(stale_client);
 
       } else {
         
-        LogMessage("client-%s reconnected. [%i/%i]", 
+        LogMessage("client-%s reconnected [%i/%i]", 
                    client_name.c_str(), client_time.size()+1, (int)num_clients_);
       }
     }
 
     // Monitor the heartbeat of the clients
     do {
-      rc = heartbeat_sck_.recv(&msg, ZMQ_DONTWAIT);
+      int count = 0;
+      do {
+        rc = heartbeat_sck_.recv(&msg, ZMQ_DONTWAIT);
+      } while (!rc && (count++ < 100));
       
       if (rc == true) {
 
         std::string heartbeat_msg((char *)msg.data());
-                
-        client_time[heartbeat_msg] = systime_us();
+
+        client_time[heartbeat_msg] = steadyclock_us();
+        LogDebug("pulse from client %s at %lli", 
+                 heartbeat_msg.c_str(), 
+                 steadyclock_us());
       } 
+
     } while (rc == true);
 
     // Now check if any clients are too old
     for (auto it = client_time.cbegin(); it != client_time.cend();) {
       
-      if (systime_us() - (*it).second > client_timeout_) {
+      auto time = steadyclock_us();
+      bool check = time - (*it).second > client_timeout_;
+    
+      if (check) {
+        LogDebug("logic-check: %lli - %lli > %lli", 
+                 time, (*it).second, client_timeout_);
+
+        LogMessage("Dropping unresponsive client-%s [%i]", 
+                   (*it).first.c_str(), (int)num_clients_);
+
+        LogDebug("Last reponse %lli us ago", steadyclock_us() - (*it).second);
 
 	client_time.erase(it++);
-
-    LogMessage("Dropping unresponsive client [%i]", (int)num_clients_);
 
 	if (!fix_num_clients_) {
 
@@ -310,6 +349,7 @@ void SyncTrigger::ClientLoop()
 	}
 
       } else {
+
 	++it;
       }
     }

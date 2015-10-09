@@ -93,7 +93,7 @@ private:
   std::string trg_seq_file_;
   std::string mux_conf_file_;
 
-  int nmr_trg_bit_;
+  int nmr_trg_mask_;
   DioTriggerBoard *nmr_pulser_trg_;
   std::vector<DioMuxController *> mux_boards_;
   std::map<std::string, int> mux_idx_map_;
