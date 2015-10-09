@@ -314,7 +314,7 @@ void SyncTrigger::ClientLoop()
         std::string heartbeat_msg((char *)msg.data());
 
         client_time[heartbeat_msg] = steadyclock_us();
-        LogDebug("pulse from client %s at %lli", 
+        LogDump("pulse from client %s at %lli", 
                  heartbeat_msg.c_str(), 
                  steadyclock_us());
       } 

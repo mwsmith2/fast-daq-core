@@ -99,7 +99,7 @@ int WorkerVme<T>::Read(uint addr, uint &msg)
 
   } else {
 
-    this->LogDebug("read32  vme device 0x%08x, register 0x%08x, data 0x%08x", 
+    this->LogDump("read32  vme device 0x%08x, register 0x%08x, data 0x%08x", 
                    base_address_, addr, msg);
   }
 
@@ -143,7 +143,7 @@ int WorkerVme<T>::Write(uint addr, uint msg)
 
   } else {
 
-    this->LogDebug("write32 vme device 0x%08x, register 0x%08x, data 0x%08x", 
+    this->LogDump("write32 vme device 0x%08x, register 0x%08x, data 0x%08x", 
                    base_address_, addr, msg);
   }
 
@@ -186,7 +186,7 @@ int WorkerVme<T>::Read16(uint addr, ushort &msg)
 
   } else {
 
-    this->LogDebug("read16  vme device 0x%08x, register 0x%08x, data 0x%04x", 
+    this->LogDump("read16  vme device 0x%08x, register 0x%08x, data 0x%04x", 
                    base_address_, addr, msg);
   }
 
@@ -230,7 +230,7 @@ int WorkerVme<T>::Write16(uint addr, ushort msg)
 
   } else {
 
-    this->LogDebug("write16 vme device 0x%08x, register 0x%08x, data 0x%04x", 
+    this->LogDump("write16 vme device 0x%08x, register 0x%08x, data 0x%04x", 
                    base_address_, addr, msg);
   }
 
@@ -268,7 +268,7 @@ int WorkerVme<T>::ReadTrace(uint addr, uint *trace)
   }
 
   // Make the vme call.
-  this->LogDebug("read_2evme vme device 0x%08x, register 0x%08x, samples %i", 
+  this->LogDump("read_2evme vme device 0x%08x, register 0x%08x, samples %i", 
 		 base_address_, addr, read_trace_len_);
 
   status = (retval = vme_A32_2EVME_read(device_,
@@ -283,7 +283,7 @@ int WorkerVme<T>::ReadTrace(uint addr, uint *trace)
 
   } else {
 
-    this->LogDebug("read32_evme address 0x%08x, ndata asked %i, ndata recv %i", 
+    this->LogDump("read32_evme address 0x%08x, ndata asked %i, ndata recv %i", 
                    base_address_ + addr, read_trace_len_, num_got);
   }
 
@@ -324,7 +324,7 @@ int WorkerVme<T>::ReadTraceFifo(uint addr, uint *trace)
 
   } else {
 
-    this->LogDebug("read32_2evmefifo addr 0x%08x, trace_len %i, ndata recv %i",
+    this->LogDump("read32_2evmefifo addr 0x%08x, trace_len %i, ndata recv %i",
                    base_address_ + addr, read_trace_len_, num_got);
   }
 
@@ -374,7 +374,7 @@ int WorkerVme<T>::ReadTraceMblt64(uint addr, uint *trace)
 
   } else {
 
-    this->LogDebug("read32_mblt address 0x%08x, ndata asked %i, ndata recv %i", 
+    this->LogDump("read32_mblt address 0x%08x, ndata asked %i, ndata recv %i", 
                    base_address_ + addr, read_trace_len_, num_got);
   }
 
@@ -424,7 +424,7 @@ int WorkerVme<T>::ReadTraceMblt64Fifo(uint addr, uint *trace)
 
   } else {
 
-    this->LogDebug("read32_mblt_fifo addr 0x%08x, trace_len %i, ndata recv %i", 
+    this->LogDump("read32_mblt_fifo addr 0x%08x, trace_len %i, ndata recv %i", 
                    base_address_ + addr, read_trace_len_, num_got);
   }
 
