@@ -37,6 +37,7 @@ class CommonBase {
  protected:
   
   static const int name_width_ = 16;
+  static const int time_width_ = 20;
 
   // These should be defined in common_extdef.hh
   static int logging_verbosity_; 
@@ -56,17 +57,11 @@ class CommonBase {
 
       while (!logstream_.is_open()) {
         logstream_.open(logfile_, std::fstream::app | std::fstream::out);
+        usleep(10);
       }
 
-      time(&timer_);
-      auto t = localtime(&timer_);
+      prepend(level::DEBUG);      
 
-      char *tm_str = asctime(t);
-      tm_str[strlen(tm_str) - 1] = '\0';
-
-      logstream_ << std::left << std::setw(name_width_) << name_;
-      logstream_ << " [" << tm_str << "]:   *DEBUG*   ";
-      
       va_list args;
       va_start(args, format);
       vsprintf(logstr_, format, args);
@@ -288,6 +283,42 @@ class CommonBase {
     logfile_ = logfile;
     log_mutex_.unlock();      
   };
+
+ private:
+
+  enum level { DUMP, DEBUG, MESSAGE, WARNING, ERROR };
+
+  inline void prepend(level lvl) {
+
+    static timespec t;
+    static tm_start;
+    static lvl_msg;
+
+    clock_gettime(CLOCK_REALTIME, &t);
+    tm_start = std::put_time(localtime(&t.tv_sec), "%F %T.");
+
+    switch (lvl) {
+      case DUMP:
+        lvl_msg = std::string(" ==RAW== ");
+        break;
+      case DEBUG:
+        lvl_msg = std::string(" =DEBUG= ");
+        break;
+      case MESSAGE:
+        lvl_msg = std::string(" MESSAGE ");
+        break;
+      case WARNING:
+        lvl_msg = std::string("*WARNING*");
+        break;
+      case ERROR:
+        lvl_msg = std::string("**ERROR**");
+        break;
+    }
+
+    logstream_ << std::left << std::setw(time_width_) << tm_start;
+    logstream_ << std::setfill('0') << std::setw(6) << t.tv_nsec / 1000; 
+    logstream_ << lvl_msg;
+  }
 };
 
 } // daq
