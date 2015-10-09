@@ -347,7 +347,7 @@ void EventManagerTrgSeq::BuilderLoop()
 {
   using namespace std::chrono;
 
-  LogDebug("BuilderLoop: allocating wf/tm vectors")
+  LogDebug("BuilderLoop: allocating wf/tm vectors");
   std::vector<double> tm(NMR_FID_LN, 0.0);
   std::vector<double> wf(NMR_FID_LN, 0.0);
 

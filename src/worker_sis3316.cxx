@@ -597,7 +597,7 @@ void WorkerSis3316::LoadConfig()
   }
 
   if (nerrors > 0) {
-    LogMessage("configuration failed with %i errors, killing worker", nerrors);
+    LogError("configuration failed with %i errors, killing worker", nerrors);
     exit(-1);
   }
 } // LoadConfig
@@ -724,7 +724,9 @@ void WorkerSis3316::GetEvent(sis_3316 &bundle)
   auto t1 = high_resolution_clock::now();
   auto dtn = t1.time_since_epoch() - t0_.time_since_epoch();
   bundle.system_clock = duration_cast<milliseconds>(dtn).count();  
-  LogMessage("GetEvent start: %u us", duration_cast<microseconds>(dtn).count());
+
+  // For time profiling
+  LogDebug("GetEvent: start");
 
   // Now get the raw data (timestamp and waveform).
   for (ch = 0; ch < SIS_3316_CH; ch++) {
@@ -775,7 +777,7 @@ void WorkerSis3316::GetEvent(sis_3316 &bundle)
     // Set to the adc base memory.
     count = 0;
     trace_addr = 0x100000 * ((ch >> 2) + 1);
-    LogMessage("attempting to read trace at 0x%08x", trace_addr);
+    LogDebug("attempting to read trace at 0x%08x", trace_addr);
 
     do {
       rc = ReadTraceFifo(trace_addr, data[ch]);
@@ -813,7 +815,7 @@ void WorkerSis3316::GetEvent(sis_3316 &bundle)
 
   t1 = high_resolution_clock::now();
   dtn = t1.time_since_epoch() - t0_.time_since_epoch();
-  LogMessage("GetEvent stop: %u us", duration_cast<microseconds>(dtn).count());
+  LogDebug("GetEvent finished");
 }
 
 int WorkerSis3316::I2cStart(int osc)
@@ -838,7 +840,7 @@ int WorkerSis3316::I2cStart(int osc)
     if (Read(addr, msg) != 0) {
       LogError("failed to read I2C register");
     }
-    LogMessage("I2cStart response: 0x%08x", msg);
+    LogDebug("I2cStart response: 0x%08x", msg);
   } while ((count++ < kMaxPoll) && ((msg >> 31) & 0x1));
 
   if (count >= kMaxPoll) return 2;
@@ -868,7 +870,7 @@ int WorkerSis3316::I2cStop(int osc)
     if (Read(addr, msg) != 0) {
       LogError("failed to read I2C register");
     }
-    LogMessage("I2cStop response: 0x%08x", msg);
+    LogDebug("I2cStop response: 0x%08x", msg);
   } while ((count++ < kMaxPoll) && ((msg >> 31) & 0x1));
 
   
@@ -942,7 +944,7 @@ int WorkerSis3316::I2cWrite(int osc, unsigned char data, unsigned char &ack)
     if (Read(addr, msg) != 0) {
       LogError("failed to read I2C register");
     }
-    LogMessage("I2cWrite response: 0x%08x", msg);
+    LogDebug("I2cWrite response: 0x%08x", msg);
   } while ((count++ < kMaxPoll) && ((msg >> 31) & 0x1));
 
   if (count >= kMaxPoll) {
