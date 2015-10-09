@@ -217,6 +217,12 @@ int EventManagerTrgSeq::EndOfRun()
 
   workers_.FreeList();
 
+  mux_idx_map_.clear();
+  sis_idx_map_.clear();
+  data_out_.clear();
+  trg_seq_.resize(0);
+  
+
   return 0;
 }
 
@@ -347,9 +353,11 @@ void EventManagerTrgSeq::BuilderLoop()
 {
   using namespace std::chrono;
 
-  LogDebug("BuilderLoop: allocating wf/tm vectors");
+  LogDebug("BuilderLoop: launched"); 
+
   std::vector<double> tm(NMR_FID_LN, 0.0);
   std::vector<double> wf(NMR_FID_LN, 0.0);
+  std::vector<int> indices;
 
   for (int i = 0; i < NMR_FID_LN; ++i) {
     tm[i] = i * sample_period;
@@ -385,7 +393,7 @@ void EventManagerTrgSeq::BuilderLoop()
             data_queue_.pop();
             queue_mutex_.unlock();
 
-            LogMessage("BuilderLoop: copying data");
+            LogDebug("BuilderLoop: copying data");
 
             for (auto &pair : trg_seq_[seq_index]) {
 	      
@@ -405,48 +413,64 @@ void EventManagerTrgSeq::BuilderLoop()
                 // Store index and clock.
                 clock = data.sis_3302_vec[sis_idx].device_clock[trace_idx];
                 idx = data_out_[pair].second;
+                bundle.dev_clock[idx] = clock;
                 
                 // Get FID data.
                 auto arr_ptr = &bundle.trace[idx][0];
                 auto trace = data.sis_3302_vec[sis_idx].trace[trace_idx];
                 std::copy(&trace[0], &trace[SIS_3302_LN], arr_ptr);
-                std::copy(&trace[0], &trace[SIS_3302_LN], wf.begin());
 
               } else if (sis_name.find("sis_3316") == 0) {
                 
                 // Store index and clock.
                 idx = data_out_[pair].second;
                 clock = data.sis_3316_vec[sis_idx].device_clock[trace_idx];
+                bundle.dev_clock[idx] = clock;
 
                 // Get FID data.
                 auto arr_ptr = &bundle.trace[idx][0];
                 auto trace = data.sis_3316_vec[sis_idx].trace[trace_idx];
                 std::copy(&trace[0], &trace[SIS_3316_LN], arr_ptr);
-                std::copy(&trace[0], &trace[SIS_3316_LN], wf.begin());
 
               } else if (sis_name.find("sis_3350") == 0) {
                 
                 // Store index and clock.
                 clock = data.sis_3350_vec[sis_idx].device_clock[trace_idx];
                 idx = data_out_[pair].second;
+                bundle.dev_clock[idx] = clock;
                 
                 // Get FID data.
                 auto arr_ptr = &bundle.trace[idx][0];
                 auto trace = data.sis_3350_vec[sis_idx].trace[trace_idx];
                 std::copy(&trace[0], &trace[SIS_3350_LN], arr_ptr);
-                std::copy(&trace[0], &trace[SIS_3350_LN], wf.begin());
 
               } else {
 
                 LogError("digitizer name did not match any known type.");
                 return;
               }
+
+              // Save the index for analysis after copying
+              indices.push_back(idx);
+            }
+
+            // Let the data collection begin for next round.
+            seq_index++;
+            got_round_data_ = true;
+            mux_round_configured_ = false;
+            
+            // Analyze the FIDs from this round.
+            for (auto &idx : indices) { 
+
+              LogDebug("BuilderLoop: analyzing FID %i", idx);  
               
-              LogDebug("BuilderLoop: analyzing FID");  
+              std::copy(&bundle.trace[idx][0], 
+                        &bundle.trace[idx][NMR_FID_LN], 
+                        wf.begin());
+
               // Get the timestamp
               bundle.sys_clock[idx] = systime_us();
               bundle.gps_clock[idx] = 0.0; // todo:
-              bundle.dev_clock[idx] = clock;
               
               // Extract the FID frequency and some diagnostic params.
               fid::FID myfid(wf, tm);
@@ -475,14 +499,10 @@ void EventManagerTrgSeq::BuilderLoop()
                 bundle.freq_zc[idx] = 0.0;
                 bundle.ferr_zc[idx] = 0.0;
               }
-
-              LogDebug("BuilderLoop: FID analysis finished");  
             } // next pair
-	    
-            seq_index++;
-            got_round_data_ = true;
-            mux_round_configured_ = false;
-          }
+
+            indices.resize(0);
+	  }
         } // next round
 
         std::this_thread::yield();
