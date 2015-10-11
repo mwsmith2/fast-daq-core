@@ -100,7 +100,7 @@ void WorkerCaen1742::LoadConfig()
     }
 
     if (msg & ((0x1 << 2) | (0x1 << 8)))
-      LogMessage("unit %i is busy", i);
+      LogDebug("unit %i is busy", i);
 
     rc = Read(0x10A0 + i*0x100, msg);
     if (rc != 0) {
@@ -164,7 +164,7 @@ void WorkerCaen1742::LoadConfig()
   if (rc != 0) {
     LogError("failed to read group enable mask");
   } else {
-    LogMessage("group enable mask reads: %08x", msg);
+    LogDebug("group enable mask reads: %08x", msg);
   }
 
   // Set the trace length.
@@ -245,14 +245,15 @@ void WorkerCaen1742::LoadConfig()
         LogError("failed to read boad status while setting DAC");
 	break;
 
-      } else if (count++ > 100) {
-        
-        LogError("timed out polling busy after setting DAC");
-
       } else if (!(msg & 0x84)) {
 
         // This is what should happen
         break;
+
+      } else if (count++ > 1000) {
+        
+        LogError("timed out polling busy after setting DAC, ch%i", ch);
+	break;
       }
     }
     
@@ -292,8 +293,6 @@ void WorkerCaen1742::LoadConfig()
 
   } while ((count++ < 100) && !(msg & 0x100));
 
-  LogMessage("board is ready to acquire events");
-
   rc = Read(0x8100, msg);
   if (rc != 0) {
     LogError("failed to read register 0x8100");
@@ -314,7 +313,7 @@ void WorkerCaen1742::LoadConfig()
   }
 
   // Read initial empty event.
-  LogMessage("eating first empty event");
+  LogDebug("eating first empty event");
   if (EventAvailable()) {
     caen_1742 bundle;
     GetEvent(bundle);
@@ -341,6 +340,8 @@ void WorkerCaen1742::WorkLoop()
         data_queue_.push(bundle);
         has_event_ = true;
         queue_mutex_.unlock();
+
+	LogDebug("read out new event");
 	
       } else {
 	
@@ -416,6 +417,7 @@ bool WorkerCaen1742::EventAvailable()
 void WorkerCaen1742::GetEvent(caen_1742 &bundle)
 {
   using namespace std::chrono;
+
   int ch, offset, rc = 0; 
   char *evtptr = nullptr;
   uint msg, d, size;
@@ -441,27 +443,17 @@ void WorkerCaen1742::GetEvent(caen_1742 &bundle)
   
   buffer.resize(msg);
   read_trace_len_ = msg;
-  LogMessage("reading event length: %i", msg);
-  
-  // Try reading out word by word
-  for (int i = 0; i < read_trace_len_; ++i) {
+  LogDebug("begin readout of event length: %i", msg);
+  ReadTraceDma32Fifo(0x0, &buffer[0]);
 
-    rc = Read(0x0, msg);
-    if (rc != 0) {
-      LogError("failed to read data byte %i of %i", i, read_trace_len_);
-    }
-
-    buffer[i] = msg;
-  }
-
-  LogMessage("first element of event is %08x", buffer[0]);
+  LogDebug("finished, element zero is %08x", buffer[0]);
   // Get the number of current events buffered.
   rc = Read(0x812c, msg);
   if (rc != 0) {
     LogError("failed to read current number of buffered events");
   }
 
-  LogMessage("%i events in memory", msg);
+  LogDebug("%i events in memory", msg);
 
   // Make sure we aren't getting empty events
   if (buffer.size() < 5) {
@@ -481,6 +473,7 @@ void WorkerCaen1742::GetEvent(caen_1742 &bundle)
   int start_idx = 4; // Skip main event header
   int stop_idx = 4;
 
+  LogDebug("beginning to unpack data");
   for (int grp_idx = 0; grp_idx < CAEN_1742_GR; ++grp_idx) {
 
     // Skip if this group isn't present.
@@ -536,7 +529,7 @@ void WorkerCaen1742::GetEvent(caen_1742 &bundle)
     // Now grab the trigger if it was digitized.
     if (trg_saved) {
       
-      LogMessage("Digitizing trigger");
+      LogDebug("Digitizing trigger");
       stop_idx = start_idx + (data_size / 8);
 
       for (int i = start_idx; i < stop_idx; i += 3) {
@@ -561,7 +554,7 @@ void WorkerCaen1742::GetEvent(caen_1742 &bundle)
 
     // Grab the trigger time and increment starting index.
     uint timestamp = buffer[stop_idx++];
-    LogMessage("timestamp: 0x%08x\n", timestamp);
+    LogDebug("timestamp: 0x%08x\n", timestamp);
 
     start_idx = stop_idx;
   }
@@ -569,6 +562,8 @@ void WorkerCaen1742::GetEvent(caen_1742 &bundle)
   if (true) {
     ApplyDataCorrection(bundle, startcells);
   }
+
+  LogDebug("data readout complete");
 }
 
 
@@ -579,8 +574,11 @@ int WorkerCaen1742::ApplyDataCorrection(caen_1742 &data,
   static bool correction_loaded = false;
   static drs_correction table;
 
+  LogDebug("applying data correction");
+
   if (!correction_loaded) {
     GetCorrectionData(table);
+    correction_loaded = true;
   }
 
   if (drs_cell_corrections_) {
@@ -592,7 +590,7 @@ int WorkerCaen1742::ApplyDataCorrection(caen_1742 &data,
   }
   
   if (drs_time_corrections_) {
-  TimeCorrection(data, table, startcells);
+    TimeCorrection(data, table, startcells);
   }
 
   return 0;
@@ -643,7 +641,7 @@ int WorkerCaen1742::PeakCorrection(caen_1742 &data, const drs_correction &table)
       // Reset if we are at the beginning of a new group.
       if (j % (CAEN_1742_CH / CAEN_1742_GR) == 0) offset = 0;
 
-      LogDebug("peak correction on cell[%i][%i]", j, i);
+      LogDump("peak correction on cell[%i][%i]", j, i);
 
       switch(i) {
       
@@ -765,12 +763,12 @@ int WorkerCaen1742::TimeCorrection(caen_1742 &data,
 	if (dt > 0) {
 
 	  time[i][j] = time[i][j-1] + dt;
-	  LogDebug("time[%i][%i] = %.4f", i, j, time[i][j]);
+	  LogDump("time[%i][%i] = %.4f", i, j, time[i][j]);
 
 	} else {
 	  
 	  time[i][j] = time[i][j-1] + dt + CAEN_1742_LN * sample_time;
-	  LogDebug("time[%i][%i] = %.4f", i, j, time[i][j]);
+	  LogDump("time[%i][%i] = %.4f", i, j, time[i][j]);
 	}
 
 	t0 = table.time[i][(startcells[i]+j) % CAEN_1742_LN];
@@ -787,23 +785,22 @@ int WorkerCaen1742::TimeCorrection(caen_1742 &data,
     vcorr = 0.0;
     vrem = 0.0;
     dv = 0.0;
-    k = 1;
+    k = 0;
 
     wf[0] = data.trace[i][0];
 
     for (j = 1; j < CAEN_1742_LN; ++j) {
       
       // Find the next sample in time order.
-      while ((k < CAEN_1742_LN - 1) && (time[grp_idx][k-1] < j * sample_time)) ++k;
+      while ((k < CAEN_1742_LN - 2) && (time[grp_idx][k+1] < j * sample_time))
+	++k;
       
       dv = data.trace[i][k+1] - data.trace[i][k];
       dt = time[grp_idx][k+1] - time[grp_idx][k];
       vcorr = (float) dv / dt * (j * sample_time - time[grp_idx][k]);
-      LogDebug("vcorr[%i][%i] = %.4f", i, j, vcorr);
+      LogDump("vcorr[%i][%i] = %.4f", i, j, vcorr);
 
       wf[j] = data.trace[i][k] + vcorr;
-      
-      if (k > 1) k--; 
     }
 
     for (j = 0; j < CAEN_1742_LN; ++j) {
@@ -947,7 +944,7 @@ int WorkerCaen1742::ReadFlashPage(uint32_t group,
 				  uint32_t pagenum, 
 				  std::vector<int8_t> &page)
 {
-  LogMessage("reading flash page 0x%08x for group %i", pagenum, group);
+  LogDebug("reading flash page 0x%08x for group %i", pagenum, group);
 
   // Some basic variables
   int rc = 0;
@@ -968,7 +965,7 @@ int WorkerCaen1742::ReadFlashPage(uint32_t group,
     return rc;
   }
 
-  LogMessage("group %i status is 0x%04x", group, d16);
+  LogDebug("group %i status is 0x%04x", group, d16);
 
   // Enable the flash memory and tell it to read the main memory page.
   rc = Write16(gr_sel_flash, 0x1);
@@ -1028,7 +1025,7 @@ int WorkerCaen1742::ReadFlashPage(uint32_t group,
     page[i] = (int8_t)(d32 & 0xff);
 
     if (i == 0) {
-      LogMessage("first value in pagenum 0x%08x is %i", pagenum, d32 & 0xff);
+      LogDebug("first value in pagenum 0x%08x is %i", pagenum, d32 & 0xff);
     }
 
     rc = Read(gr_status, d32);
@@ -1043,6 +1040,7 @@ int WorkerCaen1742::ReadFlashPage(uint32_t group,
     return rc;
   }
 
+  LogDebug("done with flash page");
   return 0;
 }
 
