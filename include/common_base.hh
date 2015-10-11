@@ -326,9 +326,9 @@ class CommonBase {
         break;
     }
 
-    logstream_ << tm_start << std::setfill('0') << std::setw(6) << t.tv_nsec / 1000;
-    logstream_ << lvl_msg << std::setfill(' ') << "{ " << std::left;
-    logstream_ << std::setw(name_width_) << name_ << " } : ";
+    logstream_ << tm_start << std::right << std::setfill('0') << std::setw(6);
+    logstream_ << t.tv_nsec / 1000 << lvl_msg << std::setfill(' ') << "{ "; 
+    logstream_ << std::left << std::setw(name_width_) << name_ << " } : ";
   }
 };
 
