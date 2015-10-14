@@ -174,13 +174,14 @@ void SyncTrigger::TriggerLoop()
 
   while (thread_live_) {
 
+    num_triggers = 0;
+    clients_ready = 0;
+
     while (triggering_) {
 
       if (num_clients_ == 0) {
 
         // Need to keep track of time zero.
-        clients_ready = 0;
-        num_triggers = 0;
 
       } else if (clients_ready < num_clients_) {
 
