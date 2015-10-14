@@ -92,6 +92,7 @@ private:
   std::atomic<bool> mux_round_configured_;
   std::string trg_seq_file_;
   std::string mux_conf_file_;
+  std::string fid_conf_file_;
 
   int nmr_trg_mask_;
   DioTriggerBoard *nmr_pulser_trg_;

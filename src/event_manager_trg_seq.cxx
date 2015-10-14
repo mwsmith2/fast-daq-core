@@ -52,6 +52,11 @@ int EventManagerTrgSeq::BeginOfRun()
 
   // First set the config-dir if there is one.
   conf_dir = conf.get<std::string>("config_dir", conf_dir);
+  fid_conf_file_ = conf.get<std::string>("fid_conf_file", "");
+
+  if (fid_conf_file_ != std::string("")) {
+    fid::load_params(conf_dir + fid_conf_file_);
+  }
 
   int sis_idx = 0;
   for (auto &v : conf.get_child("devices.sis_3302")) {
