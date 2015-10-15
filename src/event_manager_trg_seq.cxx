@@ -35,7 +35,8 @@ int EventManagerTrgSeq::Init()
 
   sequence_in_progress_ = false;
   builder_has_finished_ = true;
-  mux_round_configured_ = false;
+  mux_round_configured_ = false;  
+  analyze_fids_online_ = false;
 
   // Change the logfile if there is one in the config.
   boost::property_tree::ptree conf;
@@ -53,6 +54,7 @@ int EventManagerTrgSeq::BeginOfRun()
   // First set the config-dir if there is one.
   conf_dir = conf.get<std::string>("config_dir", conf_dir);
   fid_conf_file_ = conf.get<std::string>("fid_conf_file", "");
+  analyze_fids_online_ = conf.get<bool>("analyze_fids_online", false);
 
   if (fid_conf_file_ != std::string("")) {
     fid::load_params(conf_dir + fid_conf_file_);
@@ -368,6 +370,8 @@ void EventManagerTrgSeq::BuilderLoop()
     tm[i] = i * sample_period;
   }
 
+  fid::FID myfid(wf, tm);
+
   while (thread_live_) {
         
     while (go_time_) {
@@ -467,40 +471,56 @@ void EventManagerTrgSeq::BuilderLoop()
             // Analyze the FIDs from this round.
             for (auto &idx : indices) { 
 
-              LogDebug("BuilderLoop: analyzing FID %i", idx);  
-              
-              std::copy(&bundle.trace[idx][0], 
-                        &bundle.trace[idx][NMR_FID_LN], 
-                        wf.begin());
-
               // Get the timestamp
               bundle.sys_clock[idx] = systime_us();
               bundle.gps_clock[idx] = 0.0; // todo:
               
-              // Extract the FID frequency and some diagnostic params.
-              fid::FID myfid(wf, tm);
+              if (analyze_fids_online_) {
 
-              // Make sure we got an FID signal
-              if (myfid.isgood()) {
+                LogDebug("BuilderLoop: analyzing FID %i", idx);  
                 
-                bundle.snr[idx] = myfid.snr();
-                bundle.len[idx] = myfid.fid_time();
-                bundle.freq[idx] = myfid.CalcPhaseFreq();
-                bundle.ferr[idx] = myfid.freq_err();
-                bundle.method[idx] = (ushort)fid::Method::ZC;
-                bundle.health[idx] = myfid.isgood();
-                bundle.freq_zc[idx] = myfid.CalcZeroCountFreq();
-                bundle.ferr_zc[idx] = myfid.freq_err();
+                std::copy(&bundle.trace[idx][0], 
+                          &bundle.trace[idx][NMR_FID_LN], 
+                          wf.begin());
+              
+                // Extract the FID frequency and some diagnostic params.
+                myfid = fid::FID(wf, tm);
+
+                // Make sure we got an FID signal
+                if (myfid.isgood()) {
                 
-              } else {
+                  bundle.snr[idx] = myfid.snr();
+                  bundle.len[idx] = myfid.fid_time();
+                  bundle.freq[idx] = myfid.CalcPhaseFreq();
+                  bundle.ferr[idx] = myfid.freq_err();
+                  bundle.method[idx] = (ushort)fid::Method::ZC;
+                  bundle.health[idx] = myfid.isgood();
+                  bundle.freq_zc[idx] = myfid.CalcZeroCountFreq();
+                  bundle.ferr_zc[idx] = myfid.freq_err();
+                
+                } else {
                
-                myfid.PrintDiagnosticInfo();
+                  myfid.PrintDiagnosticInfo();
+                  bundle.snr[idx] = 0.0;
+                  bundle.len[idx] = 0.0;
+                  bundle.freq[idx] = 0.0;
+                  bundle.ferr[idx] = 0.0;
+                  bundle.method[idx] = (ushort)fid::Method::ZC;
+                  bundle.health[idx] = myfid.isgood();
+                  bundle.freq_zc[idx] = 0.0;
+                  bundle.ferr_zc[idx] = 0.0;
+                }
+
+              } else {
+              
+                LogDebug("BuilderLoop: skipping analysis");
+
                 bundle.snr[idx] = 0.0;
                 bundle.len[idx] = 0.0;
                 bundle.freq[idx] = 0.0;
                 bundle.ferr[idx] = 0.0;
                 bundle.method[idx] = (ushort)fid::Method::ZC;
-                bundle.health[idx] = myfid.isgood();
+                bundle.health[idx] = 0;
                 bundle.freq_zc[idx] = 0.0;
                 bundle.ferr_zc[idx] = 0.0;
               }

@@ -90,6 +90,7 @@ private:
   std::atomic<bool> builder_has_finished_;
   std::atomic<bool> sequence_in_progress_;
   std::atomic<bool> mux_round_configured_;
+  std::atomic<bool> analyze_fids_online_;
   std::string trg_seq_file_;
   std::string mux_conf_file_;
   std::string fid_conf_file_;
