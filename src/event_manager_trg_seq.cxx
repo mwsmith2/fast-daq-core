@@ -321,7 +321,7 @@ void EventManagerTrgSeq::TriggerLoop()
 	  }
 
       	  LogDebug("TriggerLoop: muxes are configured for this round");
-          usleep(50000);
+          usleep(10000);
       	  nmr_pulser_trg_->FireTriggers(nmr_trg_mask_);
 
     	   LogDebug("TriggerLoop: muxes configure, triggers fired");
@@ -475,7 +475,7 @@ void EventManagerTrgSeq::BuilderLoop()
               bundle.sys_clock[idx] = systime_us();
               bundle.gps_clock[idx] = 0.0; // todo:
               
-              if (analyze_fids_online_) {
+              if (analyze_fids_online_ || (idx == 0)) {
 
                 LogDebug("BuilderLoop: analyzing FID %i", idx);  
                 
