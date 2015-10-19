@@ -35,9 +35,9 @@ ifeq ($(UNAME_S), Linux)
 endif
 
 ifdef DEBUG
-	FLAGS += -g -pg -fPIC -O3 -pthread
+	CXXFLAGS += -g -pg -fPIC -O3 -pthread
 else
-	FLAGS += -fPIC -O3 -pthread
+	CXXFLAGS += -fPIC -O3 -pthread
 endif
 
 # DRS flags

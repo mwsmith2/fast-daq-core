@@ -279,7 +279,30 @@ void WorkerCaen1742::LoadConfig()
   if (rc != 0) {
     LogError("failed to enable external/software triggers");
   }
-  
+
+  // Set BLT Event Number to 1 for now
+  rc = Read(0xef1c, msg);
+  if (rc != 0) {
+    LogError("failed to read BLT Event Number register");
+  }
+
+  rc = Write(0xef1c, 0x1);
+  if (rc != 0) {
+    LogError("failed to set BLT Event Number to 1");
+  }
+
+  // Set BERR enable for BLT transfers
+  rc = Read(0xef00, msg);
+  if (rc != 0) {
+    LogError("failed to read VME control register");
+  }
+
+  rc = Write(0xef00, 0x10);
+  //rc = Write(0xef00, 0x0);
+  if (rc != 0) {
+    LogError("failed to enable BERR in VME control register");
+  }
+
   // Start acquiring events.
   int count = 0;
   do {
@@ -399,6 +422,8 @@ bool WorkerCaen1742::EventAvailable()
   // Check acquisition status regsiter.
   uint msg, rc;
 
+/*
+  //ready flag in acq status
   rc = Read(0x8104, msg);
   if (rc != 0) {
     LogError("failed to read acqusition status register");
@@ -412,53 +437,102 @@ bool WorkerCaen1742::EventAvailable()
 
     return false;
   }
+*/
+
+  //event stored register
+  rc = Read(0x812c, msg);
+  if (rc != 0) {
+    //LogError("failed to read event stored register");
+    return false;
+  }
+
+  if (msg > 0) { 
+    //acq status readout ready flag
+    rc = Read(0x8104, msg);
+    if (rc != 0) {
+      LogError("failed to read acqusition status register");
+      return false;
+    }
+
+    if (msg & (0x1 << 3)) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 void WorkerCaen1742::GetEvent(caen_1742 &bundle)
 {
   using namespace std::chrono;
 
-  int ch, offset, rc = 0; 
+  int ch, rc = 0; 
   char *evtptr = nullptr;
   uint msg, d, size;
   int sample;
   std::vector<uint> startcells(4, 0);
 
   static std::vector<uint> buffer;
-  if (buffer.size() == 0) {
-    buffer.reserve((CAEN_1742_CH * CAEN_1742_LN * 4) / 3 + 32);
-  }
+  //if (buffer.size() == 0) {
+  //  buffer.reserve((CAEN_1742_CH * CAEN_1742_LN * 4) / 3 + 32);
+  buffer.reserve(0x10000);
+  //}
+  std::fill(buffer.begin(), buffer.end(), 0);
 
   // Get the system time
   auto t1 = high_resolution_clock::now();
   auto dtn = t1.time_since_epoch() - t0_.time_since_epoch();
   bundle.system_clock = duration_cast<milliseconds>(dtn).count();  
 
+/*
   // Get the size of the next event data
   rc = Read(0x814c, msg);
   if (rc != 0) {
     LogError("failed to attain size of next event");
     return;
   }
-  
+*/
+
+/*
+  //works OK at about 20 Hz  
   buffer.resize(msg);
   read_trace_len_ = msg;
   LogDebug("begin readout of event length: %i", msg);
   ReadTraceDma32Fifo(0x0, &buffer[0]);
+*/
+
+
+  read_trace_len_ = buffer.capacity();
+  LogDebug("begin readout of event length: %i", msg);
+  rc = ReadTraceMblt64SameBlock(0x0, &buffer[0]);
+
+
+  //rc > 0: number of words read
+  //rc < 0: -retval;
+  if (rc < 0) {
+    std::fill(buffer.begin(), buffer.end(), 0);
+    buffer.resize(0);
+    return;
+  }
+
+  //std::cout << "num words read: " << rc << std::endl;
+  //std::cout << "header: " << std::hex << buffer[0] << " " << buffer[1] << " " << buffer[2] << " " << std::endl;
+
+  // Make sure we aren't getting empty events
+  //if (buffer.size() < 5) {
+  if (rc < 5) {
+    return;
+  }
+
 
   LogDebug("finished, element zero is %08x", buffer[0]);
   // Get the number of current events buffered.
-  rc = Read(0x812c, msg);
-  if (rc != 0) {
-    LogError("failed to read current number of buffered events");
-  }
+  //rc = Read(0x812c, msg);
+  //if (rc != 0) {
+  //  LogError("failed to read current number of buffered events");
+  //}
 
-  LogDebug("%i events in memory", msg);
-
-  // Make sure we aren't getting empty events
-  if (buffer.size() < 5) {
-    return;
-  }
+  //LogDebug("%i events in memory", msg);
 
   // Figure out the group mask
   bool grp_mask[CAEN_1742_GR];

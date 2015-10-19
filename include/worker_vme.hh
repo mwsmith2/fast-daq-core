@@ -63,6 +63,7 @@ protected:
   int ReadTraceFifo(uint addr, uint *trace); // 2eVMEFIFO (A32)
   int ReadTraceDma32Fifo(uint addr, uint *trace); //BLT32FIFO (A32)
   int ReadTraceMblt64(uint addr, uint *trace); // MBLT64 (A32)
+  int ReadTraceMblt64SameBlock(uint addr, uint *trace);
   int ReadTraceMblt64Fifo(uint addr, uint *trace); // MBLT64FIFO (A32)
 };
 
@@ -96,7 +97,7 @@ int WorkerVme<T>::Read(uint addr, uint &msg)
   close(device_);
 
   if (status != 0) {
-    this->LogError("read32  failure at address 0x%08x", base_address_ + addr);
+    //this->LogError("read32  failure at address 0x%08x", base_address_ + addr);
 
   } else {
 
@@ -371,7 +372,8 @@ int WorkerVme<T>::ReadTraceMblt64(uint addr, uint *trace)
   close(device_);
 
   if (status != 0) {
-    this->LogError("read32_mblt failed at 0x%08x", base_address_ + addr);
+    this->LogError("readA32_mblt64 failed at 0x%08x, asked: %i, recv: %i, retval: %i",
+                    base_address_ + addr, read_trace_len_, num_got, retval);
 
   } else {
 
@@ -380,6 +382,81 @@ int WorkerVme<T>::ReadTraceMblt64(uint addr, uint *trace)
   }
 
   return retval;
+}
+
+// Reads a block of data from the specified address offset.  The total
+// number of bytes read depends on the read_trace_len_ variable. Uses MBLT64
+// The block transfers start from the same address
+//
+// params:
+//   addr - address offset from base_addr_
+//   trace - pointer to data being read
+//
+// return:
+//   error code from vme read
+template<typename T>
+int WorkerVme<T>::ReadTraceMblt64SameBlock(uint addr, uint *trace)
+{
+  std::lock_guard<std::mutex> lock(daq::vme_mutex);
+  static uint num_got;
+  static int retval, status, count;
+
+  // Get the vme device handle.
+  count = 0;
+  do {
+    device_ = open(daq::vme_path.c_str(), O_RDWR);
+    usleep(2);
+  } while ((device_ < 0) && (count++ < maxcount_));
+
+  // Log an error if we couldn't open it at all.
+  if (device_ < 0) {
+    this->LogError("failure to find vme device, error %i", device_);
+    return device_;
+  }
+
+
+  int word_count = read_trace_len_;
+  unsigned int num_to_read;
+  unsigned int offset = 0;
+  //keep reading until it fails
+  do {
+    num_to_read = 0x0400;
+
+    //retval = vme_A32MBLT64_read(device_,
+    retval = vme_A32_2EVME_read(device_,
+                                base_address_ + addr,
+                                &trace[offset],
+                                num_to_read,
+                                &num_got);
+
+    offset += num_got;
+    word_count -= num_got;
+  }
+  while (word_count > 0 && retval == 0);
+
+  //if (retval) {
+  //	std::cout << "read_trace_len: " << read_trace_len_ << ", word count left: " << word_count << std::endl; 
+  //      std::cout << "retval: " << retval << ", num_got: " << num_got << ", at offset: " << offset << std::endl;
+  //}
+
+  //last transfer is BERR terminated
+  status = -retval;
+  if (offset > 0x0400) { status = offset; }
+
+
+  close(device_);
+
+  if (status < 0) {
+    //this->LogError("readA32_mblt64 failed at 0x%08x, asked: %i, recv: %i, retval: %i, word count left: %i",
+    //                base_address_ + addr, 0x0400, num_got, retval, word_count);
+
+  } else {
+
+    this->LogDump("read32_mblt address 0x%08x, ndata asked %i, ndata recv %i", 
+                   base_address_ + addr, read_trace_len_, num_got);
+  }
+
+  return status;
 }
 
 
@@ -470,7 +547,8 @@ int WorkerVme<T>::ReadTraceDma32Fifo(uint addr, uint *trace)
   close(device_);
 
   if (status != 0) {
-    this->LogError("read32_blt32_fifo failed at 0x%08x", base_address_ + addr);
+    this->LogError("read32_blt32_fifo failed at 0x%08x, trace_len: %i, num got: %i, retval: %i",
+                    base_address_ + addr, read_trace_len_, num_got, retval);
 
   } else {
 
