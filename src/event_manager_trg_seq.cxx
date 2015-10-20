@@ -200,6 +200,11 @@ int EventManagerTrgSeq::BeginOfRun()
 
 int EventManagerTrgSeq::EndOfRun() 
 {
+  int count = 0;
+  do {
+    usleep(1000);
+  } while (sequence_in_progress_ && (count++ < 200));
+
   go_time_ = false;
   thread_live_ = false;
 
@@ -226,9 +231,19 @@ int EventManagerTrgSeq::EndOfRun()
 
   mux_idx_map_.clear();
   sis_idx_map_.clear();
-  data_out_.clear();
   trg_seq_.resize(0);
   
+  queue_mutex_.lock();
+  data_out_.clear();
+
+  while (!data_queue_.empty()) {
+    data_queue_.pop();
+  }
+
+  while (!run_queue_.empty()) {
+    run_queue_.pop();
+  }
+  queue_mutex_.unlock();
 
   return 0;
 }
