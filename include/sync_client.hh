@@ -58,6 +58,7 @@ class SyncClient : public TriggerBase {
   void UnsetReady() {
     ready_ = false;
     got_trigger_ = false;
+    sent_ready_ = false;
   };
   void SetReady() {ready_ = true;};
   bool HasTrigger();
