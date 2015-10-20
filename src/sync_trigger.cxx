@@ -261,7 +261,7 @@ void SyncTrigger::ClientLoop()
       // Make sure we complete the handshake.
       do {
         rc = register_sck_.send(confirm_msg, ZMQ_DONTWAIT);
-        light_sleep();
+        usleep(10);
       } while (!rc && thread_live_);
 
       // Only increment if we are sure it isn't a reconnect
@@ -310,8 +310,8 @@ void SyncTrigger::ClientLoop()
       int count = 0;
       do {
         rc = heartbeat_sck_.recv(&msg, ZMQ_DONTWAIT);
-        light_sleep();
-      } while (!rc && (count++ < 100));
+        usleep(10);
+      } while (!rc && (count++ < 50));
       
       if (rc == true) {
 

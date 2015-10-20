@@ -104,7 +104,7 @@ void SyncClient::InitSockets()
 
       do {
         rc = register_sck_.recv(&msg, ZMQ_DONTWAIT);
-        light_sleep();
+        usleep(10);
       } while (!rc && thread_live_);
     }
 
@@ -211,7 +211,7 @@ void SyncClient::StatusLoop()
         rc = trigger_sck_.recv(&msg, ZMQ_DONTWAIT);
         connected_ = (steadyclock_us() - last_contact) < trigger_timeout_;
         light_sleep();
-      } while (!rc && thread_live_ && connected_);
+      } while (!rc && thread_live_ && connected_ && sent_ready_);
 
       // Adjust the flags
       if (rc == true) {
