@@ -37,6 +37,7 @@ int EventManagerTrgSeq::Init()
   builder_has_finished_ = true;
   mux_round_configured_ = false;  
   analyze_fids_online_ = false;
+  use_fast_fids_class_ = false;
 
   // Change the logfile if there is one in the config.
   boost::property_tree::ptree conf;
@@ -55,6 +56,7 @@ int EventManagerTrgSeq::BeginOfRun()
   conf_dir = conf.get<std::string>("config_dir", conf_dir);
   fid_conf_file_ = conf.get<std::string>("fid_conf_file", "");
   analyze_fids_online_ = conf.get<bool>("analyze_fids_online", false);
+  use_fast_fids_class_ = conf.get<bool>("use_fast_fids_class", false);
 
   if (fid_conf_file_ != std::string("")) {
     fid::load_params(conf_dir + fid_conf_file_);
@@ -385,8 +387,6 @@ void EventManagerTrgSeq::BuilderLoop()
     tm[i] = i * sample_period;
   }
 
-  fid::FID myfid(wf, tm);
-
   while (thread_live_) {
         
     while (go_time_) {
@@ -499,33 +499,64 @@ void EventManagerTrgSeq::BuilderLoop()
                           wf.begin());
               
                 // Extract the FID frequency and some diagnostic params.
-                myfid = fid::FID(wf, tm);
+                if (use_fast_fids_class_) {
 
-                // Make sure we got an FID signal
-                if (myfid.isgood()) {
+                  fid::FastFid myfid(wf, tm);
+
+                  // Make sure we got an FID signal
+                  if (myfid.isgood()) {
                 
-                  bundle.snr[idx] = myfid.snr();
-                  bundle.len[idx] = myfid.fid_time();
-                  bundle.freq[idx] = myfid.CalcPhaseFreq();
-                  bundle.ferr[idx] = myfid.freq_err();
-                  bundle.method[idx] = (ushort)fid::Method::ZC;
-                  bundle.health[idx] = myfid.isgood();
-                  bundle.freq_zc[idx] = myfid.CalcZeroCountFreq();
-                  bundle.ferr_zc[idx] = myfid.freq_err();
+                    bundle.snr[idx] = myfid.snr();
+                    bundle.len[idx] = myfid.fid_time();
+                    bundle.freq[idx] = myfid.CalcFreq();
+                    bundle.ferr[idx] = myfid.freq_err();
+                    bundle.method[idx] = (ushort)fid::Method::ZC;
+                    bundle.health[idx] = myfid.isgood();
+                    bundle.freq_zc[idx] = myfid.CalcFreq();
+                    bundle.ferr_zc[idx] = myfid.freq_err();
                 
+                  } else {
+                    
+                    myfid.PrintDiagnosticInfo();
+                    bundle.snr[idx] = 0.0;
+                    bundle.len[idx] = 0.0;
+                    bundle.freq[idx] = 0.0;
+                    bundle.ferr[idx] = 0.0;
+                    bundle.method[idx] = (ushort)fid::Method::ZC;
+                    bundle.health[idx] = myfid.isgood();
+                    bundle.freq_zc[idx] = 0.0;
+                    bundle.ferr_zc[idx] = 0.0;
+                  }
+
                 } else {
-               
-                  myfid.PrintDiagnosticInfo();
-                  bundle.snr[idx] = 0.0;
-                  bundle.len[idx] = 0.0;
-                  bundle.freq[idx] = 0.0;
-                  bundle.ferr[idx] = 0.0;
-                  bundle.method[idx] = (ushort)fid::Method::ZC;
-                  bundle.health[idx] = myfid.isgood();
-                  bundle.freq_zc[idx] = 0.0;
-                  bundle.ferr_zc[idx] = 0.0;
-                }
 
+                  fid::FID myfid(wf, tm);
+
+                  // Make sure we got an FID signal
+                  if (myfid.isgood()) {
+                
+                    bundle.snr[idx] = myfid.snr();
+                    bundle.len[idx] = myfid.fid_time();
+                    bundle.freq[idx] = myfid.CalcPhaseFreq();
+                    bundle.ferr[idx] = myfid.freq_err();
+                    bundle.method[idx] = (ushort)fid::Method::PH;
+                    bundle.health[idx] = myfid.isgood();
+                    bundle.freq_zc[idx] = myfid.CalcZeroCountFreq();
+                    bundle.ferr_zc[idx] = myfid.freq_err();
+                
+                  } else {
+                    
+                    myfid.PrintDiagnosticInfo();
+                    bundle.snr[idx] = 0.0;
+                    bundle.len[idx] = 0.0;
+                    bundle.freq[idx] = 0.0;
+                    bundle.ferr[idx] = 0.0;
+                    bundle.method[idx] = (ushort)fid::Method::PH;
+                    bundle.health[idx] = myfid.isgood();
+                    bundle.freq_zc[idx] = 0.0;
+                    bundle.ferr_zc[idx] = 0.0;
+                  }
+                }
               } else {
               
                 LogDebug("BuilderLoop: skipping analysis");
@@ -534,7 +565,7 @@ void EventManagerTrgSeq::BuilderLoop()
                 bundle.len[idx] = 0.0;
                 bundle.freq[idx] = 0.0;
                 bundle.ferr[idx] = 0.0;
-                bundle.method[idx] = (ushort)fid::Method::ZC;
+                bundle.method[idx] = (ushort)fid::Method::PH;
                 bundle.health[idx] = 0;
                 bundle.freq_zc[idx] = 0.0;
                 bundle.ferr_zc[idx] = 0.0;
