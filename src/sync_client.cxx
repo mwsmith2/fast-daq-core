@@ -190,7 +190,7 @@ void SyncClient::StatusLoop()
           rc = status_sck_.recv(&msg, ZMQ_DONTWAIT);
           connected_ = (steadyclock_us() - last_contact) < trigger_timeout_;
           light_sleep();
-        } while (!rc && thread_live_ && connected_ && sent_ready_);
+        } while (!rc && thread_live_ && connected_);
 
         if (rc == true) {
 
