@@ -61,9 +61,18 @@ public:
   }
 
   // Returns the oldest stored event.
-  inline const nmr_data &GetCurrentEvent() { 
+  inline const nmr_data GetCurrentEvent() { 
     std::lock_guard<std::mutex> lock(queue_mutex_);
-    return run_queue_.front(); 
+
+    if (!run_queue_.empty()) {
+
+      return run_queue_.front(); 
+
+    } else {
+      
+      nmr_data tmp;
+      return tmp;
+    }
   };
   
   // Removes the oldest event from the front of the queue.
