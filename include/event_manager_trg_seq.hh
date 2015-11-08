@@ -71,6 +71,7 @@ public:
     } else {
       
       nmr_data tmp;
+      tmp.Resize(num_probes_);
       return tmp;
     }
   };
