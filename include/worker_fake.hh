@@ -58,6 +58,8 @@ class WorkerFake : public WorkerBase<event_struct> {
   double rate_;
   double jitter_;
   double drop_rate_;
+  double sigma_;
+  double mean_;
   std::chrono::high_resolution_clock::time_point t0_;
   
   // Concurrent data generation.

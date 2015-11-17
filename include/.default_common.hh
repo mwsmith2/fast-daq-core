@@ -65,6 +65,11 @@ about:  Contains the data structures for several hardware devices in a single
 namespace daq {
 
 // Basic structs
+struct test_struct {
+  ULong64_t system_clock;
+  Double_t  value;
+};
+
 struct sis_3350 {
   ULong64_t system_clock;
   ULong64_t device_clock[SIS_3350_CH];
