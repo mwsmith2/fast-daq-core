@@ -123,6 +123,8 @@ int EventManagerTrgSeq::BeginOfRun()
   }
 
   max_event_time_ = conf.get<int>("max_event_time", 1000);
+  mux_switch_time_ = conf.get<int>("mux_switch_time", 10000);
+
   trg_seq_file_ = conf_dir + conf.get<std::string>("trg_seq_file");
   mux_conf_file_ = conf_dir + conf.get<std::string>("mux_conf_file");
 
@@ -338,7 +340,7 @@ void EventManagerTrgSeq::TriggerLoop()
 	  }
 
       	  LogDebug("TriggerLoop: muxes are configured for this round");
-          usleep(10000);
+          usleep(mux_switch_time_);
       	  nmr_pulser_trg_->FireTriggers(nmr_trg_mask_);
 
     	   LogDebug("TriggerLoop: muxes configure, triggers fired");

@@ -107,6 +107,7 @@ private:
   std::string fid_conf_file_;
 
   int nmr_trg_mask_;
+  int mux_switch_time_;
   DioTriggerBoard *nmr_pulser_trg_;
   std::vector<DioMuxController *> mux_boards_;
   std::map<std::string, int> mux_idx_map_;
