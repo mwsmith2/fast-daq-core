@@ -15,6 +15,7 @@ WorkerFake::WorkerFake(std::string name, std::string conf) :
   num_ch_ = SIS_3350_CH;
   len_tr_ = SIS_3350_LN;
   has_fake_event_ = false;
+  LogMessage("initialization complete");
 }
 
 void WorkerFake::LoadConfig() 
@@ -32,6 +33,8 @@ void WorkerFake::GenerateEvent()
 {
   using namespace std::chrono;
   std::default_random_engine gen;
+
+  LogMessage("Launched Event Generator");
 
   // Make fake events.
   while (thread_live_) {
@@ -75,6 +78,8 @@ void WorkerFake::GetEvent(test_struct &bundle)
 
 void WorkerFake::WorkLoop() 
 {
+  LogMessage("Launching WorkLoop Thread");
+
   while (thread_live_) {
 
     t0_ = std::chrono::high_resolution_clock::now();
