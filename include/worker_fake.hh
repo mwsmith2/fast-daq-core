@@ -6,6 +6,7 @@
 #include <chrono>
 #include <ctime>
 #include <thread>
+#include <random>
 
 //--- other includes --------------------------------------------------------//
 
@@ -17,9 +18,7 @@
 // This class produces fake data to test functionality
 namespace daq {
 
-typedef sis_3350 event_struct;
-
-class WorkerFake : public WorkerBase<event_struct> {
+class WorkerFake : public WorkerBase<test_struct> {
   
  public:
   
@@ -47,7 +46,8 @@ class WorkerFake : public WorkerBase<event_struct> {
   
   void LoadConfig();
   void WorkLoop();
-  event_struct PopEvent();
+  test_struct PopEvent();
+  bool EventAvailable() { return has_fake_event_; };
   
  private:
   
@@ -56,19 +56,16 @@ class WorkerFake : public WorkerBase<event_struct> {
   int len_tr_;
   std::atomic<bool> has_fake_event_;
   double rate_;
-  double jitter_;
-  double drop_rate_;
   double sigma_;
   double mean_;
   std::chrono::high_resolution_clock::time_point t0_;
   
   // Concurrent data generation.
-  event_struct event_data_;
+  test_struct event_data_;
   std::thread event_thread_;
   std::mutex event_mutex_;
   
-  bool EventAvailable() { return has_fake_event_; };
-  void GetEvent(event_struct &bundle);
+  void GetEvent(test_struct &bundle);
 
   // The function generates fake data.
   void GenerateEvent();

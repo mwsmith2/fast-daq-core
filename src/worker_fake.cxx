@@ -8,7 +8,7 @@ namespace daq {
 
 // ctor
 WorkerFake::WorkerFake(std::string name, std::string conf) : 
-  WorkerBase<event_struct>(name, conf)
+  WorkerBase<test_struct>(name, conf)
 { 
   LoadConfig();
 
@@ -24,13 +24,14 @@ void WorkerFake::LoadConfig()
   boost::property_tree::read_json(conf_file_, conf);
 
   rate_ = conf.get<double>("rate");
-  jitter_ = conf.get<double>("jitter");
-  drop_rate_ = conf.get<double>("drop_rate");
+  mean_ = conf.get<double>("mean");
+  sigma_ = conf.get<double>("sigma");
 }
 
 void WorkerFake::GenerateEvent()
 {
   using namespace std::chrono;
+  std::default_random_engine gen;
 
   // Make fake events.
   while (thread_live_) {
@@ -43,18 +44,11 @@ void WorkerFake::GenerateEvent()
       // Get the system time
       auto t1 = high_resolution_clock::now();
       auto dtn = t1.time_since_epoch() - t0_.time_since_epoch();     
+
       event_data_.system_clock = duration_cast<nanoseconds>(dtn).count();
 
-      for (int i = 0; i < num_ch_; ++i){
-
-        event_data_.device_clock[i] = clock();
-
-        for (int j = 0; j < len_tr_; ++j){
-
-          event_data_.trace[i][j] = 1000 + 100 * sin(j * 0.01);
-
-        }
-      }
+      std::normal_distribution<double> dist(mean_, sigma_);
+      event_data_.value = dist(gen);
 
       has_fake_event_ = true;
       event_mutex_.unlock();
@@ -68,7 +62,7 @@ void WorkerFake::GenerateEvent()
   }
 }
 
-void WorkerFake::GetEvent(event_struct &bundle)
+void WorkerFake::GetEvent(test_struct &bundle)
 {
   event_mutex_.lock();
 
@@ -89,7 +83,7 @@ void WorkerFake::WorkLoop()
 
       if (EventAvailable()) {
 
-        event_struct bundle;
+        test_struct bundle;
         GetEvent(bundle);
 
         queue_mutex_.lock();
@@ -112,20 +106,20 @@ void WorkerFake::WorkLoop()
   }
 }
 
-event_struct WorkerFake::PopEvent()
+test_struct WorkerFake::PopEvent()
 {
   queue_mutex_.lock();
 
   // If no event return empty struct
   if (data_queue_.empty()) {
-      event_struct data;
+      test_struct data;
       queue_mutex_.unlock();
       return data;
 
   } else if (!data_queue_.empty()) {
 
     // Copy the data.
-    event_struct data = data_queue_.front();
+    test_struct data = data_queue_.front();
     data_queue_.pop();
     
     // Check if this is that last event.
