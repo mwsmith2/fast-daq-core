@@ -59,14 +59,30 @@ int EventManagerTrgSeq::BeginOfRun()
   use_fast_fids_class_ = conf.get<bool>("use_fast_fids_class", false);
 
   if (fid_conf_file_ != std::string("")) {
-    fid::load_params(conf_dir + fid_conf_file_);
+
+    if (fid_conf_file_[0] != '/') {
+      fid::load_params(conf_dir + fid_conf_file_);
+
+    } else {
+
+      fid::load_params(fid_conf_file_);
+    }
   }
 
   int sis_idx = 0;
   for (auto &v : conf.get_child("devices.sis_3302")) {
 
     std::string name(v.first);
-    std::string dev_conf_file = conf_dir + std::string(v.second.data());
+    std::string dev_conf_file;
+
+    if (dev_conf_file[0] != '/') {
+      dev_conf_file = conf_dir + std::string(v.second.data());
+
+    } else {
+
+      dev_conf_file = std::string(v.second.data());
+    }
+
     sis_idx_map_[name] = sis_idx++;
 
     LogDebug("loading hw: %s, %s", name.c_str(), dev_conf_file.c_str());
@@ -77,7 +93,16 @@ int EventManagerTrgSeq::BeginOfRun()
   for (auto &v : conf.get_child("devices.sis_3316")) {
 
     std::string name(v.first);
-    std::string dev_conf_file = conf_dir + std::string(v.second.data());
+    std::string dev_conf_file;
+
+    if (dev_conf_file[0] != '/') {
+      dev_conf_file = conf_dir + std::string(v.second.data());
+
+    } else {
+
+      dev_conf_file = std::string(v.second.data());
+    }
+
     sis_idx_map_[name] = sis_idx++;
 
     LogDebug("loading hw: %s, %s", name.c_str(), dev_conf_file.c_str());
@@ -88,7 +113,16 @@ int EventManagerTrgSeq::BeginOfRun()
   for (auto &v : conf.get_child("devices.sis_3350")) {
 
     std::string name(v.first);
-    std::string dev_conf_file = conf_dir + std::string(v.second.data());
+    std::string dev_conf_file;
+
+    if (dev_conf_file[0] != '/') {
+      dev_conf_file = conf_dir + std::string(v.second.data());
+
+    } else {
+
+      dev_conf_file = std::string(v.second.data());
+    }
+
     sis_idx_map_[name] = sis_idx++;
 
     LogDebug("loading hw: %s, %s", name.c_str(), dev_conf_file.c_str());
@@ -125,8 +159,17 @@ int EventManagerTrgSeq::BeginOfRun()
   max_event_time_ = conf.get<int>("max_event_time", 1000);
   mux_switch_time_ = conf.get<int>("mux_switch_time", 10000);
 
-  trg_seq_file_ = conf_dir + conf.get<std::string>("trg_seq_file");
-  mux_conf_file_ = conf_dir + conf.get<std::string>("mux_conf_file");
+  trg_seq_file_ = conf.get<std::string>("trg_seq_file");
+
+  if (trg_seq_file_[0] != '/') {
+    trg_seq_file_ = conf_dir + conf.get<std::string>("trg_seq_file");
+  }
+
+  mux_conf_file_ = conf.get<std::string>("mux_conf_file");
+
+  if (mux_conf_file_[0] != '/') {
+    mux_conf_file_ = conf_dir + conf.get<std::string>("mux_conf_file");
+  }
 
   // Load trigger sequence
   LogMessage("loading trigger sequence from %s", trg_seq_file_.c_str());
