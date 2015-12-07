@@ -73,14 +73,10 @@ int EventManagerTrgSeq::BeginOfRun()
   for (auto &v : conf.get_child("devices.sis_3302")) {
 
     std::string name(v.first);
-    std::string dev_conf_file;
+    std::string dev_conf_file = std::string(v.second.data());
 
     if (dev_conf_file[0] != '/') {
       dev_conf_file = conf_dir + std::string(v.second.data());
-
-    } else {
-
-      dev_conf_file = std::string(v.second.data());
     }
 
     sis_idx_map_[name] = sis_idx++;
@@ -93,14 +89,10 @@ int EventManagerTrgSeq::BeginOfRun()
   for (auto &v : conf.get_child("devices.sis_3316")) {
 
     std::string name(v.first);
-    std::string dev_conf_file;
+    std::string dev_conf_file = std::string(v.second.data());
 
     if (dev_conf_file[0] != '/') {
       dev_conf_file = conf_dir + std::string(v.second.data());
-
-    } else {
-
-      dev_conf_file = std::string(v.second.data());
     }
 
     sis_idx_map_[name] = sis_idx++;
@@ -113,14 +105,10 @@ int EventManagerTrgSeq::BeginOfRun()
   for (auto &v : conf.get_child("devices.sis_3350")) {
 
     std::string name(v.first);
-    std::string dev_conf_file;
+    std::string dev_conf_file = std::string(v.second.data());
 
     if (dev_conf_file[0] != '/') {
       dev_conf_file = conf_dir + std::string(v.second.data());
-
-    } else {
-
-      dev_conf_file = std::string(v.second.data());
     }
 
     sis_idx_map_[name] = sis_idx++;

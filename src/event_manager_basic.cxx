@@ -25,7 +25,11 @@ int EventManagerBasic::BeginOfRun()
   for (auto &v : conf.get_child("devices.sis_3302")) {
 
     std::string name(v.first);
-    std::string dev_conf_file = conf_dir + std::string(v.second.data());
+    std::string dev_conf_file = std::string(v.second.data());
+
+    if (dev_conf_file[0] != '/') {
+      dev_conf_file = conf_dir + std::string(v.second.data());
+    }
 
     workers_.PushBack(new WorkerSis3302(name, dev_conf_file));
   }
@@ -33,7 +37,11 @@ int EventManagerBasic::BeginOfRun()
   for (auto &v : conf.get_child("devices.sis_3316")) {
 
     std::string name(v.first);
-    std::string dev_conf_file = conf_dir + std::string(v.second.data());
+    std::string dev_conf_file = std::string(v.second.data());
+
+    if (dev_conf_file[0] != '/') {
+      dev_conf_file = conf_dir + std::string(v.second.data());
+    }
 
     workers_.PushBack(new WorkerSis3316(name, dev_conf_file));
   }
@@ -41,7 +49,11 @@ int EventManagerBasic::BeginOfRun()
   for (auto &v : conf.get_child("devices.sis_3350")) {
 
     std::string name(v.first);
-    std::string dev_conf_file = conf_dir + std::string(v.second.data());
+    std::string dev_conf_file = std::string(v.second.data());
+
+    if (dev_conf_file[0] != '/') {
+      dev_conf_file = conf_dir + std::string(v.second.data());
+    }
 
     workers_.PushBack(new WorkerSis3350(name, dev_conf_file));
   }
