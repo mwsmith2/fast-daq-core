@@ -10,7 +10,6 @@
 #
 #=============================================================================
 
-install x64/libCAENVME.so.2.41 /usr/lib
-ln -sf /usr/lib/libCAENVME.so.2.41 /usr/lib/libCAENVME.so
-/sbin/ldconfig
-cp ../include/* /usr/include/
+install x64/libCAENVME.so.2.41 /usr/local/lib
+ln -sf /usr/local/lib/libCAENVME.so.2.41 /usr/local/lib/libCAENVME.so
+cp ../include/* /usr/local/include/
