@@ -550,7 +550,7 @@ void EventManagerTrgSeq::BuilderLoop()
                 
                   } else {
                     
-                    myfid.PrintDiagnosticInfo();
+                    myfid.DiagnosticInfo();
                     bundle.snr[idx] = 0.0;
                     bundle.len[idx] = 0.0;
                     bundle.freq[idx] = 0.0;
@@ -563,7 +563,7 @@ void EventManagerTrgSeq::BuilderLoop()
 
                 } else {
 
-                  fid::FID myfid(wf, tm);
+                  fid::Fid myfid(wf, tm);
 
                   // Make sure we got an FID signal
                   if (myfid.isgood()) {
@@ -579,7 +579,7 @@ void EventManagerTrgSeq::BuilderLoop()
                 
                   } else {
                     
-                    myfid.PrintDiagnosticInfo();
+                    myfid.DiagnosticInfo();
                     bundle.snr[idx] = 0.0;
                     bundle.len[idx] = 0.0;
                     bundle.freq[idx] = 0.0;
