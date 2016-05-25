@@ -44,11 +44,43 @@ SyncClient::SyncClient(std::string address, int port) :
   LaunchThreads();
 }
 
+SyncClient::SyncClient(std::string name, std::string address) :
+  trigger_sck_(msg_context, ZMQ_SUB),
+  register_sck_(msg_context, ZMQ_REQ), 
+  status_sck_(msg_context, ZMQ_REQ),
+  heartbeat_sck_(msg_context, ZMQ_PUB)
+{
+  client_name_ = name;
+  base_tcpip_ = address;
+  base_port_ = default_port_;
+
+  DefaultInit();
+  InitSockets();
+  LaunchThreads();
+}
+
+SyncClient::SyncClient(std::string name, std::string address, int port) :
+  trigger_sck_(msg_context, ZMQ_SUB),
+  register_sck_(msg_context, ZMQ_REQ), 
+  status_sck_(msg_context, ZMQ_REQ),
+  heartbeat_sck_(msg_context, ZMQ_PUB)
+{
+  client_name_ = name;
+  base_tcpip_ = address;
+  base_port_ = port;
+
+  DefaultInit();
+  InitSockets();
+  LaunchThreads();
+}
+
 void SyncClient::DefaultInit()
 {
   register_address_ = ConstructAddress(base_tcpip_, base_port_);
   auto uuid = boost::uuids::random_generator()();
-  client_name_ = boost::uuids::to_string(uuid) + std::string(";");
+  if (client_name_.size() == 0) {
+    client_name_ = boost::uuids::to_string(uuid) + std::string(";");
+  }
   name_ = std::string("SyncClient-") + client_name_.substr(0, 4);
   LogMessage("full id is %s", client_name_.c_str());
 

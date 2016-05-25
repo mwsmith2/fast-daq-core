@@ -34,6 +34,8 @@ class SyncClient : public TriggerBase {
   SyncClient();
   SyncClient(std::string address);
   SyncClient(std::string address, int port);
+  SyncClient(std::string name, std::string address);
+  SyncClient(std::string name, std::string address, int port);
 
   ~SyncClient() {
     thread_live_ = false;
