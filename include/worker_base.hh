@@ -20,6 +20,7 @@
 #include <mutex>
 #include <thread>
 #include <string>
+#include <iostream>
 
 //--- other includes --------------------------------------------------------//
 #include <boost/property_tree/ptree.hpp>
