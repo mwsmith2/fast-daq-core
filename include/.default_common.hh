@@ -39,14 +39,6 @@ about:  Contains the data structures for several hardware devices in a single
 #define TEK_SCOPE_CH 4
 #define TEK_SCOPE_LN 10000
 
-// NMR specific stuff
-#define NMR_FID_LN SIS_3302_LN
-#define SHORT_FID_LN 10000
-#define SHIM_PLATFORM_CH 28
-#define SHIM_FIXED_CH 4
-#define RUN_TROLLEY_CH 17
-#define RUN_FIXED_CH 378
-
 //--- std includes ----------------------------------------------------------//
 #include <vector>
 #include <array>
@@ -120,15 +112,6 @@ struct tek_scope {
   Double_t trace[TEK_SCOPE_CH][TEK_SCOPE_LN];
 };
 
-struct run_info {
-  Double_t step_size;
-  Int_t num_steps;
-  Int_t num_shots;
-  Int_t run_number;
-  Int_t fid_ch0;
-  Int_t fid_ch1;
-};
-
 // Built from basic structs
 struct event_data {
   std::vector<sis_3350> sis_3350_vec;
@@ -138,85 +121,6 @@ struct event_data {
   std::vector<caen_1742> caen_1742_vec;
   std::vector<drs4> drs4_vec;
   std::vector<sis_3316> sis_3316_vec;
-};
-
-// NMR specific stuff
-// A macro to define nmr structs since they are very similar.
-#define MAKE_NMR_STRUCT(name, num_ch, len_tr)\
-struct name {\
-  Double_t sys_clock[num_ch];\
-  Double_t gps_clock[num_ch];\
-  Double_t dev_clock[num_ch];\
-  Double_t snr[num_ch];\
-  Double_t len[num_ch];\
-  Double_t freq[num_ch];\
-  Double_t ferr[num_ch];\
-  Double_t freq_zc[num_ch];\
-  Double_t ferr_zc[num_ch];\
-  UShort_t health[num_ch];\
-  UShort_t method[num_ch];\
-  UShort_t trace[num_ch][len_tr];\
-};
-
-// Might as well define a root branch string for the struct.
-#define NMR_HELPER(name, num_ch, len_tr) \
-const char * const name = "sys_clock["#num_ch"]/D:gps_clock["#num_ch"]/D:"\
-"dev_clock["#num_ch"]/D:snr["#num_ch"]/D:len["#num_ch"]/D:freq["#num_ch"]/D:"\
-"ferr["#num_ch"]/D:freq_zc["#num_ch"]/D:ferr_zc["#num_ch"]/D:"\
-"health["#num_ch"]/s:method["#num_ch"]/s:trace["#num_ch"]["#len_tr"]/s"
-
-#define MAKE_NMR_STRING(name, num_ch, len_tr) NMR_HELPER(name, num_ch, len_tr)
-
-
-MAKE_NMR_STRUCT(shim_platform, SHIM_PLATFORM_CH, NMR_FID_LN);
-MAKE_NMR_STRUCT(shim_platform_st, SHIM_PLATFORM_CH, SHORT_FID_LN);
-MAKE_NMR_STRUCT(shim_fixed, SHIM_FIXED_CH, NMR_FID_LN);
-MAKE_NMR_STRUCT(shim_fixed_st, SHIM_FIXED_CH, SHORT_FID_LN);
-
-MAKE_NMR_STRUCT(run_trolley, RUN_TROLLEY_CH, NMR_FID_LN);
-MAKE_NMR_STRUCT(run_trolley_st, RUN_TROLLEY_CH, SHORT_FID_LN);
-MAKE_NMR_STRUCT(run_fixed, RUN_FIXED_CH, NMR_FID_LN);
-MAKE_NMR_STRUCT(run_fixed_st, RUN_FIXED_CH, SHORT_FID_LN);
-
-MAKE_NMR_STRING(shim_platform_string, SHIM_PLATFORM_CH, NMR_FID_LN);
-MAKE_NMR_STRING(shim_platform_st_string, SHIM_PLATFORM_CH, SHORT_FID_LN);
-MAKE_NMR_STRING(shim_fixed_string, SHIM_FIXED_CH, NMR_FID_LN);
-MAKE_NMR_STRING(shim_fixed_st_string, SHIM_FIXED_CH, SHORT_FID_LN);
-
-MAKE_NMR_STRING(run_trolley_string, RUN_TROLLEY_CH, NMR_FID_LN);
-MAKE_NMR_STRING(run_trolley_st_string, RUN_TROLLEY_CH, SHORT_FID_LN);
-MAKE_NMR_STRING(run_fixed_string, RUN_FIXED_CH, NMR_FID_LN);
-MAKE_NMR_STRING(run_fixed_st_string, RUN_FIXED_CH, SHORT_FID_LN);
-
-// flexible struct built from the basic nmr attributes.
-struct nmr_data {
-  std::vector<Double_t> sys_clock;
-  std::vector<Double_t> gps_clock;
-  std::vector<Double_t> dev_clock;
-  std::vector<Double_t> snr;
-  std::vector<Double_t> len;
-  std::vector<Double_t> freq;
-  std::vector<Double_t> ferr;
-  std::vector<Double_t> freq_zc;
-  std::vector<Double_t> ferr_zc;
-  std::vector<UShort_t> health;
-  std::vector<UShort_t> method;
-  std::vector< std::array<UShort_t, NMR_FID_LN> > trace;
-
-  inline void Resize(int size) {
-    sys_clock.resize(size);
-    gps_clock.resize(size);
-    dev_clock.resize(size);
-    snr.resize(size);
-    len.resize(size);
-    freq.resize(size);
-    ferr.resize(size);
-    freq_zc.resize(size);
-    ferr_zc.resize(size);
-    health.resize(size);
-    method.resize(size);
-    trace.resize(size);
-  }
 };
 
 // Typedef for all workers - needed by in WorkerList

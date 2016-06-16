@@ -3,15 +3,16 @@ OBJECTS = $(patsubst src/%.cxx, build/%.o, $(wildcard src/*.cxx))
 OBJ_VME = $(patsubst include/vme/%.c, build/%.o, $(wildcard include/vme/*.c))
 OBJ_DRS = $(patsubst src/drs/%.cpp, build/%.o, $(wildcard src/drs/*.cpp))
 OBJ_DRS += $(patsubst src/drs/%.c, build/%.o, $(wildcard src/drs/*.c))
+HEADERS = $(wildcard include/*)
 DATADEF = include/common.hh include/common_extdef.hh
 LOGFILE = /var/log/lab-daq/fast-daq.log
 CONFDIR = /usr/local/opt/lab-daq/config
 
 # Library info.
 MAJOR=0
-MINOR=1.0
-SONAME=libuwlab.so
-ARNAME=libuwlab.a
+MINOR=2.0
+SONAME=liblabdaq.so
+ARNAME=liblabdaq.a
 LIBNAME=$(SONAME).$(MAJOR).$(MINOR)
 PREFIX=/usr/local
 
@@ -54,8 +55,8 @@ LIBS += $(shell wx-config --libs)
 CPPFLAGS += -Iinclude -Iinclude/drs
 LIBS += -lm -lzmq -ljson_spirit -lCAENDigitizer -lusb-1.0 -lutil -lpthread
 
-all: $(OBJECTS) $(OBJ_VME) $(OBJ_DRS) $(TARGETS) lib/$(ARNAME) $(DATADEF) \
-	$(LOGFILE) $(CONFDIR)
+all: $(OBJECTS) $(OBJ_VME) $(OBJ_DRS) $(TARGETS)  $(DATADEF) \
+	$(LOGFILE) $(CONFDIR) lib/$(ARNAME) #lib/$(LIBNAME)
 
 $(LOGFILE):
 	@mkdir -p $(@D)
@@ -89,6 +90,23 @@ fe_%: modules/fe_%.cxx $(OBJECTS) $(OBJ_VME) $(OBJ_DRS) $(DATADEF)
 
 lib/$(ARNAME): $(OBJECTS) $(OBJ_VME) $(OJB_DRS) $(DATADEF)
 	$(AR) -rcs $@ $+
+
+# lib/$(LIBNAME): $(OBJECTS) $(OBJ_VME) $(OJB_DRS) $(DATADEF)
+# 	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -shared -fPIC $+ -o $@ $(LIBS)
+
+install:
+	mkdir -p $(PREFIX)/lib
+#	cp lib/$(LIBNAME) $(PREFIX)/lib
+	cp lib/$(ARNAME) $(PREFIX)/lib
+	mkdir -p $(PREFIX)/include/labdaq
+	cp -r $(HEADERS) $(PREFIX)/include/labdaq
+#	ln -sf $(PREFIX)/lib/$(LIBNAME) $(PREFIX)/lib/$(SONAME)
+#	ln -sf $(PREFIX)/lib/$(ARNAME) $(PREFIX)/lib/$(ARNAME)
+	$(LDCONFIG)
+
+uninstall:
+	rm -f $(PREFIX)/lib/$(SONAME)*
+	rm -rf $(patsubst include/%,$(PREFIX)/include/%,$(HEADERS))
 
 clean:
 	rm -f $(TARGETS) $(OBJECTS) $(OBJ_VME) $(OBJ_DRS)

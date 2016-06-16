@@ -22,7 +22,7 @@ namespace daq {
 class WorkerDrs4 : public WorkerBase<drs4> {
 
 public:
-  
+
   // ctor
   WorkerDrs4(std::string name, std::string conf);
 
@@ -31,14 +31,14 @@ public:
     // Clear the data.
     go_time_ = false;
     FlushEvents();
-    
+
     // Stop the thread.
     thread_live_ = false;
 
     // free the drs4 object.
     delete drs_;
   }
-  
+
   // Read in the configuration from a json file.
   // example file:
   // {
@@ -61,9 +61,9 @@ public:
 
   // Return the oldest event data to the event builder/frontend.
   drs4 PopEvent();
-  
+
 private:
-  
+
   std::chrono::high_resolution_clock::time_point t0_;
   bool positive_trg_;
 
