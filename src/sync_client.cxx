@@ -4,7 +4,7 @@ namespace daq {
 
 SyncClient::SyncClient() :
   trigger_sck_(msg_context, ZMQ_SUB),
-  register_sck_(msg_context, ZMQ_REQ), 
+  register_sck_(msg_context, ZMQ_REQ),
   status_sck_(msg_context, ZMQ_REQ),
   heartbeat_sck_(msg_context, ZMQ_PUB)
 {
@@ -18,7 +18,7 @@ SyncClient::SyncClient() :
 
 SyncClient::SyncClient(std::string address) :
   trigger_sck_(msg_context, ZMQ_SUB),
-  register_sck_(msg_context, ZMQ_REQ), 
+  register_sck_(msg_context, ZMQ_REQ),
   status_sck_(msg_context, ZMQ_REQ),
   heartbeat_sck_(msg_context, ZMQ_PUB)
 {
@@ -32,7 +32,7 @@ SyncClient::SyncClient(std::string address) :
 
 SyncClient::SyncClient(std::string address, int port) :
   trigger_sck_(msg_context, ZMQ_SUB),
-  register_sck_(msg_context, ZMQ_REQ), 
+  register_sck_(msg_context, ZMQ_REQ),
   status_sck_(msg_context, ZMQ_REQ),
   heartbeat_sck_(msg_context, ZMQ_PUB)
 {
@@ -46,7 +46,7 @@ SyncClient::SyncClient(std::string address, int port) :
 
 SyncClient::SyncClient(std::string name, std::string address) :
   trigger_sck_(msg_context, ZMQ_SUB),
-  register_sck_(msg_context, ZMQ_REQ), 
+  register_sck_(msg_context, ZMQ_REQ),
   status_sck_(msg_context, ZMQ_REQ),
   heartbeat_sck_(msg_context, ZMQ_PUB)
 {
@@ -61,7 +61,7 @@ SyncClient::SyncClient(std::string name, std::string address) :
 
 SyncClient::SyncClient(std::string name, std::string address, int port) :
   trigger_sck_(msg_context, ZMQ_SUB),
-  register_sck_(msg_context, ZMQ_REQ), 
+  register_sck_(msg_context, ZMQ_REQ),
   status_sck_(msg_context, ZMQ_REQ),
   heartbeat_sck_(msg_context, ZMQ_PUB)
 {
@@ -89,6 +89,8 @@ void SyncClient::DefaultInit()
   sent_ready_ = false;
   got_trigger_ = false;
   thread_live_ = true;
+
+  trigger_counter_ = 0;
 }
 
 void SyncClient::InitSockets()
@@ -124,7 +126,7 @@ void SyncClient::InitSockets()
 
   // Now finally the heartbeat
   heartbeat_sck_.setsockopt(ZMQ_LINGER, &zero, sizeof(zero));
-  
+
 
   // Connect the sockets.  The registration socket first.
   register_sck_.connect(register_address_.c_str());
@@ -153,7 +155,7 @@ void SyncClient::InitSockets()
 
   std::getline(ss, address, ';');
   trigger_address_ = address;
-  
+
   std::getline(ss, address, ';');
   status_address_ = address;
 
@@ -199,8 +201,8 @@ void SyncClient::StatusLoop()
     // 1. Make sure we are connected to the trigger.
     if (!connected_) {
 
-      LogMessage("not connected, last response %lli us ago", 
-                 steadyclock_us() - last_contact); 
+      LogMessage("not connected, last response %lli us ago",
+                 steadyclock_us() - last_contact);
 
       heavy_sleep();
 
@@ -210,7 +212,7 @@ void SyncClient::StatusLoop()
       last_contact = steadyclock_us();
 
     } else if (ready_ && !sent_ready_) {
-  
+
       // Request a trigger.
       LogMessage("requesting trigger");
       rc = status_sck_.send(ready_msg, ZMQ_DONTWAIT);
@@ -239,7 +241,7 @@ void SyncClient::StatusLoop()
     } else if (ready_ && sent_ready_) {
 
       // Wait for the trigger
-      do { 
+      do {
         rc = trigger_sck_.recv(&msg, ZMQ_DONTWAIT);
         connected_ = (steadyclock_us() - last_contact) < trigger_timeout_;
         light_sleep();
@@ -252,6 +254,8 @@ void SyncClient::StatusLoop()
         sent_ready_ = false;
 
         got_trigger_ = true;
+        ++trigger_counter_;
+
         LogMessage("received trigger");
         last_contact = steadyclock_us();
       }
@@ -262,7 +266,7 @@ void SyncClient::StatusLoop()
   }
 }
 
-bool SyncClient::HasTrigger() 
+bool SyncClient::HasTrigger()
 {
   if (got_trigger_ == true) {
 
@@ -290,7 +294,7 @@ void SyncClient::RestartLoop()
         continue;
 
       } else {
-             
+
         LogMessage("starting to join threads");
         // Kill the other thread.
         thread_live_ = false;
@@ -298,21 +302,21 @@ void SyncClient::RestartLoop()
           status_thread_.join();
         }
         LogMessage("joined status_thread");
-        
+
         if (heartbeat_thread_.joinable()) {
           heartbeat_thread_.join();
         }
         LogMessage("joined heartbeat_thread");
-        
+
         trigger_sck_.disconnect(trigger_address_.c_str());
         register_sck_.disconnect(register_address_.c_str());
         status_sck_.disconnect( status_address_.c_str());
         heartbeat_sck_.disconnect(heartbeat_address_.c_str());
-        
+
         got_trigger_ = false;
         sent_ready_ = false;
         thread_live_ = true;
-        
+
         // Reinitialize sockets.
         LogMessage("reinitializing sockets");
         InitSockets();
@@ -323,7 +327,7 @@ void SyncClient::RestartLoop()
       }
 
     } else {
-      
+
       std::this_thread::yield();
       heavy_sleep();
     }

@@ -1,5 +1,5 @@
-#ifndef DAQ_FAST_CORE_SYNC_CLIENT_HH_    
-#define DAQ_FAST_CORE_SYNC_CLIENT_HH_    
+#ifndef DAQ_FAST_CORE_SYNC_CLIENT_HH_
+#define DAQ_FAST_CORE_SYNC_CLIENT_HH_
 
 /*==========================================================================*\
 
@@ -55,12 +55,14 @@ class SyncClient : public TriggerBase {
 
   // Getters
   const std::atomic<bool> &ready() {return ready_;};
+  const std::atomic<int> &trigger_counter() {return trigger_counter_;};
 
   // Setters
   void UnsetReady() {
     ready_ = false;
     got_trigger_ = false;
     sent_ready_ = false;
+    trigger_counter_ = 0;
   };
   void SetReady() {ready_ = true;};
   bool HasTrigger();
@@ -72,6 +74,8 @@ class SyncClient : public TriggerBase {
   std::atomic<bool> sent_ready_;
   std::atomic<bool> got_trigger_;
   std::atomic<bool> thread_live_;
+
+  std::atomic<int> trigger_counter_;
 
   std::string client_name_;
 
