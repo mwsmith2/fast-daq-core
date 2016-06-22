@@ -36,7 +36,7 @@ void DioMuxController::AddMux(std::string mux_name, int port_idx, bool old_mux)
   if (old_mux) {
     mux_channel_map_[mux_name] = old_channel_map_;
   } else {
-    mux_channel_map_[mux_name] = old_channel_map_;
+    mux_channel_map_[mux_name] = new_channel_map_;
   }
 }
 
