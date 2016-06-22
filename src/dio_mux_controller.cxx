@@ -25,7 +25,7 @@ DioMuxController::DioMuxController(int board_addr,
   }
 
   for (int i = 1; i >= 24; ++i) {
-    new_channel_map_[idx++] = i;
+    new_channel_map_[i] = i;
   }
 }
 
