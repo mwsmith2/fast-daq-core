@@ -7,9 +7,9 @@ using std::endl;
 namespace daq {
 
 // ctor
-WorkerFake::WorkerFake(std::string name, std::string conf) : 
+WorkerFake::WorkerFake(std::string name, std::string conf) :
   WorkerBase<test_struct>(name, conf)
-{ 
+{
   LoadConfig();
 
   num_ch_ = SIS_3350_CH;
@@ -18,15 +18,11 @@ WorkerFake::WorkerFake(std::string name, std::string conf) :
   LogMessage("initialization complete");
 }
 
-void WorkerFake::LoadConfig() 
+void WorkerFake::LoadConfig()
 {
-  // Load the config file
-  boost::property_tree::ptree conf;
-  boost::property_tree::read_json(conf_file_, conf);
-
-  rate_ = conf.get<double>("rate");
-  mean_ = conf.get<double>("mean");
-  sigma_ = conf.get<double>("sigma");
+  rate_ = conf_.get<double>("rate");
+  mean_ = conf_.get<double>("mean");
+  sigma_ = conf_.get<double>("sigma");
 }
 
 void WorkerFake::GenerateEvent()
@@ -46,7 +42,7 @@ void WorkerFake::GenerateEvent()
       event_mutex_.lock(); // mutex guard
       // Get the system time
       auto t1 = high_resolution_clock::now();
-      auto dtn = t1.time_since_epoch() - t0_.time_since_epoch();     
+      auto dtn = t1.time_since_epoch() - t0_.time_since_epoch();
 
       event_data_.system_clock = duration_cast<nanoseconds>(dtn).count();
 
@@ -55,7 +51,7 @@ void WorkerFake::GenerateEvent()
 
       has_fake_event_ = true;
       event_mutex_.unlock();
-  
+
       usleep(1.0e6 / rate_);
       std::this_thread::yield();
     }
@@ -76,7 +72,7 @@ void WorkerFake::GetEvent(test_struct &bundle)
   event_mutex_.unlock();
 }
 
-void WorkerFake::WorkLoop() 
+void WorkerFake::WorkLoop()
 {
   LogMessage("Launching WorkLoop Thread");
 
@@ -126,7 +122,7 @@ test_struct WorkerFake::PopEvent()
     // Copy the data.
     test_struct data = data_queue_.front();
     data_queue_.pop();
-    
+
     // Check if this is that last event.
     if (data_queue_.size() == 0) has_event_ = false;
 

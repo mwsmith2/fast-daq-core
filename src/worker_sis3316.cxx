@@ -2,7 +2,7 @@
 
 namespace daq {
 
-WorkerSis3316::WorkerSis3316(std::string name, std::string conf) : 
+WorkerSis3316::WorkerSis3316(std::string name, std::string conf) :
   WorkerVme<sis_3316>(name, conf)
 {
   LoadConfig();
@@ -14,27 +14,23 @@ WorkerSis3316::WorkerSis3316(std::string name, std::string conf) :
 }
 
 void WorkerSis3316::LoadConfig()
-{ 
+{
   using std::string;
 
   int rc = 0, gr = 0, nerrors = 0;
   uint msg = 0, addr = 0;
-  
-  // Open the configuration file.
-  boost::property_tree::ptree conf;
-  boost::property_tree::read_json(conf_file_, conf);
-  
+
   // Get the base address for the device.  Convert from hex.
-  base_address_ = std::stoul(conf.get<string>("base_address"), nullptr, 0);
-  
+  base_address_ = std::stoul(conf_.get<string>("base_address"), nullptr, 0);
+
   // Read the base register.
   rc = Read(CONTROL_STATUS, msg);
   if (rc == 0) {
 
     LogMessage("SIS3316 found at 0x%08x", base_address_);
-    
+
   } else {
-    
+
     LogError("SIS3316 at 0x%08x could not be found", base_address_);
     ++nerrors;
   }
@@ -51,13 +47,13 @@ void WorkerSis3316::LoadConfig()
     LogMessage("ID: %04x, maj rev: %02x, min rev: %02x",
 	       msg >> 16, (msg >> 8) & 0xff, msg & 0xff);
   }
-  
+
   // Get device hardware revision.
   rc = Read(HARDWARE_VERSION, msg);
   if (rc == 0) {
-    
+
     LogMessage("device hardware version %i", msg & 0xf);
-    
+
   } else {
 
     LogError("failed to read device hardware revision");
@@ -65,13 +61,13 @@ void WorkerSis3316::LoadConfig()
   }
 
   // Get ADC fpga firmware revision.
-  
+
   for (int gr = 0; gr < SIS_3316_GR; ++gr) {
 
     addr = CH1_4_FIRMWARE + kAdcRegOffset * gr;
 
     rc = Read(addr, msg);
-  
+
     if (rc != 0) {
       LogError("failed to read device hardware revision");
       ++nerrors;
@@ -79,20 +75,20 @@ void WorkerSis3316::LoadConfig()
 
     LogMessage("ADC%i fpga firmware version 0x%08x", gr, msg);
   }
-  
+
   // Check the board temperature
   rc = Read(INTERNAL_TEMPERATURE, msg);
   if (rc == 0) {
-    
+
     short temp = (short)msg &0xffff;
     LogMessage("device internal temperature is %0.2fC", temp * 0.25);
-    
+
   } else {
-    
+
     LogError("failed to read device temperature");
     ++nerrors;
   }
-  
+
   // Reset the device.
   rc = Write(KEY_RESET, 0x1);
   if (rc != 0) {
@@ -106,10 +102,10 @@ void WorkerSis3316::LoadConfig()
     LogError("failure to disarm device");
     ++nerrors;
   }
-  
+
   // SPI setup here. First disable ADC chip outputs.
   for (int gr = 0; gr < SIS_3316_GR; ++gr) {
-    
+
     // Set address to ADC's SPI_CTRL_REG.
     addr = CH1_4_SPI_CTRL + kAdcRegOffset * gr;
     rc = Write(addr, 0x0);
@@ -124,7 +120,7 @@ void WorkerSis3316::LoadConfig()
   for (int gr = 0; gr < SIS_3316_GR; ++gr) {
     rc = AdcSpiWrite(gr, 0, 0x0, 0x24);
     rc &= AdcSpiWrite(gr, 1, 0x0, 0x24);
-    
+
     if (rc != 0) {
       LogError("failure to reset ADCs");
       ++nerrors;
@@ -166,7 +162,7 @@ void WorkerSis3316::LoadConfig()
 
   // Enable output again.
   for (int gr = 0; gr < SIS_3316_GR; ++gr) {
-    
+
     // Set address to ADC's SPI_CTRL_REG.
     addr = CH1_4_SPI_CTRL + kAdcRegOffset * gr;
     rc = Write(addr, 0x01000000);
@@ -179,20 +175,20 @@ void WorkerSis3316::LoadConfig()
 
   // Enable external LEMO trigger.
   msg = 0;
-  if (conf.get<bool>("enable_ext_trg", true)) {
+  if (conf_.get<bool>("enable_ext_trg", true)) {
     msg |= (0x1 << 4); // enable external trigger bit
     LogMessage("enabling external triggers");
   }
-  
-  if (conf.get<bool>("invert_ext_trg", false)) {
+
+  if (conf_.get<bool>("invert_ext_trg", false)) {
     msg |= (0x1 << 5); // invert external trigger bit
     LogMessage("inverting external triggers");
   }
 
-  if (conf.get<bool>("enable_ext_clk", false)) {
+  if (conf_.get<bool>("enable_ext_clk", false)) {
     msg |= (0x1 << 0); // enable external clock
     LogMessage("enabling external clock");
-  }  
+  }
 
   // Write to NIM_INPUT_CTRL
   rc = Write(NIM_INPUT_CONTROL, msg);
@@ -202,40 +198,40 @@ void WorkerSis3316::LoadConfig()
     ++nerrors;
   }
 
-  if (conf.get<bool>("enable_ext_clk", false)) {
+  if (conf_.get<bool>("enable_ext_clk", false)) {
 
     // // Reset the device again.
     // rc = Write(KEY_RESET, 0x1);
     // if (rc != 0) {
     //   LogError("failure to reset device");
     // }
-    
+
     // Disarm the device.
     rc = Write(KEY_DISARM, 0x1);
     if (rc != 0) {
       LogError("failure to disarm device");
       ++nerrors;
     }
-    
+
     // Set the ADC clock distribution.
     if (Write(SAMPLE_CLOCK_DISTRIBUTION_CONTROL, 0x3) != 0) {
-      LogError("failure to set ADC clock mux");      
+      LogError("failure to set ADC clock mux");
       ++nerrors;
     }
 
     // Enable external LEMO trigger.
     msg = 0;
-    if (conf.get<bool>("enable_ext_trg", true)) {
+    if (conf_.get<bool>("enable_ext_trg", true)) {
       msg |= (0x1 << 4); // enable external trigger bit
     }
-  
-    if (conf.get<bool>("invert_ext_trg", false)) {
+
+    if (conf_.get<bool>("invert_ext_trg", false)) {
       msg |= (0x1 << 5); // invert external trigger bit
     }
 
-    if (conf.get<bool>("enable_ext_clk", false)) {
+    if (conf_.get<bool>("enable_ext_clk", false)) {
       msg |= (0x1 << 0); // enable external clock
-    }  
+    }
 
     // Write to NIM_INPUT_CTRL
     rc = Write(NIM_INPUT_CONTROL, msg);
@@ -279,7 +275,7 @@ void WorkerSis3316::LoadConfig()
     // if (rc != 0) {
     //   LogError("failure to reset device");
     // }
-    
+
     // Disarm the device.
     rc = Write(KEY_DISARM, 0x1);
     if (rc != 0) {
@@ -287,8 +283,8 @@ void WorkerSis3316::LoadConfig()
       ++nerrors;
     }
 
-    auto hs = conf.get<unsigned char>("oscillator_hs", 5);
-    auto n1 = conf.get<unsigned char>("oscillator_n1", 5);
+    auto hs = conf_.get<unsigned char>("oscillator_hs", 5);
+    auto n1 = conf_.get<unsigned char>("oscillator_n1", 5);
     SetOscFreqHSN1(0, hs, n1);
   }
 
@@ -303,7 +299,7 @@ void WorkerSis3316::LoadConfig()
 
   // Enable ADC chip outputs.
   for (gr = 0; gr < SIS_3316_GR; ++gr) {
-    
+
     // Set address to ADC's SPI_CTRL_REG.
     addr = CH1_4_SPI_CTRL + kAdcRegOffset * gr;
     rc = Write(addr, 0x01000000);
@@ -321,7 +317,7 @@ void WorkerSis3316::LoadConfig()
     addr = CH1_4_INPUT_TAP_DELAY + kAdcRegOffset * gr;
 
     // Calibrate all channels.
-    rc = Write(addr, 0xf00); 
+    rc = Write(addr, 0xf00);
 
     if (rc != 0) {
       LogError("failure calibrating IOB tap delay logic");
@@ -334,7 +330,7 @@ void WorkerSis3316::LoadConfig()
 
     // Set address to ADC's INPUT_TAP_DELAY_REG
     addr = CH1_4_INPUT_TAP_DELAY + kAdcRegOffset * gr;
-    string hex_tap_delay = conf.get<string>("iob_tap_delay", "0x1020");
+    string hex_tap_delay = conf_.get<string>("iob_tap_delay", "0x1020");
     uint iob_tap_delay = std::stoi(hex_tap_delay, nullptr, 0);
 
     if (iob_tap_delay & 0xffff0000 != 0) {
@@ -342,12 +338,12 @@ void WorkerSis3316::LoadConfig()
 
       LogWarning("iob_tap_delay truncated to 2 bytes");
     }
-    
+
     // Set value specific to fpga and clock frequency.
     // A few examples (see more on manual page 116):
-    // 125 MHz: fpga_0003 = 0x7f 
-    // 125 MHz: fpga_0004 = 0x1020 
-    // 250 MHz: fpga_0003 = 0x48 
+    // 125 MHz: fpga_0003 = 0x7f
+    // 125 MHz: fpga_0004 = 0x1020
+    // 250 MHz: fpga_0003 = 0x48
     // 250 MHz: fpga_0004 = 0x1008
     // (+ 0x300) is to select all channels.
     rc = Write(addr, 0x300 + iob_tap_delay);
@@ -358,7 +354,7 @@ void WorkerSis3316::LoadConfig()
     }
   }
   usleep(100);
-    
+
   // Write to the channel header registers.
   for (gr = 0; gr < SIS_3316_GR; ++gr) {
 
@@ -373,12 +369,12 @@ void WorkerSis3316::LoadConfig()
   }
 
   // Set the DAC offsets by groups of 4 channels
-  if (conf.get<bool>("set_voltage_offset", true)) {
+  if (conf_.get<bool>("set_voltage_offset", true)) {
 
     for (gr = 0; gr < SIS_3316_GR; ++gr) {
-      
+
       addr = CH1_4_DAC_OFFSET_CTRL + kAdcRegOffset * gr;
-      
+
       // Enable the internal reference.
       rc = Write(addr, 0x88f00001); // Magic constant found in Struck source.
 
@@ -388,12 +384,12 @@ void WorkerSis3316::LoadConfig()
       }
       usleep(1000);  // update takes time
 
-      string dac_offset_hex = conf.get<string>("dac_voltage_offset", "0x8000");
+      string dac_offset_hex = conf_.get<string>("dac_voltage_offset", "0x8000");
       uint offset = std::stoi(dac_offset_hex, nullptr, 0);
-      
+
       if ((offset & 0xffff0000) != 0) {
         offset &= 0xffff;
-        
+
         LogWarning("truncating DAC offset value to 2 bytes");
       }
 
@@ -422,7 +418,7 @@ void WorkerSis3316::LoadConfig()
 
   // Check the DAC offset readback registers.
   for (gr = 0; gr < SIS_3316_GR; ++gr) {
-    
+
     addr = CH1_4_DAC_OFFSET_READBACK + kAdcRegOffset * gr;
 
     rc = Read(addr, msg);
@@ -454,7 +450,7 @@ void WorkerSis3316::LoadConfig()
     // Now the number of samples per trace.
     addr = 0x1020 + kAdcRegOffset * gr;
     msg = (SIS_3316_LN << 16) | (0 & 0xffff); // 0 is start address in ADC
-      
+
     rc = Write(addr, msg);
     if (rc != 0) {
       LogError("failure to set the raw data buffer length");
@@ -471,7 +467,7 @@ void WorkerSis3316::LoadConfig()
 
       msg = SIS_3316_LN & 0x1ffffff; // 25 bits total.
       rc = Write(addr, msg);
-      
+
       if (rc != 0) {
         LogError("failure to set the raw data buffer length");
         ++nerrors;
@@ -480,8 +476,8 @@ void WorkerSis3316::LoadConfig()
   }
 
   // Set the pre-trigger buffer length for each channel.
-  msg = std::stoi(conf.get<string>("pretrigger_samples", "0x0"), nullptr, 0);
-  
+  msg = std::stoi(conf_.get<string>("pretrigger_samples", "0x0"), nullptr, 0);
+
   if ((msg & 0xffffc) != 0) {
     LogWarning("pre-trigger delay truncated to max of 0x1ffe");
   }
@@ -489,7 +485,7 @@ void WorkerSis3316::LoadConfig()
   msg &= 0x3fff; // max of 2042 and bit 0 = 0
 
   for (gr = 0; gr < SIS_3316_GR; ++gr) {
-    
+
     // Set the to address of ADC's pre-trigger configuration.
     addr = CH1_4_PRE_TRIGGER_DELAY + kAdcRegOffset * gr;
     rc = Write(addr, msg);
@@ -502,7 +498,7 @@ void WorkerSis3316::LoadConfig()
 
   // Need to enable triggers per channel also, I think.
   for (gr = 0; gr < SIS_3316_GR; ++gr) {
-    
+
     addr = CH1_4_EVENT_CONFIG + kAdcRegOffset * gr;
 
     rc = Read(addr, msg);
@@ -510,15 +506,15 @@ void WorkerSis3316::LoadConfig()
       LogError("failure reading event config for channel group %i", gr + 1);
       ++nerrors;
     }
-    
-    if (conf.get<bool>("enable_ext_trg", true)) {
+
+    if (conf_.get<bool>("enable_ext_trg", true)) {
       msg |= 0x1 << 3;
       msg |= 0x1 << 11;
       msg |= 0x1 << 19;
       msg |= 0x1 << 27;
     }
 
-    if (conf.get<bool>("enable_int_trg", false)) {
+    if (conf_.get<bool>("enable_int_trg", false)) {
       msg |= 0x1 << 2;
       msg |= 0x1 << 10;
       msg |= 0x1 << 18;
@@ -534,7 +530,7 @@ void WorkerSis3316::LoadConfig()
 
   // Set the data format and address thresholds.
   for (int gr = 0; gr < SIS_3316_GR; ++gr) {
-    
+
     // Data format
     addr = CH1_4_DATAFORMAT_CONFIG + kAdcRegOffset * gr;
     rc = Write(addr, 0x0);
@@ -556,7 +552,7 @@ void WorkerSis3316::LoadConfig()
   }
 
   // Enable (global) external trigger)
-  if (conf.get<bool>("enable_ext_trg", true)) {
+  if (conf_.get<bool>("enable_ext_trg", true)) {
     msg = 0x100;
 
   } else {
@@ -565,7 +561,7 @@ void WorkerSis3316::LoadConfig()
   }
 
   // Enable external timestamp clear.
-  msg |= 0x400; 
+  msg |= 0x400;
   rc = Write(ACQUISITION_CONTROL, msg);
 
   if (rc != 0) {
@@ -590,7 +586,7 @@ void WorkerSis3316::LoadConfig()
   // Arm bank1 to start.
   rc = Write(KEY_DISARM_AND_ARM_BANK1, 0x1);
   bank2_armed_flag = false;
-  
+
   if (rc != 0) {
     LogError("failed to arm logic on bank 1");
     ++nerrors;
@@ -669,7 +665,7 @@ bool WorkerSis3316::EventAvailable()
   do {
     rc = Read(ACQUISITION_CONTROL, msg);
   } while ((rc != 0) && (count++ < kMaxPoll));
- 
+
   // Check memory threshold flag
   is_event = msg & (0x1 << 19);
 
@@ -684,7 +680,7 @@ bool WorkerSis3316::EventAvailable()
       do {
 	rc = Write(KEY_DISARM_AND_ARM_BANK1, 1);
 	bank2_armed_flag = false;
-    
+
       } while ((rc != 0) && (count++ < kMaxPoll));
 
     } else {
@@ -692,7 +688,7 @@ bool WorkerSis3316::EventAvailable()
       do {
 	rc = Write(KEY_DISARM_AND_ARM_BANK2, 1);
 	bank2_armed_flag = true;
-    
+
       } while ((rc != 0) && (count++ < kMaxPoll));
 
       if (rc != 0) {
@@ -723,7 +719,7 @@ void WorkerSis3316::GetEvent(sis_3316 &bundle)
   // Get the system time.
   auto t1 = high_resolution_clock::now();
   auto dtn = t1.time_since_epoch() - t0_.time_since_epoch();
-  bundle.system_clock = duration_cast<milliseconds>(dtn).count();  
+  bundle.system_clock = duration_cast<milliseconds>(dtn).count();
 
   // For time profiling
   LogDebug("GetEvent: start");
@@ -756,7 +752,7 @@ void WorkerSis3316::GetEvent(sis_3316 &bundle)
       LogError("no data received");
       return;
     }
-    
+
     // Specify the channel's fifo address
     msg = 0x80000000; // Start transfer bit
     if (!bank2_armed_flag) msg += 0x01000000; // Bank 2 offset
@@ -856,10 +852,10 @@ int WorkerSis3316::I2cStop(int osc)
   }
 
   uint addr = 0, msg = 0, count = 0;
-  
+
   // Set address to specified oscillator register (0 for int, 1|2 for ext).
   addr = ADC_CLK_OSC_I2C + 0x4 * osc;
-  
+
   // Write to STOP bit.
   if (Write(addr, 0x1 << 11) != 0) {
     LogError("failed to stop I2C oscillator 0");
@@ -873,7 +869,7 @@ int WorkerSis3316::I2cStop(int osc)
     LogDebug("I2cStop response: 0x%08x", msg);
   } while ((count++ < kMaxPoll) && ((msg >> 31) & 0x1));
 
-  
+
   if (count >= kMaxPoll) {
     LogError("I2C busy, timed out");
     return 2;
@@ -890,14 +886,14 @@ int WorkerSis3316::I2cRead(int osc, unsigned char &data, unsigned char ack)
   }
 
   uint addr = 0, msg = 0, count = 0;
-  
+
   // Set address to specified oscillator register (0 for int, 1|2 for ext).
   addr = ADC_CLK_OSC_I2C + 0x4 * osc;
 
   // Set the message READ bit and ACK bit.
   msg = (0x1 << 13);
   msg |= ack ? (1 << 8) : 0;
-  
+
   if (Write(addr, msg) != 0) {
     LogError("failed to request READ from I2C address");
   }
@@ -951,7 +947,7 @@ int WorkerSis3316::I2cWrite(int osc, unsigned char data, unsigned char &ack)
     LogError("I2C busy timed out");
     return 2;
   }
-  
+
   // Check the ACK bit.
   ack = ((msg >> 8) & 0x1) ? 1 : 0;
 
@@ -981,7 +977,7 @@ int WorkerSis3316::SetOscFreqHSN1(int osc, unsigned char hs, unsigned char n1)
   } else if (!ack) {
     LogError("failure to receive ack after writing I2C byte");
     I2cStop(osc);
-  }    
+  }
 
   // Register offset.
   rc = I2cWrite(osc, 0x0d, ack);
@@ -1006,7 +1002,7 @@ int WorkerSis3316::SetOscFreqHSN1(int osc, unsigned char hs, unsigned char n1)
 
   // Now readout the 6 bytes currently in there.
   for (int i = 0; i < 6; ++i) {
-    
+
     if (i == 5) {
       ack = 0;
     } else {
@@ -1046,7 +1042,7 @@ int WorkerSis3316::SetOscFreqHSN1(int osc, unsigned char hs, unsigned char n1)
     LogError("failure writing I2C address byte");
     I2cStop(osc);
   }
-  
+
   // Set Offset.
   rc = I2cWrite(osc, 0x89, ack);
   if ((rc != 0) || (!ack)) {
@@ -1059,7 +1055,7 @@ int WorkerSis3316::SetOscFreqHSN1(int osc, unsigned char hs, unsigned char n1)
   if ((rc != 0) || (!ack)) {
     LogError("failure writing I2C data byte");
     I2cStop(osc);
-  }  
+  }
 
   // And stop command.
   rc = I2cStop(osc);
@@ -1077,7 +1073,7 @@ int WorkerSis3316::SetOscFreqHSN1(int osc, unsigned char hs, unsigned char n1)
     LogError("failure writing I2C byte");
     I2cStop(osc);
   }
-  
+
   // Set Offset.
   rc = I2cWrite(osc, 0x0d, ack);
   if ((rc != 0) || (!ack)) {
@@ -1091,7 +1087,7 @@ int WorkerSis3316::SetOscFreqHSN1(int osc, unsigned char hs, unsigned char n1)
     if ((rc != 0) || (!ack)) {
       LogError("failure writing I2C byte");
       I2cStop(osc);
-    }  
+    }
   }
 
   // And stop command.
@@ -1110,7 +1106,7 @@ int WorkerSis3316::SetOscFreqHSN1(int osc, unsigned char hs, unsigned char n1)
     LogError("failure writing I2C byte");
     I2cStop(osc);
   }
-  
+
   // Set Offset.
   rc = I2cWrite(osc, 0x89, ack);
   if ((rc != 0) || (!ack)) {
@@ -1123,7 +1119,7 @@ int WorkerSis3316::SetOscFreqHSN1(int osc, unsigned char hs, unsigned char n1)
   if ((rc != 0) || (!ack)) {
     LogError("failure writing I2C byte");
     I2cStop(osc);
-  }  
+  }
 
   // And stop command.
   rc = I2cStop(osc);
@@ -1141,7 +1137,7 @@ int WorkerSis3316::SetOscFreqHSN1(int osc, unsigned char hs, unsigned char n1)
     LogError("failure writing I2C byte");
     I2cStop(osc);
   }
-  
+
   // Set Offset.
   rc = I2cWrite(osc, 0x87, ack);
   if ((rc != 0) || (!ack)) {
@@ -1154,11 +1150,11 @@ int WorkerSis3316::SetOscFreqHSN1(int osc, unsigned char hs, unsigned char n1)
   if ((rc != 0) || (!ack)) {
     LogError("failure writing I2C byte");
     I2cStop(osc);
-  }  
+  }
 
   // And stop command.
   rc = I2cStop(osc);
-  
+
   // Wait, then reset the DCM.
   usleep(15000);
   rc = Write(KEY_ADC_CLOCK_DCM_RESET, 0x0);
@@ -1201,13 +1197,13 @@ int WorkerSis3316::AdcSpiWrite(int gr, int chip, uint spi_addr, uint msg)
 
   // Check busy register, bit 31 to make sure it finishes before returning.
   addr = 0xa4;
-  
+
   do {
     rc = Read(addr, data);
   } while (((rc != 0) && (count++ < maxcount)) && (data & (0x1 << 31)));
-  
+
   if (count >= maxcount) return -2;
-  
+
   return rc;
 }
 
@@ -1231,7 +1227,7 @@ int WorkerSis3316::AdcSpiRead(int gr, int chip, uint spi_addr, uint &msg)
 
   rc = Read(addr, data);
   if (rc != 0) return rc;
-  
+
   // Preserve the enable bit and add command bit and mux bit.
   data &= (0x1 << 24);
   data += 0xc0000000 + adc_mux + (spi_addr << 8);
@@ -1241,22 +1237,22 @@ int WorkerSis3316::AdcSpiRead(int gr, int chip, uint spi_addr, uint &msg)
 
   // Check busy register, bit 31 to make sure it finishes before returning.
   addr = 0xa4;
-  
+
   do {
     rc = Read(addr, data);
   } while (((rc != 0) && (count++ < maxcount)) && (data & (0x1 << 31)));
-  
+
   if (count >= maxcount) return -2;
   if (rc != 0) return rc;
 
   // Set address to the readback register.
   addr = CH1_4_SPI_READBACK + gr * kAdcRegOffset;
-  
+
   rc = Read(addr, data);
   if (rc != 0) return rc;
 
   msg = data & 0xff;
-  
+
   return rc;
 }
 
@@ -1268,13 +1264,13 @@ int WorkerSis3316::Si5325Read(uint addr, uint &msg)
   if (Write(NIM_CLK_MULTIPLIER_SPI, addr & 0xff) != 0) {
     LogError("failure to select address for clock multipler spi register");
   }
-  
+
   // Wait for the SPI to finish.
   do {
     if (Read(NIM_CLK_MULTIPLIER_SPI, tmp) != 0) {
       LogError("SI5235 SPI write failed");
       return -1;
-    } 
+    }
   } while (((0x80000000 & tmp) == 0x80000000) && (count++ < maxpoll));
 
   if (count >= maxpoll) {
@@ -1317,13 +1313,13 @@ int WorkerSis3316::Si5325Write(uint addr, uint msg)
   if (Write(NIM_CLK_MULTIPLIER_SPI, addr & 0xff) != 0) {
     LogError("failure to select address for clock multipler spi register");
   }
-  
+
   // Wait for the SPI to finish.
   do {
     if (Read(NIM_CLK_MULTIPLIER_SPI, tmp) != 0) {
       LogError("SI5235 SPI write failed");
       return -1;
-    } 
+    }
   } while (((0x80000000 & tmp) == 0x80000000) && (count++ < maxpoll));
 
   if (count >= maxpoll) {

@@ -2,7 +2,7 @@
 
 namespace daq {
 
-WorkerCaen6742::WorkerCaen6742(std::string name, std::string conf) : 
+WorkerCaen6742::WorkerCaen6742(std::string name, std::string conf) :
   WorkerBase<caen_6742>(name, conf)
 {
   buffer_ = nullptr;
@@ -28,7 +28,7 @@ WorkerCaen6742::~WorkerCaen6742()
 }
 
 void WorkerCaen6742::LoadConfig()
-{ 
+{
   // Open the configuration file.
   boost::property_tree::ptree conf;
   boost::property_tree::read_json(conf_file_, conf);
@@ -36,7 +36,7 @@ void WorkerCaen6742::LoadConfig()
   int rc;
   uint msg = 0;
 
-  int device_id = conf.get<int>("device_id");
+  int device_id = conf_.get<int>("device_id");
 
   // Reset the device.
   rc = CAEN_DGTZ_Reset(device_);
@@ -57,7 +57,7 @@ void WorkerCaen6742::LoadConfig()
     LogMessage("ROC FPGA Release is %s", board_info_.ROC_FirmwareRel);
     LogMessage("AMC FPGA Release is %s", board_info_.AMC_FirmwareRel);
   }
-  
+
   // Set the trace length.
   rc = CAEN_DGTZ_SetRecordLength(device_, CAEN_6742_LN);
   if (rc != 0) {
@@ -65,7 +65,7 @@ void WorkerCaen6742::LoadConfig()
   }
 
   // Set "pretrigger".
-  int pretrigger_delay = conf.get<int>("pretrigger_delay", 35);
+  int pretrigger_delay = conf_.get<int>("pretrigger_delay", 35);
   rc = CAEN_DGTZ_SetPostTriggerSize(device_, pretrigger_delay);
   if (rc != 0) {
     LogError("failed to set pretrigger buffer");
@@ -73,7 +73,7 @@ void WorkerCaen6742::LoadConfig()
 
   // Set the sampling rate.
   CAEN_DGTZ_DRS4Frequency_t rate;
-  double sampling_rate = conf.get<double>("sampling_rate", 1.0);
+  double sampling_rate = conf_.get<double>("sampling_rate", 1.0);
 
   if (sampling_rate > 3.75) {
 
@@ -89,7 +89,7 @@ void WorkerCaen6742::LoadConfig()
 
     LogMessage("Setting sampling rate to 1.0GHz.");
     rate = CAEN_DGTZ_DRS4_1GHz;
-  }  
+  }
 
   rc = CAEN_DGTZ_SetDRS4SamplingFrequency(device_, rate);
   if (rc != 0) {
@@ -97,8 +97,8 @@ void WorkerCaen6742::LoadConfig()
   }
 
   // Load and enable DRS4 corrections.
-  if (conf.get<bool>("use_drs4_corrections")) {
-  
+  if (conf_.get<bool>("use_drs4_corrections")) {
+
     rc = CAEN_DGTZ_LoadDRS4CorrectionData(device_, rate);
     if (rc != 0) {
       LogError("failed to load DRS4 correction data");
@@ -111,26 +111,26 @@ void WorkerCaen6742::LoadConfig()
   }
 
   // Set the channel enable mask.
-  rc = CAEN_DGTZ_SetGroupEnableMask(device_, 0x3); // all on 
+  rc = CAEN_DGTZ_SetGroupEnableMask(device_, 0x3); // all on
   if (rc != 0) {
     LogError("failed to set group enable mask");
   }
 
   uint ch = 0;
   //DAC offsets
-  for (auto &val : conf.get_child("channel_offset")) {
+  for (auto &val : conf_.get_child("channel_offset")) {
 
     float volts = val.second.get_value<float>();
     int dac = (int)((volts / vpp_) * 0xffff + 0x8000);
 
     if (dac < 0x0) dac = 0;
     if (dac > 0xffff) dac = 0xffff;
-    
+
     rc = CAEN_DGTZ_SetChannelDCOffset(device_, ch++, dac);
     if (rc != 0) {
       LogError("failed to set DC offset for channel %i", ch-1);
     }
-  }    
+  }
 
   // Enable external trigger.
   //  rc = CAEN_DGTZ_SetExtTriggerInputMode(device_, CAEN_DGTZ_TRGMODE_ACQ_ONLY);
@@ -157,16 +157,16 @@ void WorkerCaen6742::LoadConfig()
   }
 
   // Disable self trigger.
-  rc = CAEN_DGTZ_SetChannelSelfTrigger(device_, 
-					CAEN_DGTZ_TRGMODE_DISABLED, 
+  rc = CAEN_DGTZ_SetChannelSelfTrigger(device_,
+					CAEN_DGTZ_TRGMODE_DISABLED,
 					0xffff);
   if (rc != 0) {
     LogError("failed to disable self-triggering");
   }
-  
+
   // Channel pulse polarity
   for (int ch; ch < CAEN_6742_CH; ++ch) {
-    rc = CAEN_DGTZ_SetChannelPulsePolarity(device_, ch, 
+    rc = CAEN_DGTZ_SetChannelPulsePolarity(device_, ch,
 					    CAEN_DGTZ_PulsePolarityPositive);
     if (rc != 0) {
       LogError("failed to set pulse polarity for channel %i", ch);
@@ -184,24 +184,24 @@ void WorkerCaen6742::LoadConfig()
   if (rc != 0) {
     LogError("failed to set max number of events to 1");
   }
-  
+
   // Allocated the readout buffer.
   rc = CAEN_DGTZ_MallocReadoutBuffer(device_, &buffer_, &size_);
   if (rc != 0) {
     LogError("failed to allocate readout buffer");
   }
-  
+
 } // LoadConfig
 
 void WorkerCaen6742::WorkLoop()
 {
   int rc = 0;
-  
+
   rc = CAEN_DGTZ_AllocateEvent(device_, (void **)&event_);
   if (rc != 0) {
     LogError("failed to allocate event buffer");
   }
-    
+
   rc = CAEN_DGTZ_SWStartAcquisition(device_);
   if (rc != 0) {
     LogError("failed to begin software data acquisition");
@@ -222,9 +222,9 @@ void WorkerCaen6742::WorkLoop()
         data_queue_.push(bundle);
         has_event_ = true;
         queue_mutex_.unlock();
-	
+
       } else {
-	
+
 	std::this_thread::yield();
 	usleep(daq::short_sleep);
       }
@@ -261,10 +261,10 @@ caen_6742 WorkerCaen6742::PopEvent()
     // Copy the data.
     data = data_queue_.front();
     data_queue_.pop();
-    
+
     // Check if this is that last event.
     if (data_queue_.size() == 0) has_event_ = false;
-    
+
     queue_mutex_.unlock();
     return data;
   }
@@ -276,9 +276,9 @@ bool WorkerCaen6742::EventAvailable()
   // Check acq reg.
   uint num_events = 0, rc = 0;
 
-  rc = CAEN_DGTZ_ReadData(device_, 
-                          CAEN_DGTZ_SLAVE_TERMINATED_READOUT_MBLT, 
-                          buffer_, 
+  rc = CAEN_DGTZ_ReadData(device_,
+                          CAEN_DGTZ_SLAVE_TERMINATED_READOUT_MBLT,
+                          buffer_,
                           &bsize_);
   if (rc != 0) {
     LogError("failed to readout data");
@@ -308,14 +308,14 @@ void WorkerCaen6742::GetEvent(caen_6742 &bundle)
   // Get the system time
   auto t1 = high_resolution_clock::now();
   auto dtn = t1.time_since_epoch() - t0_.time_since_epoch();
-  bundle.system_clock = duration_cast<milliseconds>(dtn).count();  
+  bundle.system_clock = duration_cast<milliseconds>(dtn).count();
 
   // Get the event data
-  rc = CAEN_DGTZ_GetEventInfo(device_, 
-                              buffer_, 
-                              bsize_, 
-                              0, 
-                              &event_info_, 
+  rc = CAEN_DGTZ_GetEventInfo(device_,
+                              buffer_,
+                              bsize_,
+                              0,
+                              &event_info_,
                               &evtptr);
   if (rc != 0) {
     LogError("failed to retrieve event info");
@@ -346,5 +346,5 @@ void WorkerCaen6742::GetEvent(caen_6742 &bundle)
     }
   }
 }
-  
+
 } // ::daq

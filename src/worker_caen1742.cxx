@@ -2,7 +2,7 @@
 
 namespace daq {
 
-WorkerCaen1742::WorkerCaen1742(std::string name, std::string conf) : 
+WorkerCaen1742::WorkerCaen1742(std::string name, std::string conf) :
   WorkerVme<caen_1742>(name, conf)
 {
   LoadConfig();
@@ -21,22 +21,18 @@ WorkerCaen1742::~WorkerCaen1742()
 }
 
 void WorkerCaen1742::LoadConfig()
-{ 
-  // Open the configuration file.
-  boost::property_tree::ptree conf;
-  boost::property_tree::read_json(conf_file_, conf);
-
+{
   int rc;
   uint msg = 0;
   std::string tmp;
 
   // Get the correction plan
-  drs_cell_corrections_ = conf.get<bool>("drs_cell_corrections", true);
-  drs_peak_corrections_ = conf.get<bool>("drs_peak_corrections", true);
-  drs_time_corrections_ = conf.get<bool>("drs_time_corrections", true);
+  drs_cell_corrections_ = conf_.get<bool>("drs_cell_corrections", true);
+  drs_peak_corrections_ = conf_.get<bool>("drs_peak_corrections", true);
+  drs_time_corrections_ = conf_.get<bool>("drs_time_corrections", true);
 
   // Get the base address for the device.  Convert from hex.
-  tmp = conf.get<std::string>("base_address");
+  tmp = conf_.get<std::string>("base_address");
   base_address_ = std::stoul(tmp, nullptr, 0);
 
   // Get the board info.
@@ -49,24 +45,24 @@ void WorkerCaen1742::LoadConfig()
 
   // Board type
   if ((msg & 0xff) == 0x00) {
-    
+
     LogMessage("Found caen v1742");
-    
+
   } else if ((msg & 0xff) == 0x01) {
-      
+
     LogMessage("Found caen vx1742");
   }
 
-  // Check the serial number 
+  // Check the serial number
   int sn = 0;
 
   rc = Read(0xf080, msg);
   if (rc != 0) {
     LogError("failed to read high byte of serial number");
   }
-  
+
   sn += (msg & 0xff) << 2;
-  
+
   rc = Read(0xf084, msg);
   if (rc != 0) {
     LogError("failed to read lower byte of serial number");
@@ -74,10 +70,10 @@ void WorkerCaen1742::LoadConfig()
 
   sn += (msg & 0xff);
   LogMessage("Serial Number: %i", sn);
-  
+
   // Get the hardware revision numbers.
   uint rev[4];
-  
+
   for (int i = 0; i < 4; ++i) {
 
     rc = Read(0xf040 + 4*i, msg);
@@ -88,9 +84,9 @@ void WorkerCaen1742::LoadConfig()
     rev[i] = msg;
   }
 
-  LogMessage("Board Hardware Release %i.%i.%i.%i", 
+  LogMessage("Board Hardware Release %i.%i.%i.%i",
 	     rev[0], rev[1], rev[2], rev[3]);
-  
+
   // Check the temperature.
   for (int i = 0; i < 4; ++i) {
 
@@ -124,7 +120,7 @@ void WorkerCaen1742::LoadConfig()
   if (rc != 0) {
     LogError("failed to check device status");
   }
-  
+
   if (msg & (0x1 << 2)) {
 
     LogWarning("Unit was already running on init");
@@ -142,7 +138,7 @@ void WorkerCaen1742::LoadConfig()
       LogError("failure writing register 0x8100");
     }
   }
-    
+
   // Set the group enable mask to all groups.
   rc = Read(0x8120, msg);
   if (rc != 0) {
@@ -172,14 +168,14 @@ void WorkerCaen1742::LoadConfig()
   if (rc != 0) {
     LogError("failed to read device configuration");
   }
-  
+
   rc = Write(0x8020, msg & 0xfffffffc); // 1024
   if (rc != 0) {
     LogError("failed to write device configuration for trace length");
   }
 
   // Set the sampling rate.
-  double sampling_rate = conf.get<double>("sampling_rate", 1.0);
+  double sampling_rate = conf_.get<double>("sampling_rate", 1.0);
   sampling_setting_ = 0;
 
   if (sampling_rate < 1.75) {
@@ -191,7 +187,7 @@ void WorkerCaen1742::LoadConfig()
 
     sampling_setting_ |= 0x1; // 2.5 Gsps
     LogMessage("sampling rate set to 2.5 Gsps");
-    
+
   } else if (sampling_rate >= 3.75) {
 
     sampling_setting_ |= 0x0; // 5.0 Gsps
@@ -210,7 +206,7 @@ void WorkerCaen1742::LoadConfig()
     LogError("failed to read the pre-trigger buffer register");
   }
 
-  int pretrigger_delay = conf.get<int>("pretrigger_delay", 35);
+  int pretrigger_delay = conf_.get<int>("pretrigger_delay", 35);
   msg &= 0xfffffe00;
   msg |= (uint)(pretrigger_delay / 100.0 * 0x3ff);
 
@@ -223,7 +219,7 @@ void WorkerCaen1742::LoadConfig()
   uint ch = 0;
   uint ch_idx = 0;
   uint group_size = CAEN_1742_CH / CAEN_1742_GR;
-  for (auto &val : conf.get_child("channel_offset")) {
+  for (auto &val : conf_.get_child("channel_offset")) {
 
     // Set group
     int group_idx = ch / group_size;
@@ -231,17 +227,17 @@ void WorkerCaen1742::LoadConfig()
     // Convert the voltage to a dac value.
     float volts = val.second.get_value<float>();
     uint dac = (uint)((volts / vpp_) * 0xffff + 0x8000);
-    
+
     if (dac < 0x0) dac = 0;
     if (dac > 0xffff) dac = 0xffff;
-    
+
     // Make sure the board isn't busy
     int count = 0;
     while (true) {
 
       rc = Read(0x1088 + 0x100*group_idx, msg);
       if (rc != 0) {
-        
+
         LogError("failed to read boad status while setting DAC");
 	break;
 
@@ -251,21 +247,21 @@ void WorkerCaen1742::LoadConfig()
         break;
 
       } else if (count++ > 1000) {
-        
+
         LogError("timed out polling busy after setting DAC, ch%i", ch);
 	break;
       }
     }
-    
+
     ch_idx = (ch++) % group_size;
 
     rc = Write(0x1098 + 0x100*group_idx, dac | (ch_idx << 16));
     if (rc != 0) {
       LogError("failed to select next DAC");
     }
-  }    
+  }
 
-  if (conf.get<bool>("write_correction_data_csv", false)) {
+  if (conf_.get<bool>("write_correction_data_csv", false)) {
     WriteCorrectionDataCsv();
   }
 
@@ -365,9 +361,9 @@ void WorkerCaen1742::WorkLoop()
         queue_mutex_.unlock();
 
 	LogDebug("read out new event");
-	
+
       } else {
-	
+
 	std::this_thread::yield();
 	usleep(daq::short_sleep);
       }
@@ -407,10 +403,10 @@ caen_1742 WorkerCaen1742::PopEvent()
     // Copy the data.
     data = data_queue_.front();
     data_queue_.pop();
-    
+
     // Check if this is that last event.
     if (data_queue_.size() == 0) has_event_ = false;
-    
+
     queue_mutex_.unlock();
     return data;
   }
@@ -446,7 +442,7 @@ bool WorkerCaen1742::EventAvailable()
     return false;
   }
 
-  if (msg > 0) { 
+  if (msg > 0) {
     //acq status readout ready flag
     rc = Read(0x8104, msg);
     if (rc != 0) {
@@ -466,7 +462,7 @@ void WorkerCaen1742::GetEvent(caen_1742 &bundle)
 {
   using namespace std::chrono;
 
-  int ch, rc = 0; 
+  int ch, rc = 0;
   char *evtptr = nullptr;
   uint msg, d, size;
   int sample;
@@ -482,7 +478,7 @@ void WorkerCaen1742::GetEvent(caen_1742 &bundle)
   // Get the system time
   auto t1 = high_resolution_clock::now();
   auto dtn = t1.time_since_epoch() - t0_.time_since_epoch();
-  bundle.system_clock = duration_cast<milliseconds>(dtn).count();  
+  bundle.system_clock = duration_cast<milliseconds>(dtn).count();
 
 /*
   // Get the size of the next event data
@@ -494,7 +490,7 @@ void WorkerCaen1742::GetEvent(caen_1742 &bundle)
 */
 
 /*
-  //works OK at about 20 Hz  
+  //works OK at about 20 Hz
   buffer.resize(msg);
   read_trace_len_ = msg;
   LogDebug("begin readout of event length: %i", msg);
@@ -540,7 +536,7 @@ void WorkerCaen1742::GetEvent(caen_1742 &bundle)
   for (int i = 0; i < CAEN_1742_GR; ++i) {
     grp_mask[i] = buffer[1] & (0x1 << i);
   }
-  
+
   // Now unpack the data for each group
   uint header;
   uint chdata[8];
@@ -569,7 +565,7 @@ void WorkerCaen1742::GetEvent(caen_1742 &bundle)
     int nchannels = CAEN_1742_CH / CAEN_1742_GR;
     bool trg_saved = header & (0x1 << 12);
     startcells[grp_idx] = (header >> 20) & 0x3ff;
-    
+
     stop_idx = start_idx + data_size;
     sample = 0;
 
@@ -578,7 +574,7 @@ void WorkerCaen1742::GetEvent(caen_1742 &bundle)
       uint ln0 = buffer[i];
       uint ln1 = buffer[i+1];
       uint ln2 = buffer[i+2];
-      
+
       chdata[0] = ln0 & 0xfff;
       chdata[1] = (ln0 >> 12) & 0xfff;
       chdata[2] = ((ln0 >> 24) & 0xff) | ((ln1 & 0xf) << 8);
@@ -592,7 +588,7 @@ void WorkerCaen1742::GetEvent(caen_1742 &bundle)
 	int ch_idx = j + grp_idx * nchannels;
 	bundle.trace[ch_idx][sample] = chdata[j];
       }
-      
+
       ++sample;
     }
 
@@ -602,7 +598,7 @@ void WorkerCaen1742::GetEvent(caen_1742 &bundle)
 
     // Now grab the trigger if it was digitized.
     if (trg_saved) {
-      
+
       LogDebug("Digitizing trigger");
       stop_idx = start_idx + (data_size / 8);
 
@@ -610,7 +606,7 @@ void WorkerCaen1742::GetEvent(caen_1742 &bundle)
 	uint ln0 = buffer[i];
 	uint ln1 = buffer[i+1];
 	uint ln2 = buffer[i+2];
-	
+
 	chdata[0] = ln0 & 0xfff;
 	chdata[1] = (ln0 >> 12) & 0xfff;
 	chdata[2] = ((ln0 >> 24) & 0xff) | ((ln1 & 0xf) << 8);
@@ -619,7 +615,7 @@ void WorkerCaen1742::GetEvent(caen_1742 &bundle)
 	chdata[5] = ((ln1 >> 28) & 0xf) | ((ln2 & 0xff) << 4);
 	chdata[6] = (ln2 >> 8) & 0xfff;
 	chdata[7] = (ln2 >> 20) & 0xfff;
-	
+
 	for (int j = 0; j < 8; ++j) {
 	  bundle.trigger[grp_idx][sample++] = chdata[j];
 	}
@@ -642,7 +638,7 @@ void WorkerCaen1742::GetEvent(caen_1742 &bundle)
 
 
 // This function does the caen corrections directly as they do.
-int WorkerCaen1742::ApplyDataCorrection(caen_1742 &data, 
+int WorkerCaen1742::ApplyDataCorrection(caen_1742 &data,
 					const std::vector<uint> &startcells)
 {
   static bool correction_loaded = false;
@@ -662,7 +658,7 @@ int WorkerCaen1742::ApplyDataCorrection(caen_1742 &data,
   if (drs_peak_corrections_) {
     PeakCorrection(data, table);
   }
-  
+
   if (drs_time_corrections_) {
     TimeCorrection(data, table, startcells);
   }
@@ -671,7 +667,7 @@ int WorkerCaen1742::ApplyDataCorrection(caen_1742 &data,
 }
 
 
-int WorkerCaen1742::CellCorrection(caen_1742 &data, 
+int WorkerCaen1742::CellCorrection(caen_1742 &data,
 				   const drs_correction &table,
 				   const std::vector<uint> &startcells)
 {
@@ -680,13 +676,13 @@ int WorkerCaen1742::CellCorrection(caen_1742 &data,
   uint i, j, k;
   short startcell;
   uint nchannels = CAEN_1742_CH / CAEN_1742_GR;
-  
+
   for (i = 0; i < CAEN_1742_CH; ++i) {
 
     startcell = startcells[i / nchannels];
 
     for (j = 0; j < CAEN_1742_LN; ++j) {
-      
+
       data.trace[i][j] -= table.cell[i][(startcell + j) % 1024];
       data.trace[i][j] -= table.nsample[i][j];
     }
@@ -706,7 +702,7 @@ int WorkerCaen1742::PeakCorrection(caen_1742 &data, const drs_correction &table)
 
   // Drop first sample automatically apparently.
   for (i = 0; i < CAEN_1742_CH; ++i) wf[i][0] = wf[i][1];
-  
+
   // Now check the other waveform indexes.
   for (i = 1; i < CAEN_1742_LN; ++i) {
 
@@ -718,54 +714,54 @@ int WorkerCaen1742::PeakCorrection(caen_1742 &data, const drs_correction &table)
       LogDump("peak correction on cell[%i][%i]", j, i);
 
       switch(i) {
-      
-        case 1: 
-	  if (wf[j][i+1] - wf[j][i] > peakthresh) 
+
+        case 1:
+	  if (wf[j][i+1] - wf[j][i] > peakthresh)
 	    offset++;
 	  break;
 
         case 2:
-	  if ((wf[j][i+1] - wf[j][i-1] > peakthresh) && 
+	  if ((wf[j][i+1] - wf[j][i-1] > peakthresh) &&
 	      (wf[j][i+1] - wf[j][i] > peakthresh))
 	    offset++;
 	  break;
 
         case CAEN_1742_LN - 2:
-	  if (wf[j][i-1] - wf[j][i] > peakthresh) 
+	  if (wf[j][i-1] - wf[j][i] > peakthresh)
 	    offset++;
 	  break;
 
         case CAEN_1742_LN - 1:
-	  if (wf[j][i-1] - wf[j][i] > peakthresh) 
+	  if (wf[j][i-1] - wf[j][i] > peakthresh)
 	    offset++;
 	  break;
-	  
+
         default:
-	  if ((wf[j][i-1] - wf[j][i] > peakthresh) && 
-	      ((wf[j][i+1] - wf[j][i] > peakthresh) || 
+	  if ((wf[j][i-1] - wf[j][i] > peakthresh) &&
+	      ((wf[j][i+1] - wf[j][i] > peakthresh) ||
 	       (wf[j][i+2] - wf[j][i] > peakthresh))) {
 	    offset++;
 	  }
 	  break;
       }
-    
+
       if (offset == (CAEN_1742_CH / CAEN_1742_GR)) {
-	
+
 	for (k = j - (CAEN_1742_CH / CAEN_1742_GR) + 1; k < j + 1; ++k) {
 
 	  switch(i) {
-	    
+
 	    case 1:
 	      wf[k][0] = wf[k][2];
 	      wf[k][1] = wf[k][2];
 	      break;
-	    
+
 	    case 2:
 	      wf[k][0] = wf[k][3];
 	      wf[k][1] = wf[k][3];
 	      wf[k][2] = wf[k][3];
 	      break;
-	      
+
 	    case CAEN_1742_LN - 1:
 	      wf[k][i] = wf[k][i-1];
 	      break;
@@ -774,7 +770,7 @@ int WorkerCaen1742::PeakCorrection(caen_1742 &data, const drs_correction &table)
 	      wf[k][i] = wf[k][i-1];
 	      wf[k][i+1] = wf[k][i-1];
 	      break;
-	      
+
 	    default:
 	      if (wf[k][i+1] - wf[k][i] > peakthresh) {
 
@@ -784,7 +780,7 @@ int WorkerCaen1742::PeakCorrection(caen_1742 &data, const drs_correction &table)
 
 		wf[k][i] = 0.5 * (wf[k][i+2] + wf[k][i-1]);
 		wf[k][i+1] = wf[k][i];
-	      }		
+	      }
 	      break;
 	  }
 	} // k
@@ -796,7 +792,7 @@ int WorkerCaen1742::PeakCorrection(caen_1742 &data, const drs_correction &table)
 }
 
 
-int WorkerCaen1742::TimeCorrection(caen_1742 &data, 
+int WorkerCaen1742::TimeCorrection(caen_1742 &data,
 				   const drs_correction &table,
 				   const std::vector<uint> &startcells)
 {
@@ -816,7 +812,7 @@ int WorkerCaen1742::TimeCorrection(caen_1742 &data,
       sample_time = 0.2;
 
     } else if (sampling_setting_ == 0x1) {
-      
+
       sample_time = 0.4;
 
     } else {
@@ -833,14 +829,14 @@ int WorkerCaen1742::TimeCorrection(caen_1742 &data,
       for (j = 1; j < CAEN_1742_LN; ++j) {
 
 	dt = table.time[i][(startcells[i]+j) % CAEN_1742_LN] - t0;
-	
+
 	if (dt > 0) {
 
 	  time[i][j] = time[i][j-1] + dt;
 	  LogDump("time[%i][%i] = %.4f", i, j, time[i][j]);
 
 	} else {
-	  
+
 	  time[i][j] = time[i][j-1] + dt + CAEN_1742_LN * sample_time;
 	  LogDump("time[%i][%i] = %.4f", i, j, time[i][j]);
 	}
@@ -851,10 +847,10 @@ int WorkerCaen1742::TimeCorrection(caen_1742 &data,
 
     initialized = true;
   }
-      
+
   // Now do a linear interpolation to the correct time points.
   for (i = 0; i < CAEN_1742_CH; ++i) {
-    
+
     grp_idx = i / (CAEN_1742_CH / CAEN_1742_GR);
     vcorr = 0.0;
     vrem = 0.0;
@@ -864,11 +860,11 @@ int WorkerCaen1742::TimeCorrection(caen_1742 &data,
     wf[0] = data.trace[i][0];
 
     for (j = 1; j < CAEN_1742_LN; ++j) {
-      
+
       // Find the next sample in time order.
       while ((k < CAEN_1742_LN - 2) && (time[grp_idx][k+1] < j * sample_time))
 	++k;
-      
+
       dv = data.trace[i][k+1] - data.trace[i][k];
       dt = time[grp_idx][k+1] - time[grp_idx][k];
       vcorr = (float) dv / dt * (j * sample_time - time[grp_idx][k]);
@@ -880,7 +876,7 @@ int WorkerCaen1742::TimeCorrection(caen_1742 &data,
     for (j = 0; j < CAEN_1742_LN; ++j) {
       data.trace[i][j] = wf[j];
     }
-  }    
+  }
 }
 
 
@@ -905,7 +901,7 @@ int WorkerCaen1742::GetChannelCorrectionData(uint ch, drs_correction &table)
   pagenum = (group % 2) ? 0xc00 : 0x800;
   pagenum |= (sampling_setting_) << 8;
   pagenum |= (ch % (CAEN_1742_CH / CAEN_1742_GR)) << 2;
-  
+
   LogMessage("channel %i pagenum = 0x%08x", ch, pagenum);
 
   // Get the cell corrections
@@ -913,9 +909,9 @@ int WorkerCaen1742::GetChannelCorrectionData(uint ch, drs_correction &table)
 
     do {
       rc = ReadFlashPage(group, pagenum, vec);
-      
+
     } while ((rc != 0) && (count++ < 100));
-    
+
     if (rc != 0) {
       LogError("failed to load cell correction data for channel %u", i);
     }
@@ -923,22 +919,22 @@ int WorkerCaen1742::GetChannelCorrectionData(uint ch, drs_correction &table)
     // Peak correction if needed.
     last = chunk;
     for (int j = start; j < start + chunk; ++j) {
-      
+
       // No correction.
       if (vec[j - start] != 0x7f) {
-	
+
 	table.cell[ch][j] = vec[j - start];
 
       } else {
-	
+
 	cell = (short)((vec[last + 1] << 8) | vec[last]);
-	
+
 	if (cell == 0) {
-	  
+
 	  table.cell[ch][j] = vec[j - start];
 
 	} else {
-	
+
 	  table.cell[ch][j] = cell;
 	}
 
@@ -967,15 +963,15 @@ int WorkerCaen1742::GetChannelCorrectionData(uint ch, drs_correction &table)
 
     do {
       rc = ReadFlashPage(group, pagenum, vec);
-      
+
     } while ((rc != 0) && (count++ < 100));
-    
+
     if (rc != 0) {
       LogError("failed to load nsample correction data for channel %u", i);
     }
-    
+
     for (int j = start; j < start + chunk; ++j) {
-      
+
       table.nsample[ch][j] = vec[j - start];
 
     }
@@ -986,7 +982,7 @@ int WorkerCaen1742::GetChannelCorrectionData(uint ch, drs_correction &table)
 
   // Read the time correction if it's the first channel in the group.
   if (ch % (CAEN_1742_CH / CAEN_1742_GR) == 0) {
-    
+
     LogDebug("loading time corrections for gr %i", ch % (CAEN_1742_LN / CAEN_1742_GR));
     pagenum &= 0xf00;
     pagenum |= 0xa0;
@@ -994,18 +990,18 @@ int WorkerCaen1742::GetChannelCorrectionData(uint ch, drs_correction &table)
     start = 0;
 
     for (int i = 0; i < 16; ++i) {
-      
+
       do {
         rc = ReadFlashPage(group, pagenum, vec);
-      
+
       } while ((rc != 0) && (count++ < 100));
-    
+
       if (rc != 0) {
         LogError("failed to load time correction data for channel %u", i);
       }
 
-      std::copy((float *)&vec[0], 
-		(float *)&vec[chunk], 
+      std::copy((float *)&vec[0],
+		(float *)&vec[chunk],
 		&table.time[group][start]);
 
       start += chunk / 4;
@@ -1014,8 +1010,8 @@ int WorkerCaen1742::GetChannelCorrectionData(uint ch, drs_correction &table)
   }
 }
 
-int WorkerCaen1742::ReadFlashPage(uint32_t group, 
-				  uint32_t pagenum, 
+int WorkerCaen1742::ReadFlashPage(uint32_t group,
+				  uint32_t pagenum,
 				  std::vector<int8_t> &page)
 {
   LogDebug("reading flash page 0x%08x for group %i", pagenum, group);
@@ -1046,7 +1042,7 @@ int WorkerCaen1742::ReadFlashPage(uint32_t group,
   if (rc != 0) {
     return rc;
   }
-  
+
   rc = Write16(gr_flash, 0xd2);
   if (rc != 0) {
     return rc;
@@ -1119,9 +1115,9 @@ int WorkerCaen1742::ReadFlashPage(uint32_t group,
 }
 
 
-// This ended up being a silly division of labor, 
+// This ended up being a silly division of labor,
 // might merge with GetChannelCorrectionData.
-int WorkerCaen1742::GetCorrectionData(drs_correction &table) 
+int WorkerCaen1742::GetCorrectionData(drs_correction &table)
 {
   for (uint ch = 0; ch < CAEN_1742_CH; ++ch) {
     GetChannelCorrectionData(ch, table);
@@ -1137,12 +1133,12 @@ int WorkerCaen1742::WriteCorrectionDataCsv()
   // unfinished, just printing for now
   std::ofstream out;
   out.open("correction_table.csv");
-  
+
   for (int i = -1; i < 1024; ++i) {
 
     // Cell corrections
     for (int j = 0; j < CAEN_1742_CH; ++j) {
-      
+
       if (i == -1) {
 
 	out << "cell_ch_" << j;
@@ -1150,7 +1146,7 @@ int WorkerCaen1742::WriteCorrectionDataCsv()
       }	else {
 
 	out << table.cell[j][i];
-	
+
       }
 
       out << ", ";
@@ -1159,7 +1155,7 @@ int WorkerCaen1742::WriteCorrectionDataCsv()
 
     // nsample corrections
     for (int j = 0; j < CAEN_1742_CH; ++j) {
-      
+
       if (i == -1) {
 
 	out << "nsample_ch_" << j;
@@ -1167,7 +1163,7 @@ int WorkerCaen1742::WriteCorrectionDataCsv()
       }	else {
 
 	out << (int)table.nsample[j][i];
-	
+
       }
 
       out << ", ";
@@ -1176,7 +1172,7 @@ int WorkerCaen1742::WriteCorrectionDataCsv()
 
     // timing corrections
     for (int j = 0; j < CAEN_1742_GR; ++j) {
-      
+
       if (i == -1) {
 
 	out << "time_gr_" << i + 1;
@@ -1184,7 +1180,7 @@ int WorkerCaen1742::WriteCorrectionDataCsv()
       }	else {
 
 	out << table.time[j][i];
-	
+
       }
 
       if (j != CAEN_1742_GR - 1) {
@@ -1192,7 +1188,7 @@ int WorkerCaen1742::WriteCorrectionDataCsv()
 	out << ", ";
 
       } else {
-	
+
 	out << std::endl;
 
       }

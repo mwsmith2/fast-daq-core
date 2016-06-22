@@ -2,7 +2,7 @@
 
 namespace daq {
 
-WorkerSis3302::WorkerSis3302(std::string name, std::string conf) : 
+WorkerSis3302::WorkerSis3302(std::string name, std::string conf) :
   WorkerVme<sis_3302>(name, conf)
 {
   LogMessage("worker created");
@@ -13,7 +13,7 @@ WorkerSis3302::WorkerSis3302(std::string name, std::string conf) :
 }
 
 void WorkerSis3302::LoadConfig()
-{ 
+{
   using std::string;
 
   int rc = 0, nerrors = 0;
@@ -25,9 +25,9 @@ void WorkerSis3302::LoadConfig()
   // Open the configuration file.
   boost::property_tree::ptree conf;
   boost::property_tree::read_json(conf_file_, conf);
-  
+
   // Get the base address for the device.  Convert from hex.
-  base_address_ = std::stoul(conf.get<string>("base_address"), nullptr, 0);
+  base_address_ = std::stoul(conf_.get<string>("base_address"), nullptr, 0);
 
   // Read the base register.
   rc = Read(CONTROL_STATUS, msg);
@@ -37,7 +37,7 @@ void WorkerSis3302::LoadConfig()
     ++nerrors;
 
   } else {
-   
+
     LogMessage("SIS3302 Found at 0x%08x", base_address_);
   }
 
@@ -64,11 +64,11 @@ void WorkerSis3302::LoadConfig()
   LogMessage("setting the control/status register");
   msg = 0;
 
-  if (conf.get<bool>("invert_ext_lemo")) {
+  if (conf_.get<bool>("invert_ext_lemo")) {
     msg = 0x10; // invert EXT TRIG
   }
-  
-  if (conf.get<bool>("user_led_on")) {
+
+  if (conf_.get<bool>("user_led_on")) {
     msg |= 0x1; // LED on
   }
 
@@ -81,7 +81,7 @@ void WorkerSis3302::LoadConfig()
     LogError("failed setting the control register");
     ++nerrors;
   }
-  
+
   rc = Read(CONTROL_STATUS, msg);
   if (rc != 0) {
 
@@ -96,30 +96,30 @@ void WorkerSis3302::LoadConfig()
   LogMessage("setting the acquisition register");
   msg = 0;
 
-  if (conf.get<bool>("enable_int_stop", true))
+  if (conf_.get<bool>("enable_int_stop", true))
     msg |= 0x1 << 6; //enable internal stop trigger
 
-  if (conf.get<bool>("enable_ext_lemo", true))
+  if (conf_.get<bool>("enable_ext_lemo", true))
     msg |= 0x1 << 8; //enable external lemo
 
   // Set the clock source
-  if (conf.get<bool>("enable_ext_clk", false)) {
-    
+  if (conf_.get<bool>("enable_ext_clk", false)) {
+
     LogMessage("enabling external clock");
     msg |= (0x5 << 12);
 
   } else {
 
-    int clk_rate = conf.get<int>("int_clk_setting_MHz", 100);
+    int clk_rate = conf_.get<int>("int_clk_setting_MHz", 100);
     LogMessage("enabling internal clock");
-    
+
     if (clk_rate > 100) {
 
       LogWarning("set point for internal clock too high, using 100MHz");
       msg |= (0x0 << 12);
 
     } else if (clk_rate == 100) {
-      
+
       msg |= (0x0 << 12);
 
     } else if ((clk_rate < 100) && (clk_rate > 50)) {
@@ -128,11 +128,11 @@ void WorkerSis3302::LoadConfig()
       msg |= (0x1 << 12);
 
     } else if (clk_rate == 50) {
-      
+
       msg |= (0x1 << 12);
 
     } else if ((clk_rate < 50) && (clk_rate > 25)) {
-      
+
       LogWarning("set point for internal clock floored to 25MHz");
       msg |= (0x2 << 12);
 
@@ -141,7 +141,7 @@ void WorkerSis3302::LoadConfig()
       msg |= (0x2 << 12);
 
     } else if ((clk_rate < 25) && (clk_rate > 10)) {
-      
+
       LogWarning("set point for internal clock floored to 10MHz");
       msg |= (0x3 << 12);
 
@@ -181,7 +181,7 @@ void WorkerSis3302::LoadConfig()
   }
 
   LogMessage("setting start/stop delays");
-  msg = conf.get<int>("start_delay", 0);
+  msg = conf_.get<int>("start_delay", 0);
 
   rc = Write(START_DELAY, msg);
   if (rc != 0) {
@@ -189,7 +189,7 @@ void WorkerSis3302::LoadConfig()
     ++nerrors;
   }
 
-  msg = conf.get<int>("stop_delay", 0);
+  msg = conf_.get<int>("stop_delay", 0);
   rc = Write(STOP_DELAY, msg);
   if (rc != 0) {
     LogError("failed to set stop delay");
@@ -204,8 +204,8 @@ void WorkerSis3302::LoadConfig()
   }
 
   // Set event configure register with changes
-  if (conf.get<bool>("enable_event_length_stop", true)) {
-    msg |= 0x1 << 5; 
+  if (conf_.get<bool>("enable_event_length_stop", true)) {
+    msg |= 0x1 << 5;
   }
 
   rc = Write(EVENT_CONFIG_ALL_ADC, msg);
@@ -213,7 +213,7 @@ void WorkerSis3302::LoadConfig()
     LogError("failed to set event configuration register");
     ++nerrors;
   }
-  
+
   LogMessage("setting event length register and pre-trigger buffer");
   // @hack -> The extra 512 pads against a problem in the wfd.
   msg = (SIS_3302_LN - 4 + 512) & 0xfffffc;
@@ -224,7 +224,7 @@ void WorkerSis3302::LoadConfig()
   }
 
   // Set the pre-trigger buffer length.
-  msg = std::stoi(conf.get<string>("pretrigger_samples", "0x0"), nullptr, 0);
+  msg = std::stoi(conf_.get<string>("pretrigger_samples", "0x0"), nullptr, 0);
   rc = Write(PRETRIGGER_DELAY_ALL_ADC, msg);
   if (rc != 0) {
     LogError("failed to set pre-trigger buffer");
@@ -325,7 +325,7 @@ bool WorkerSis3302::EventAvailable()
 
     usleep(1);
   } while ((rc != 0) && (count++ < kMaxPoll));
- 
+
   is_event = !(msg & 0x10000);
 
   if (is_event && go_time_) {
@@ -356,7 +356,7 @@ void WorkerSis3302::GetEvent(sis_3302 &bundle)
 
   // Check how long the event is.
   //expected SIS_3302_LN + 8
-  
+
   uint next_sample_address[SIS_3302_CH];
   static uint trace[SIS_3302_CH][SIS_3302_LN / 2];
   static uint timestamp[2];
@@ -380,9 +380,9 @@ void WorkerSis3302::GetEvent(sis_3302 &bundle)
   // Get the system time
   auto t1 = high_resolution_clock::now();
   auto dtn = t1.time_since_epoch() - t0_.time_since_epoch();
-  bundle.system_clock = duration_cast<milliseconds>(dtn).count();  
+  bundle.system_clock = duration_cast<milliseconds>(dtn).count();
   LogMessage("reading out event at time: %u", bundle.system_clock);
-  
+
   rc = Read(0x10000, timestamp[0]);
   if (rc != 0) {
     LogError("failed to read first byte of the device timestamp");

@@ -11,16 +11,12 @@ WorkerCaen1785::WorkerCaen1785(std::string name, std::string conf) : WorkerVme<c
 }
 
 void WorkerCaen1785::LoadConfig()
-{ 
-  // Open the configuration file.
-  boost::property_tree::ptree conf;
-  boost::property_tree::read_json(conf_file_, conf);
-
-  read_low_adc_ = conf.get<bool>("read_low_adc", false);
+{
+  read_low_adc_ = conf_.get<bool>("read_low_adc", false);
 
   // Get the base address for the device.  Convert from hex.
-  base_address_ = std::stoi(conf.get<std::string>("base_address"), nullptr, 0);
-  
+  base_address_ = std::stoi(conf_.get<std::string>("base_address"), nullptr, 0);
+
   int rc;
   uint msg = 0;
   ushort msg_16 = 0;
@@ -53,7 +49,7 @@ void WorkerCaen1785::LoadConfig()
 
   } else {
 
-    LogMessage("Firmware Revision: %i.%i", (msg_16 >> 8) & 0xff, msg_16& 0xff); 
+    LogMessage("Firmware Revision: %i.%i", (msg_16 >> 8) & 0xff, msg_16& 0xff);
   }
 
   // Disable suppressors.
@@ -111,10 +107,10 @@ caen_1785 WorkerCaen1785::PopEvent()
     // Copy and pop the data.
     data = data_queue_.front();
     data_queue_.pop();
-    
+
     // Check if this is that last event.
     if (data_queue_.size() == 0) has_event_ = false;
-    
+
     queue_mutex_.unlock();
     return data;
   }
@@ -135,7 +131,7 @@ bool WorkerCaen1785::EventAvailable()
   }
 
   is_event = (msg_16 & 0x1);
-  
+
   // Check to make sure the buffer isn't empty.
   rc = Read16(0x1022, msg_16);
   if (rc != 0) {
@@ -171,7 +167,7 @@ void WorkerCaen1785::GetEvent(caen_1785 &bundle)
     offset += 4;
 
     if (((data >> 24) & 0x7) == 0x0) {
-      
+
       if (((data >> 17) & 0x1) && read_low_adc_) {
 
 	// Skip high values.

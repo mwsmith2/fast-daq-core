@@ -2,7 +2,7 @@
 
 namespace daq {
 
-WorkerDrs4::WorkerDrs4(std::string name, std::string conf) : 
+WorkerDrs4::WorkerDrs4(std::string name, std::string conf) :
   WorkerBase<drs4>(name, conf)
 {
   // Load the drs board.
@@ -19,13 +19,9 @@ WorkerDrs4::WorkerDrs4(std::string name, std::string conf) :
 }
 
 void WorkerDrs4::LoadConfig()
-{ 
-  // Open the configuration file.
-  boost::property_tree::ptree conf;
-  boost::property_tree::read_json(conf_file_, conf);
-
+{
   // Get the board
-  board_ = drs_->GetBoard(conf.get<int>("board_number", 0));
+  board_ = drs_->GetBoard(conf_.get<int>("board_number", 0));
 
   // Reset the usb device in case it was shutdown improperly.
   libusb_reset_device(board_->GetUSBInterface()->dev);
@@ -34,10 +30,10 @@ void WorkerDrs4::LoadConfig()
   board_->Init();
 
   // Start setting config file parameters.
-  board_->SetFrequency(conf.get<double>("sampling_rate", 5.12), true);
-  board_->SetInputRange(conf.get<double>("voltage_range", 0.0)); //central V
+  board_->SetFrequency(conf_.get<double>("sampling_rate", 5.12), true);
+  board_->SetInputRange(conf_.get<double>("voltage_range", 0.0)); //central V
 
-  if (conf.get<bool>("trigger_ext")) {
+  if (conf_.get<bool>("trigger_ext")) {
 
     // The following sets the trigger to external for DRS4
     board_->EnableTrigger(1, 0); // enable hardware trigger
@@ -45,9 +41,9 @@ void WorkerDrs4::LoadConfig()
 
   } else {
 
-    int ch = conf.get<int>("trigger_chan", 1);
-    double thresh = conf.get<double>("trigger_thresh", 0.05);
-    positive_trg_ = conf.get<bool>("trigger_pos", false);
+    int ch = conf_.get<int>("trigger_chan", 1);
+    double thresh = conf_.get<double>("trigger_thresh", 0.05);
+    positive_trg_ = conf_.get<bool>("trigger_pos", false);
 
     // This sets a hardware trigger on Ch_1 at 50 mV positive edge
     board_->SetTranspMode(1); // Needed for analog trigger
@@ -67,7 +63,7 @@ void WorkerDrs4::LoadConfig()
     board_->SetTriggerLevel(!positive_trg_); // neg edge
   }
 
-  int trg_delay = conf.get<int>("trigger_delay");
+  int trg_delay = conf_.get<int>("trigger_delay");
   board_->SetTriggerDelayNs(trg_delay); // 100 = 30 ns before trigger
 
 } // LoadConfig
@@ -91,7 +87,7 @@ void WorkerDrs4::WorkLoop()
         queue_mutex_.unlock();
 
       } else {
-	
+
         std::this_thread::yield();
     	  usleep(daq::short_sleep);
 
@@ -147,7 +143,7 @@ void WorkerDrs4::GetEvent(drs4 &bundle)
 
   //move waves into buffer
   board_->TransferWaves(0, DRS4_CH*2);
-  
+
   // Now read the raw waveform arrays
   for (int i = 0; i < DRS4_CH; i++){
     board_->DecodeWave(0, i*2, bundle.trace[i]);

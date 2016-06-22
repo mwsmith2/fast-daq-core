@@ -2,7 +2,7 @@
 
 namespace daq {
 
-WorkerSis3350::WorkerSis3350(std::string name, std::string conf) : 
+WorkerSis3350::WorkerSis3350(std::string name, std::string conf) :
   WorkerVme<sis_3350>(name, conf)
 {
   num_ch_ = SIS_3350_CH;
@@ -12,19 +12,15 @@ WorkerSis3350::WorkerSis3350(std::string name, std::string conf) :
 }
 
 void WorkerSis3350::LoadConfig()
-{ 
+{
   int rc = 0;
   uint msg = 0;
 
-  // Open the configuration file.
-  boost::property_tree::ptree conf;
-  boost::property_tree::read_json(conf_file_, conf);
-
   // Get the device filestream.  If it isn't open, open it.
-  std::string dev_path = conf.get<std::string>("device");
+  std::string dev_path = conf_.get<std::string>("device");
 
   // Get the base address.  Needs to be converted from hex.
-  base_address_ = std::stoul(conf.get<std::string>("base_address"), nullptr, 0);
+  base_address_ = std::stoul(conf_.get<std::string>("base_address"), nullptr, 0);
 
   // Check for device.
   rc = Read(0x0, msg);
@@ -50,7 +46,7 @@ void WorkerSis3350::LoadConfig()
     LogError("failed to read device ID register");
 
   } else {
-  
+
     LogMessage("ID: %04x, maj rev: %02x, min rev: %02x",
                msg >> 16, (msg >> 8) & 0xff, msg & 0xff);
   }
@@ -58,11 +54,11 @@ void WorkerSis3350::LoadConfig()
   // Set and check the control/status register.
   msg = 0;
 
-  if (conf.get<bool>("invert_ext_lemo")) {
+  if (conf_.get<bool>("invert_ext_lemo")) {
     msg |= 0x10; // invert EXT TRIG
   }
 
-  if (conf.get<bool>("user_led_on")) {
+  if (conf_.get<bool>("user_led_on")) {
     msg |= 0x1; // LED on
   }
 
@@ -85,7 +81,7 @@ void WorkerSis3350::LoadConfig()
   // Set to the acquisition register.
   msg = 0x1;//sync ring buffer mode
 
-  if (conf.get<bool>("enable_ext_lemo")) {
+  if (conf_.get<bool>("enable_ext_lemo")) {
     msg |= 0x1 << 8; //enable EXT LEMO
   }
 
@@ -154,7 +150,7 @@ void WorkerSis3350::LoadConfig()
     if (rc != 0) {
       LogError("failure to read DAC status register");
     }
-      
+
   } while (((msg & 0x8000) == 0x8000) && (count++ < pollmax));
 
   if (count >= pollmax) {
@@ -177,7 +173,7 @@ void WorkerSis3350::LoadConfig()
     if (rc != 0) {
       LogError("failure to read DAC status register");
     }
-    
+
   } while (((msg & 0x8000) == 0x8000) && (count++ < pollmax));
 
   if (count >= pollmax) {
@@ -196,7 +192,7 @@ void WorkerSis3350::LoadConfig()
 
     LogMessage("board temperature: %.2f degC", (float)msg / 4.0);
   }
-  
+
   //ring buffer sample length
   msg = SIS_3350_LN;
   rc = Write(0x01000020, msg);
@@ -205,7 +201,7 @@ void WorkerSis3350::LoadConfig()
   }
 
   //ring buffer pre-trigger sample length
-  msg = std::stoi(conf.get<std::string>("pretrigger_samples"), nullptr, 0);
+  msg = std::stoi(conf_.get<std::string>("pretrigger_samples"), nullptr, 0);
   rc = Write(0x01000024, msg);
   if (rc != 0) {
     LogError("failed to set ring buffer pre-trigger buffer");
@@ -214,7 +210,7 @@ void WorkerSis3350::LoadConfig()
   //range -1.5 to +0.3 V
   uint ch = 0;
   //DAC offsets
-  for (auto &val : conf.get_child("channel_offset")) {
+  for (auto &val : conf_.get_child("channel_offset")) {
 
     int offset = 0x02000050;
     offset |= (ch >> 1) << 24;
@@ -277,7 +273,7 @@ void WorkerSis3350::LoadConfig()
 
   //gain - factory default 18 -> 5V
   ch = 0;
-  for (auto &val : conf.get_child("channel_gain")) {
+  for (auto &val : conf_.get_child("channel_gain")) {
     //  for (ch = 0; ch < SIS_3350_CH; ch++) {
     msg = val.second.get_value<int>();
 
@@ -288,7 +284,7 @@ void WorkerSis3350::LoadConfig()
     if (rc != 0) {
       LogError("failed to set gain for channel %i", ch);
     }
-    
+
     LogMessage("ADC %d gain %d", ch, msg);
 
     ++ch;
@@ -310,10 +306,10 @@ void WorkerSis3350::WorkLoop()
 
     // Grab the event if we have one.
     if (EventAvailable()) {
-      
+
       static sis_3350 bundle;
       GetEvent(bundle);
-      
+
       queue_mutex_.lock();
       data_queue_.push(bundle);
       has_event_ = true;
@@ -323,9 +319,9 @@ void WorkerSis3350::WorkLoop()
 	data_queue_.pop();
 
       queue_mutex_.unlock();
-      
+
     } else {
-      
+
       std::this_thread::yield();
       usleep(daq::short_sleep);
     }
@@ -344,7 +340,7 @@ sis_3350 WorkerSis3350::PopEvent()
 
   if (data_queue_.empty()) {
     sis_3350 str;
-    
+
     queue_mutex_.unlock();
     return str;
   }
@@ -375,7 +371,7 @@ bool WorkerSis3350::EventAvailable()
       LogError("failure to read acquisition status register");
     }
   } while ((rc != 0) && (count++ < 100));
- 
+
   is_event = !(msg & 0x10000);
 
   // rearm the logic
@@ -407,11 +403,11 @@ void WorkerSis3350::GetEvent(sis_3350 &bundle)
 
   // Check how long the event is.
   //expected SIS_3350_LN + 8
-  
+
   uint next_sample_address[4] = {0, 0, 0, 0};
-  
+
   for (ch = 0; ch < SIS_3350_CH; ch++) {
-    
+
     offset = 0x02000010;
     offset |= (ch >> 1) << 24;
     offset |= (ch & 0x1) << 2;
