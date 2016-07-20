@@ -6,10 +6,10 @@
   author: Matthias W. Smith
   email:  mwsmith2@uw.edu
   file:   worker_sis3316.hh
-  
+
   about:  Implements the core functionality of the SIS 3316 device needed
           to operate in this daq.  It loads a config file for several
-          settings, then launches a data gathering thread to poll for 
+          settings, then launches a data gathering thread to poll for
           triggered events.
 
 \*===========================================================================*/
@@ -30,13 +30,13 @@ namespace daq {
 class WorkerSis3316 : public WorkerVme<sis_3316> {
 
  public:
-  
+
   // Ctor params:
   // name - used for naming the data branch in ROOT output
-  // conf - config file containing parameters like event length 
+  // conf - config file containing parameters like event length
   //        and sampling rate
   WorkerSis3316(std::string name, std::string conf);
-  
+
   // Reads the json config file and load the desired parameters.
   // An example:
   // {
@@ -87,7 +87,7 @@ class WorkerSis3316 : public WorkerVme<sis_3316> {
 
   // These registers are evenly spaced by 0x1000 between all 4 ADCs.
   const static uint CH1_4_INPUT_TAP_DELAY = 0x1000;
-  const static uint CH1_4_ANALOG_CTRL = 0x1004; 
+  const static uint CH1_4_ANALOG_CTRL = 0x1004;
   const static uint CH1_4_DAC_OFFSET_CTRL = 0x1008;
   const static uint CH1_4_SPI_CTRL = 0x100c;
   const static uint CH1_4_EVENT_CONFIG = 0x1010;
@@ -107,7 +107,7 @@ class WorkerSis3316 : public WorkerVme<sis_3316> {
 
   // Other constants
   const static uint kAdcRegOffset = 0x1000;
-  const static uint kMaxPoll = 100;
+  const static uint kMaxPoll = 1000;
 
   // Variables
   std::chrono::high_resolution_clock::time_point t0_;
