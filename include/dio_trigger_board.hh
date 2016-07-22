@@ -7,7 +7,7 @@ author: Matthias W. Smith
 email:  mwsmith2@uw.edu
 file:   dio_trigger_board.hh
 
-about: Allows easy intuitive logic trigger based on acromag ip470 
+about: Allows easy intuitive logic trigger based on acromag ip470
        digital I/O boards.
 
 \*============================================================================*/
@@ -26,9 +26,12 @@ namespace daq {
 class DioTriggerBoard
 {
  public:
-  
+
   // Ctor params:
-  DioTriggerBoard(int board_addr, board_id bid, int trg_port);
+  DioTriggerBoard(int board_addr,
+                  board_id bid,
+                  int trg_port,
+                  bool use_sextets=true);
 
   // Set the proper acromag port used for sending TTL triggers.
   void SetTriggerPort(int trg_port) { trg_port_ = trg_port; };
