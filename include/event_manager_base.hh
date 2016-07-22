@@ -6,8 +6,8 @@
   author: Matthias W. Smith
   email:  mwsmith2@uw.edu
   file:   event_manager_base.hh
-  
-  about:  An abstract base class for which different event builders 
+
+  about:  An abstract base class for which different event builders
           shall descend. It has the basic run control member functions
 	  and data organizing functions.
 
@@ -31,12 +31,12 @@
 namespace daq {
 
 class EventManagerBase : public CommonBase {
-  
+
 public:
-  
+
   // ctor
   EventManagerBase() : CommonBase(std::string("EventManager")) {};
-  
+
   // dtor
   virtual ~EventManagerBase() {};
 
@@ -68,8 +68,8 @@ public:
   inline bool HasEvent() { return has_event_; };
 
 protected:
-  
-  const int kMaxQueueSize = 10;
+
+  const int kMaxQueueSize = 100;
   std::string conf_file_;
 
   std::queue<event_data> data_queue_;
