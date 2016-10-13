@@ -69,7 +69,8 @@ public:
 
 protected:
 
-  const int kMaxQueueSize = 100;
+  const int kMaxQueueSize = 300;
+
   std::string conf_file_;
 
   std::queue<event_data> data_queue_;
